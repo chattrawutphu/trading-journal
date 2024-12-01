@@ -1,257 +1,293 @@
 <!-- src/lib/components/trades/TradeOptionSelect.svelte -->
 <script>
-    import { createEventDispatcher, onMount } from 'svelte';
+    import { onMount } from 'svelte';
+    import { createEventDispatcher } from 'svelte';
+    import { clickOutside } from '$lib/utils/clickOutside';
+    import { fade } from 'svelte/transition';
     import { tradeOptionStore } from '$lib/stores/tradeOptionStore';
     import Button from '../common/Button.svelte';
-    import Input from '../common/Input.svelte';
-    import Loading from '../common/Loading.svelte';
-
-    export let type = 'SYMBOL'; // or 'STRATEGY'
-    export let value = '';
-    export let placeholder = '';
-    export let required = false;
 
     const dispatch = createEventDispatcher();
-    let showDropdown = false;
-    let showAddModal = false;
+
+    export let type = 'SYMBOL'; // SYMBOL or STRATEGY
+    export let value = '';
+    export let placeholder = 'Select an option';
+    export let required = false;
+
+    let isOpen = false;
     let searchTerm = '';
-    let newOptionValue = '';
     let editingOption = null;
-    let dropdownRef;
-    let inputRef;
+    let options = [];
+    let loading = false;
+    let error = '';
 
-    $: options = type === 'SYMBOL' ? $tradeOptionStore.symbols : $tradeOptionStore.strategies;
-    $: filteredOptions = searchTerm
-        ? options.filter(opt => 
-            opt.value.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-        : options;
-    $: selectedOption = options.find(opt => opt.value === value);
-
-    onMount(async () => {
-        await tradeOptionStore.loadOptions();
-        document.addEventListener('click', handleClickOutside);
-        return () => {
-            document.removeEventListener('click', handleClickOutside);
-        };
-    });
-
-    function handleClickOutside(event) {
-        if (dropdownRef && !dropdownRef.contains(event.target) && 
-            (!inputRef || !inputRef.contains(event.target))) {
-            showDropdown = false;
+    $: {
+        if (type === 'SYMBOL') {
+            options = $tradeOptionStore.symbols;
+        } else {
+            options = $tradeOptionStore.strategies;
         }
+        loading = $tradeOptionStore.loading;
+        error = $tradeOptionStore.error;
     }
+
+    $: filteredOptions = options
+        .filter(opt => opt.value.toLowerCase().includes(searchTerm.toLowerCase()))
+        .sort((a, b) => b.usageCount - a.usageCount);
+
+    $: if (value && !options.some(opt => opt.value === value)) {
+        searchTerm = value;
+    }
+
+    onMount(() => {
+        tradeOptionStore.loadOptions();
+    });
 
     async function handleSelect(option) {
         value = option.value;
-        dispatch('change', value);
-        showDropdown = false;
-        await tradeOptionStore.incrementUsage(option._id);
+        searchTerm = option.value;
+        isOpen = false;
+        dispatch('change', { value: option.value });
+        try {
+            await tradeOptionStore.incrementUsage(option._id);
+        } catch (err) {
+            console.error('Failed to increment usage:', err);
+        }
     }
 
     async function handleCreate() {
-        if (newOptionValue.trim()) {
-            try {
-                const option = await tradeOptionStore.createOption(type, newOptionValue);
-                value = option.value;
-                dispatch('change', value);
-                newOptionValue = '';
-                showAddModal = false;
-            } catch (error) {
-                console.error('Failed to create option:', error);
-            }
+        if (!searchTerm.trim()) return;
+        try {
+            const newOption = await tradeOptionStore.createOption(type, searchTerm.trim());
+            value = newOption.value;
+            searchTerm = newOption.value;
+            isOpen = false;
+            dispatch('change', { value: newOption.value });
+        } catch (err) {
+            console.error('Failed to create option:', err);
         }
     }
 
-    async function handleUpdate() {
-        if (editingOption && editingOption.value.trim()) {
-            try {
-                await tradeOptionStore.updateOption(editingOption._id, editingOption.value);
-                if (value === editingOption.oldValue) {
-                    value = editingOption.value;
-                    dispatch('change', value);
-                }
-                editingOption = null;
-            } catch (error) {
-                console.error('Failed to update option:', error);
+    async function handleUpdate(option) {
+        if (!searchTerm.trim() || searchTerm === option.value) {
+            editingOption = null;
+            return;
+        }
+        try {
+            const updatedOption = await tradeOptionStore.updateOption(option._id, searchTerm.trim());
+            if (value === option.value) {
+                value = updatedOption.value;
             }
+            searchTerm = value;
+            editingOption = null;
+        } catch (err) {
+            console.error('Failed to update option:', err);
         }
     }
 
-    async function handleDelete(option) {
-        if (confirm(`Are you sure you want to delete this ${type.toLowerCase()}?`)) {
-            try {
-                await tradeOptionStore.deleteOption(option._id);
-                if (value === option.value) {
-                    value = '';
-                    dispatch('change', value);
-                }
-            } catch (error) {
-                console.error('Failed to delete option:', error);
+    async function handleDelete(option, event) {
+        event.stopPropagation();
+        if (!confirm(`Are you sure you want to delete this ${type.toLowerCase()}?`)) return;
+        try {
+            await tradeOptionStore.deleteOption(option._id);
+            if (value === option.value) {
+                value = '';
+                searchTerm = '';
             }
+        } catch (err) {
+            console.error('Failed to delete option:', err);
         }
     }
 
-    function startEdit(option) {
-        editingOption = { 
-            ...option,
-            oldValue: option.value
-        };
+    function startEditing(option, event) {
+        event.stopPropagation();
+        editingOption = option;
+        searchTerm = option.value;
+    }
+
+    function handleInput() {
+        if (!isOpen) isOpen = true;
+        if (!editingOption) {
+            value = searchTerm;
+            dispatch('change', { value: searchTerm });
+        }
+    }
+
+    function handleClickOutside() {
+        isOpen = false;
+        editingOption = null;
+        searchTerm = value;
+    }
+
+    function handleKeydown(event) {
+        if (event.key === 'Enter') {
+            if (editingOption) {
+                handleUpdate(editingOption);
+            } else if (searchTerm && !filteredOptions.some(opt => opt.value === searchTerm)) {
+                handleCreate();
+            }
+        } else if (event.key === 'Escape') {
+            isOpen = false;
+            editingOption = null;
+            searchTerm = value;
+        }
     }
 </script>
 
-<div class="relative" bind:this={dropdownRef}>
+<div class="relative" use:clickOutside on:clickoutside={handleClickOutside}>
     <!-- Input Field -->
     <div class="relative">
         <input
             type="text"
-            bind:this={inputRef}
-            readonly
-            {value}
-            {placeholder}
             {required}
-            class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-            on:click={() => showDropdown = !showDropdown}
+            bind:value={searchTerm}
+            on:input={handleInput}
+            on:focus={() => isOpen = true}
+            on:keydown={handleKeydown}
+            {placeholder}
+            class="input w-full pr-10 bg-light-bg dark:bg-dark-bg"
         />
-        <div class="absolute inset-y-0 right-0 flex items-center pr-2">
-            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
+        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+            <button
+                type="button"
+                class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text transition-colors duration-200"
+                on:click={() => isOpen = !isOpen}
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
         </div>
     </div>
 
     <!-- Dropdown -->
-    {#if showDropdown}
-        <div class="absolute z-50 w-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg">
-            <!-- Search and Add -->
-            <div class="p-2 border-b border-slate-600 space-y-2">
-                <input
-                    type="text"
-                    bind:value={searchTerm}
-                    placeholder="Search..."
-                    class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                />
-                <button
-                    class="w-full text-left px-2 py-1 text-sm text-blue-400 hover:bg-slate-600 rounded-lg flex items-center"
-                    on:click={() => showAddModal = true}
-                >
-                    <i class="fas fa-plus-circle mr-2"></i>
-                    Add New {type}
-                </button>
-            </div>
-
-            <!-- Options List -->
-            <div class="max-h-60 overflow-y-auto">
-                {#if $tradeOptionStore.loading}
-                    <div class="p-2">
-                        <Loading size="sm" message="Loading options..." />
-                    </div>
-                {:else if filteredOptions.length === 0}
-                    <div class="p-2 text-sm text-slate-400 text-center">
-                        No options found
+    {#if isOpen}
+        <div 
+            class="absolute z-50 w-full mt-1 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-lg shadow-lg divide-y divide-light-border dark:divide-dark-border max-h-[300px] overflow-auto"
+            transition:fade={{ duration: 100 }}
+        >
+            {#if loading}
+                <div class="p-4 text-center text-light-text-muted dark:text-dark-text-muted">
+                    Loading...
+                </div>
+            {:else if error}
+                <div class="p-4 text-center text-red-500">
+                    {error}
+                </div>
+            {:else}
+                <!-- Options List -->
+                {#if filteredOptions.length > 0}
+                    <div class="max-h-[200px] overflow-y-auto">
+                        {#each filteredOptions as option}
+                            <div class="group relative hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200">
+                                {#if editingOption?._id === option._id}
+                                    <div class="flex items-center p-2">
+                                        <input
+                                            type="text"
+                                            bind:value={searchTerm}
+                                            on:keydown={handleKeydown}
+                                            class="input flex-1 mr-2 bg-light-bg dark:bg-dark-bg"
+                                        />
+                                        <div class="flex space-x-1">
+                                            <Button 
+                                                variant="primary"
+                                                size="sm"
+                                                on:click={() => handleUpdate(option)}
+                                            >
+                                                Save
+                                            </Button>
+                                            <Button 
+                                                variant="secondary"
+                                                size="sm"
+                                                on:click={() => {
+                                                    editingOption = null;
+                                                    searchTerm = value;
+                                                }}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                {:else}
+                                    <div class="flex items-center justify-between px-4 py-2">
+                                        <div 
+                                            class="flex-1 text-light-text dark:text-dark-text cursor-pointer"
+                                            on:click={() => handleSelect(option)}
+                                        >
+                                            {option.value}
+                                        </div>
+                                        <div class="hidden group-hover:flex items-center space-x-1">
+                                            <button
+                                                type="button"
+                                                class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text"
+                                                on:click={(e) => startEditing(option, e)}
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                </svg>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-red-500"
+                                                on:click={(e) => handleDelete(option, e)}
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                {/if}
+                            </div>
+                        {/each}
                     </div>
                 {:else}
-                    {#each filteredOptions as option}
-                        <div class="flex items-center justify-between px-4 py-2 hover:bg-slate-600">
-                            <button
-                                class="flex-grow text-left text-sm text-slate-300 hover:text-white"
-                                class:font-bold={value === option.value}
-                                on:click={() => handleSelect(option)}
-                            >
-                                {option.value}
-                            </button>
-                            <div class="flex items-center space-x-2">
-                                <button
-                                    class="text-blue-400 hover:text-blue-300 p-1 rounded hover:bg-slate-500"
-                                    on:click|stopPropagation={() => startEdit(option)}
-                                    title="Edit"
-                                >
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button
-                                    class="text-red-400 hover:text-red-300 p-1 rounded hover:bg-slate-500"
-                                    on:click|stopPropagation={() => handleDelete(option)}
-                                    title="Delete"
-                                >
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    {/each}
+                    <div class="p-4 text-center text-light-text-muted dark:text-dark-text-muted">
+                        No options found
+                    </div>
                 {/if}
-            </div>
+
+                <!-- Add New Option Button -->
+                <div class="p-4 bg-light-card dark:bg-dark-card border-t border-light-border dark:border-dark-border">
+                    {#if searchTerm.trim() && !filteredOptions.some(opt => opt.value === searchTerm.trim())}
+                        <Button 
+                            variant="primary"
+                            class="w-full"
+                            on:click={handleCreate}
+                        >
+                            <div class="flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Add "{searchTerm.trim()}"
+                            </div>
+                        </Button>
+                    {:else}
+                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted text-center">
+                            Type to add new {type.toLowerCase()}
+                        </div>
+                    {/if}
+                </div>
+            {/if}
         </div>
     {/if}
 </div>
 
-<!-- Add Modal -->
-{#if showAddModal}
-    <div class="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center">
-        <div class="bg-slate-800 rounded-lg w-full max-w-md mx-4 p-6">
-            <h2 class="text-2xl font-bold gradient-text mb-4">New {type}</h2>
-            <form on:submit|preventDefault={handleCreate} class="space-y-4">
-                <Input
-                    label={type}
-                    type="text"
-                    bind:value={newOptionValue}
-                    required
-                    placeholder={`Enter new ${type.toLowerCase()}`}
-                />
-                <div class="flex justify-end gap-4">
-                    <Button 
-                        type="button" 
-                        variant="secondary" 
-                        on:click={() => {
-                            showAddModal = false;
-                            newOptionValue = '';
-                        }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button type="submit" variant="primary">
-                        Create
-                    </Button>
-                </div>
-            </form>
-        </div>
-    </div>
-{/if}
-
-<!-- Edit Modal -->
-{#if editingOption}
-    <div class="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center">
-        <div class="bg-slate-800 rounded-lg w-full max-w-md mx-4 p-6">
-            <h2 class="text-2xl font-bold gradient-text mb-4">Edit {type}</h2>
-            <form on:submit|preventDefault={handleUpdate} class="space-y-4">
-                <Input
-                    label={type}
-                    type="text"
-                    bind:value={editingOption.value}
-                    required
-                    placeholder={`Enter ${type.toLowerCase()}`}
-                />
-                <div class="flex justify-end gap-4">
-                    <Button 
-                        type="button" 
-                        variant="secondary" 
-                        on:click={() => editingOption = null}
-                    >
-                        Cancel
-                    </Button>
-                    <Button type="submit" variant="primary">
-                        Save Changes
-                    </Button>
-                </div>
-            </form>
-        </div>
-    </div>
-{/if}
-
 <style>
-    .gradient-text {
-        background: linear-gradient(45deg, #3b82f6, #8b5cf6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+    /* Ensure input background color matches theme */
+    :global(.input) {
+        background-color: var(--bg-color) !important;
+        color: var(--text-color) !important;
+        border-color: var(--border-color) !important;
+    }
+
+    /* Dropdown styling */
+    .absolute {
+        background-color: var(--bg-color);
+        border-color: var(--border-color);
+    }
+
+    button:hover {
+        background-color: var(--hover-color);
     }
 </style>

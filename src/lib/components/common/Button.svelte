@@ -2,55 +2,128 @@
 <script>
     export let type = 'button';
     export let variant = 'primary';
+    export let size = 'md';
     export let disabled = false;
+    export let loading = false;
+    export let icon = '';
+    export let iconPosition = 'left';
   
     const variants = {
-      primary: 'btn-glow bg-blue-600 text-white hover:bg-blue-700',
-      secondary: 'bg-slate-600 text-white hover:bg-slate-700',
-      danger: 'bg-red-600 text-white hover:bg-red-700'
+        primary: 'bg-gradient-purple hover:bg-gradient-purple-dark text-white shadow-lg shadow-theme-500/25',
+        secondary: 'bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text border border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover',
+        danger: 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25',
+        ghost: 'bg-transparent hover:bg-light-hover dark:hover:bg-dark-hover text-light-text dark:text-dark-text'
     };
-  </script>
-  
-  <button
+
+    const sizes = {
+        sm: 'px-3 py-1.5 text-sm',
+        md: 'px-4 py-2',
+        lg: 'px-6 py-3 text-lg'
+    };
+
+    $: isDisabled = disabled || loading;
+
+    $: classes = `
+        inline-flex items-center justify-center
+        font-medium rounded-lg
+        transition-all duration-200
+        focus:outline-none focus:ring-2 focus:ring-offset-2 
+        focus:ring-theme-500 dark:focus:ring-offset-dark-bg
+        disabled:opacity-50 disabled:cursor-not-allowed
+        ${variants[variant]}
+        ${sizes[size]}
+        ${loading ? 'cursor-wait' : ''}
+    `;
+</script>
+
+<button
     {type}
-    {disabled}
-    class="px-4 py-2 rounded-lg transition-colors {variants[variant]}"
+    disabled={isDisabled}
+    class={classes}
     on:click
-  >
-    <slot />
-  </button>
-  
-  <style>
-    .btn-glow {
-      position: relative;
-      z-index: 0;
-      overflow: hidden;
+>
+    {#if loading}
+        <svg 
+            class="animate-spin -ml-1 mr-2 h-4 w-4" 
+            fill="none" 
+            viewBox="0 0 24 24"
+        >
+            <circle 
+                class="opacity-25" 
+                cx="12" 
+                cy="12" 
+                r="10" 
+                stroke="currentColor" 
+                stroke-width="4"
+            />
+            <path 
+                class="opacity-75" 
+                fill="currentColor" 
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+        </svg>
+        <span>Loading...</span>
+    {:else}
+        {#if icon && iconPosition === 'left'}
+            <span class="mr-2">{@html icon}</span>
+        {/if}
+        <slot />
+        {#if icon && iconPosition === 'right'}
+            <span class="ml-2">{@html icon}</span>
+        {/if}
+    {/if}
+</button>
+
+<style>
+    /* Gradient animation on hover for primary variant */
+    button {
+        background-size: 200% 200%;
+        background-position: 0% 0%;
     }
-  
-    .btn-glow:before {
-      content: '';
-      background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      background-size: 400%;
-      z-index: -1;
-      filter: blur(5px);
-      width: calc(100% + 4px);
-      height: calc(100% + 4px);
-      animation: glowing 20s linear infinite;
-      opacity: 0;
-      transition: opacity .3s ease-in-out;
+
+    button:not(:disabled):hover {
+        background-position: 100% 100%;
     }
-  
-    .btn-glow:hover:before {
-      opacity: 1;
+
+    /* Ripple effect */
+    button {
+        position: relative;
+        overflow: hidden;
     }
-  
-    @keyframes glowing {
-      0% { background-position: 0 0; }
-      50% { background-position: 400% 0; }
-      100% { background-position: 0 0; }
+
+    button::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+        background-repeat: no-repeat;
+        background-position: 50%;
+        transform: scale(10, 10);
+        opacity: 0;
+        transition: transform .5s, opacity 1s;
     }
-  </style>
-  
+
+    button:active::after {
+        transform: scale(0, 0);
+        opacity: 0.3;
+        transition: 0s;
+    }
+
+    /* Loading animation */
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
