@@ -1,3 +1,155 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        --tw-border-opacity: 1;
+        --tw-bg-opacity: 1;
+        --tw-text-opacity: 1;
+    }
+
+    /* Light theme variables */
+    :root {
+        --border-color: rgb(229 231 235 / var(--tw-border-opacity));
+        --bg-color: rgb(255 255 255 / var(--tw-bg-opacity));
+        --text-color: rgb(31 41 55 / var(--tw-text-opacity));
+        --text-muted-color: rgb(107 114 128 / var(--tw-text-opacity));
+        --hover-color: rgb(243 244 246 / var(--tw-bg-opacity));
+    }
+
+    /* Dark theme variables */
+    .dark {
+        --border-color: rgb(51 65 85 / var(--tw-border-opacity));
+        --bg-color: rgb(15 23 42 / var(--tw-bg-opacity));
+        --text-color: rgb(241 245 249 / var(--tw-text-opacity));
+        --text-muted-color: rgb(148 163 184 / var(--tw-text-opacity));
+        --hover-color: rgb(30 41 59 / var(--tw-bg-opacity));
+    }
+
+    /* Base styles */
+    body {
+        @apply bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text;
+        transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    }
+
+    /* Form elements */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="date"],
+    input[type="datetime-local"],
+    input[type="search"],
+    textarea,
+    select {
+        @apply w-full rounded-lg px-4 py-2;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        transition: all 0.2s ease-in-out;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+        @apply outline-none ring-2 ring-theme-500 ring-opacity-50 border-transparent;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        color: var(--text-muted-color);
+    }
+
+    /* Date input icon */
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.5);
+    }
+
+    .dark input[type="date"]::-webkit-calendar-picker-indicator,
+    .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.8);
+    }
+
+    /* Select element */
+    select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+    }
+
+    /* Checkbox and Radio */
+    input[type="checkbox"],
+    input[type="radio"] {
+        @apply rounded border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-theme-500;
+        @apply focus:ring-2 focus:ring-theme-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-bg;
+        @apply transition-colors duration-200;
+    }
+
+    input[type="radio"] {
+        @apply rounded-full;
+    }
+}
+
+@layer components {
+    /* Card */
+    .card {
+        background-color: var(--bg-color);
+        border: 1px solid var(--border-color);
+        @apply rounded-lg shadow-lg transition-all duration-200;
+    }
+
+    /* Button */
+    .btn {
+        @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium;
+        @apply transition-all duration-200;
+        @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    }
+
+    .btn-primary {
+        @apply bg-gradient-purple text-white;
+        @apply hover:bg-gradient-purple-dark;
+        @apply focus:ring-theme-500;
+    }
+
+    .btn-secondary {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        @apply hover:bg-light-hover dark:hover:bg-dark-hover;
+        @apply focus:ring-theme-500;
+    }
+
+    /* Input */
+    .input {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        @apply rounded-lg px-4 py-2;
+        @apply transition-all duration-200;
+        @apply focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent;
+    }
+
+    /* Select */
+    .select {
+        @apply input appearance-none pr-10;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+    }
+}
+
+@layer utilities {
+    .bg-gradient-purple {
+        @apply bg-gradient-to-r from-theme-500 to-theme-600;
+    }
+
+    .bg-gradient-purple-dark {
+        @apply bg-gradient-to-r from-theme-600 to-theme-700;
+    }
+}

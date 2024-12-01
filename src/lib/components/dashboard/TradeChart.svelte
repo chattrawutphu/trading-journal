@@ -4,6 +4,7 @@
     import Chart from 'chart.js/auto';
     import 'chartjs-adapter-date-fns';
     import { formatCurrency } from '$lib/utils/formatters';
+    import { theme } from '$lib/stores/themeStore';
   
     export let openTrades = [];
     export let closedTrades = [];
@@ -14,24 +15,30 @@
   
     $: allTrades = [...openTrades, ...closedTrades];
     $: chartData = processChartData(allTrades, selectedPeriod);
+    $: isDark = $theme === 'dark';
+
+    // Theme-aware colors
+    $: chartColors = {
+        text: isDark ? '#94a3b8' : '#475569',
+        gridLines: isDark ? 'rgba(51, 65, 85, 0.5)' : 'rgba(226, 232, 240, 0.8)',
+        line: '#a855f7',
+        fill: isDark ? 'rgba(168, 85, 247, 0.1)' : 'rgba(168, 85, 247, 0.05)'
+    };
   
     function processChartData(trades, days) {
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - parseInt(days));
   
-      // Filter trades within the selected period
       const filteredTrades = trades.filter(trade => 
         new Date(trade.entryDate) >= startDate && 
         new Date(trade.entryDate) <= endDate
       );
   
-      // Sort trades by date
       const sortedTrades = filteredTrades.sort((a, b) => 
         new Date(a.entryDate) - new Date(b.entryDate)
       );
   
-      // Calculate cumulative PnL
       let runningPnL = 0;
       const dataPoints = sortedTrades.map(trade => {
         runningPnL += trade.pnl || 0;
@@ -41,7 +48,6 @@
         };
       });
   
-      // Ensure we have at least two points for the chart
       if (dataPoints.length === 0) {
         dataPoints.push({ x: startDate, y: 0 });
         dataPoints.push({ x: endDate, y: 0 });
@@ -61,12 +67,15 @@
           datasets: [{
             label: 'Cumulative P&L',
             data: chartData,
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderColor: chartColors.line,
+            backgroundColor: chartColors.fill,
             fill: true,
             tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: chartColors.line,
+            pointHoverBorderColor: isDark ? '#1e293b' : '#ffffff',
+            pointHoverBorderWidth: 2
           }]
         },
         options: {
@@ -81,6 +90,13 @@
               display: false
             },
             tooltip: {
+              backgroundColor: isDark ? '#1e293b' : '#ffffff',
+              titleColor: isDark ? '#e2e8f0' : '#1e293b',
+              bodyColor: isDark ? '#e2e8f0' : '#1e293b',
+              borderColor: isDark ? '#334155' : '#e2e8f0',
+              borderWidth: 1,
+              padding: 12,
+              cornerRadius: 8,
               callbacks: {
                 label: (context) => {
                   return `P&L: ${formatCurrency(context.parsed.y)}`;
@@ -97,16 +113,29 @@
               grid: {
                 display: false
               },
+              border: {
+                display: false
+              },
               ticks: {
-                color: '#94a3b8'
+                color: chartColors.text,
+                font: {
+                  size: 11
+                }
               }
             },
             y: {
               grid: {
-                color: 'rgba(148, 163, 184, 0.1)'
+                color: chartColors.gridLines,
+                drawBorder: false
+              },
+              border: {
+                display: false
               },
               ticks: {
-                color: '#94a3b8',
+                color: chartColors.text,
+                font: {
+                  size: 11
+                },
                 callback: (value) => formatCurrency(value)
               }
             }
@@ -118,6 +147,17 @@
     function updateChart() {
       if (chart) {
         chart.data.datasets[0].data = chartData;
+        chart.data.datasets[0].borderColor = chartColors.line;
+        chart.data.datasets[0].backgroundColor = chartColors.fill;
+        chart.data.datasets[0].pointHoverBackgroundColor = chartColors.line;
+        chart.data.datasets[0].pointHoverBorderColor = isDark ? '#1e293b' : '#ffffff';
+        chart.options.plugins.tooltip.backgroundColor = isDark ? '#1e293b' : '#ffffff';
+        chart.options.plugins.tooltip.titleColor = isDark ? '#e2e8f0' : '#1e293b';
+        chart.options.plugins.tooltip.bodyColor = isDark ? '#e2e8f0' : '#1e293b';
+        chart.options.plugins.tooltip.borderColor = isDark ? '#334155' : '#e2e8f0';
+        chart.options.scales.x.ticks.color = chartColors.text;
+        chart.options.scales.y.ticks.color = chartColors.text;
+        chart.options.scales.y.grid.color = chartColors.gridLines;
         chart.update();
       }
     }
@@ -139,32 +179,35 @@
     $: if (chart && (openTrades || closedTrades)) {
       updateChart();
     }
-  </script>
-  
-  <div class="space-y-4">
-    <div class="flex justify-between items-center">
-      <h2 class="text-xl font-semibold">Performance Chart</h2>
-      <select
-        bind:value={selectedPeriod}
-        on:change={handlePeriodChange}
-        class="bg-slate-700 border border-slate-600 rounded-lg p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-      >
-        <option value="7">Last 7 days</option>
-        <option value="30">Last 30 days</option>
-        <option value="90">Last 90 days</option>
-        <option value="180">Last 180 days</option>
-        <option value="365">Last 365 days</option>
-      </select>
-    </div>
-  
-    <div class="relative h-[400px]">
-      <canvas bind:this={canvas}></canvas>
-    </div>
-  </div>
-  
-  <style>
-    canvas {
-      width: 100% !important;
-      height: 100% !important;
+
+    $: if (chart && $theme) {
+      updateChart();
     }
-  </style>
+</script>
+  
+<div class="card p-6 space-y-6">
+    <div class="flex justify-between items-center">
+        <h2 class="text-xl font-semibold text-light-text dark:text-dark-text">Performance Chart</h2>
+        <select
+            bind:value={selectedPeriod}
+            on:change={handlePeriodChange}
+            class="input text-sm min-w-[120px]"
+        >
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="180">Last 180 days</option>
+            <option value="365">Last 365 days</option>
+        </select>
+    </div>
+  
+    <div class="relative h-[400px] bg-light-card dark:bg-dark-card rounded-lg p-4">
+        <canvas bind:this={canvas}></canvas>
+    </div>
+</div>
+  
+<style>
+    .card {
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;
+    }
+</style>

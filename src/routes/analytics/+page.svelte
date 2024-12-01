@@ -2,14 +2,25 @@
 <script>
     import { onMount } from 'svelte';
     import { accountStore } from '$lib/stores/accountStore';
+    import TradeChart from '$lib/components/dashboard/TradeChart.svelte';
+    import Select from '$lib/components/common/Select.svelte';
     import Loading from '$lib/components/common/Loading.svelte';
     import { api } from '$lib/utils/api';
-    import TradeChart from '$lib/components/dashboard/TradeChart.svelte';
 
     let loading = false;
     let error = '';
-    let trades = [];
-    let selectedPeriod = '30'; // days
+    let openTrades = [];
+    let closedTrades = [];
+    let selectedPeriod = '30';
+
+    const periods = [
+        { value: '7', label: 'Last 7 Days' },
+        { value: '30', label: 'Last 30 Days' },
+        { value: '90', label: 'Last 90 Days' },
+        { value: '180', label: 'Last 180 Days' },
+        { value: '365', label: 'Last Year' },
+        { value: 'all', label: 'All Time' }
+    ];
 
     $: if ($accountStore.currentAccount) {
         loadTrades();
@@ -24,8 +35,8 @@
             loading = true;
             error = '';
             const response = await api.getTrades($accountStore.currentAccount._id);
-            trades = response;
-            calculateMetrics();
+            openTrades = response.filter(trade => trade.status === 'OPEN');
+            closedTrades = response.filter(trade => trade.status === 'CLOSED');
         } catch (err) {
             error = err.message;
         } finally {
@@ -33,253 +44,221 @@
         }
     }
 
-    let metrics = {
-        profitFactor: 0,
-        sharpeRatio: 0,
-        maxDrawdown: 0,
-        winRate: 0,
-        avgWin: 0,
-        avgLoss: 0,
-        expectancy: 0,
-        consistency: 0
-    };
-
-    function calculateMetrics() {
-        const closedTrades = trades.filter(t => t.status === 'CLOSED');
-        if (closedTrades.length === 0) return;
-
-        // Win Rate
-        const winningTrades = closedTrades.filter(t => t.pnl > 0);
-        metrics.winRate = (winningTrades.length / closedTrades.length) * 100;
-
-        // Average Win/Loss
-        metrics.avgWin = winningTrades.reduce((sum, t) => sum + t.pnl, 0) / winningTrades.length;
-        const losingTrades = closedTrades.filter(t => t.pnl <= 0);
-        metrics.avgLoss = losingTrades.reduce((sum, t) => sum + t.pnl, 0) / losingTrades.length;
-
-        // Profit Factor
-        const grossProfit = winningTrades.reduce((sum, t) => sum + t.pnl, 0);
-        const grossLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0));
-        metrics.profitFactor = grossProfit / grossLoss;
-
-        // Expectancy
-        metrics.expectancy = (metrics.winRate/100 * metrics.avgWin) + ((1-metrics.winRate/100) * metrics.avgLoss);
-
-        // Maximum Drawdown
+    // Calculate metrics
+    $: totalTrades = closedTrades.length;
+    $: winningTrades = closedTrades.filter(t => t.pnl > 0).length;
+    $: winRate = totalTrades > 0 ? (winningTrades / totalTrades * 100).toFixed(1) : 0;
+    $: profitFactor = (() => {
+        const gains = closedTrades.reduce((sum, t) => sum + (t.pnl > 0 ? t.pnl : 0), 0);
+        const losses = Math.abs(closedTrades.reduce((sum, t) => sum + (t.pnl < 0 ? t.pnl : 0), 0));
+        return losses > 0 ? (gains / losses).toFixed(2) : '0.00';
+    })();
+    $: expectancy = (() => {
+        if (totalTrades === 0) return '$0.00';
+        const totalPnL = closedTrades.reduce((sum, t) => sum + t.pnl, 0);
+        return `$${(totalPnL / totalTrades).toFixed(2)}`;
+    })();
+    $: maxDrawdown = (() => {
         let peak = 0;
         let maxDrawdown = 0;
         let runningPnL = 0;
+        
         closedTrades.forEach(trade => {
             runningPnL += trade.pnl;
             if (runningPnL > peak) peak = runningPnL;
             const drawdown = peak - runningPnL;
             if (drawdown > maxDrawdown) maxDrawdown = drawdown;
         });
-        metrics.maxDrawdown = maxDrawdown;
+        
+        return `$${maxDrawdown.toFixed(2)}`;
+    })();
 
-        // Trading Consistency (standard deviation of daily returns)
-        const dailyReturns = {};
-        closedTrades.forEach(trade => {
-            const date = new Date(trade.exitDate).toLocaleDateString();
-            dailyReturns[date] = (dailyReturns[date] || 0) + trade.pnl;
-        });
-        const returns = Object.values(dailyReturns);
-        const mean = returns.reduce((sum, r) => sum + r, 0) / returns.length;
-        const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
-        metrics.consistency = Math.sqrt(variance);
-    }
-
-    const periodOptions = [
-        { value: '7', label: 'Last 7 Days' },
-        { value: '30', label: 'Last 30 Days' },
-        { value: '90', label: 'Last 90 Days' },
-        { value: '180', label: 'Last 180 Days' },
-        { value: '365', label: 'Last Year' }
-    ];
+    // Trading session analysis
+    $: tradingSessions = {
+        morning: closedTrades.filter(t => {
+            const hour = new Date(t.entryDate).getHours();
+            return hour >= 6 && hour < 12;
+        }).length,
+        afternoon: closedTrades.filter(t => {
+            const hour = new Date(t.entryDate).getHours();
+            return hour >= 12 && hour < 18;
+        }).length,
+        evening: closedTrades.filter(t => {
+            const hour = new Date(t.entryDate).getHours();
+            return hour >= 18 || hour < 6;
+        }).length
+    };
 </script>
 
 <div class="space-y-8 p-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">Advanced Analytics</h1>
+        <Select
+            options={periods}
+            bind:value={selectedPeriod}
+            class="w-40"
+        />
+    </div>
+
     {#if error}
-        <div class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-2 rounded">
-            {error}
+        <div class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">
+            <div class="flex">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                <span>{error}</span>
+            </div>
         </div>
     {/if}
 
-    <!-- Header -->
-    <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold gradient-text">Advanced Analytics</h1>
-        <select
-            bind:value={selectedPeriod}
-            class="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-        >
-            {#each periodOptions as option}
-                <option value={option.value}>{option.label}</option>
-            {/each}
-        </select>
-    </div>
-
     {#if loading}
         <Loading message="Loading analytics..." overlay={true} />
-    {:else if $accountStore.currentAccount}
+    {:else}
         <!-- Key Metrics -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Profit Factor -->
-            <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-lg font-semibold text-slate-300">Profit Factor</h3>
-                    <button class="text-slate-400 hover:text-white" title="Gross profit divided by gross loss. Higher is better.">
-                        <i class="fas fa-info-circle"></i>
-                    </button>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Profit Factor</h3>
+                    <div class="w-10 h-10 rounded-full bg-theme-500 bg-opacity-10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
                 </div>
-                <p class="text-3xl font-bold text-blue-500">
-                    {metrics.profitFactor.toFixed(2)}
-                </p>
+                <p class="text-3xl font-bold text-light-text dark:text-dark-text">{profitFactor}</p>
             </div>
 
-            <!-- Win Rate -->
-            <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-lg font-semibold text-slate-300">Win Rate</h3>
-                    <button class="text-slate-400 hover:text-white" title="Percentage of winning trades">
-                        <i class="fas fa-info-circle"></i>
-                    </button>
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Win Rate</h3>
+                    <div class="w-10 h-10 rounded-full bg-green-500 bg-opacity-10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
                 </div>
-                <p class="text-3xl font-bold text-green-500">
-                    {metrics.winRate.toFixed(1)}%
-                </p>
+                <p class="text-3xl font-bold text-light-text dark:text-dark-text">{winRate}%</p>
             </div>
 
-            <!-- Expectancy -->
-            <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-lg font-semibold text-slate-300">Expectancy</h3>
-                    <button class="text-slate-400 hover:text-white" title="Average expected profit/loss per trade">
-                        <i class="fas fa-info-circle"></i>
-                    </button>
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Expectancy</h3>
+                    <div class="w-10 h-10 rounded-full bg-theme-500 bg-opacity-10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
                 </div>
-                <p class="text-3xl font-bold {metrics.expectancy >= 0 ? 'text-green-500' : 'text-red-500'}">
-                    ${metrics.expectancy.toFixed(2)}
-                </p>
+                <p class="text-3xl font-bold text-light-text dark:text-dark-text">{expectancy}</p>
             </div>
 
-            <!-- Max Drawdown -->
-            <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-lg font-semibold text-slate-300">Max Drawdown</h3>
-                    <button class="text-slate-400 hover:text-white" title="Largest peak-to-trough decline">
-                        <i class="fas fa-info-circle"></i>
-                    </button>
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Max Drawdown</h3>
+                    <div class="w-10 h-10 rounded-full bg-red-500 bg-opacity-10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+                        </svg>
+                    </div>
                 </div>
-                <p class="text-3xl font-bold text-red-500">
-                    ${metrics.maxDrawdown.toFixed(2)}
-                </p>
+                <p class="text-3xl font-bold text-light-text dark:text-dark-text">{maxDrawdown}</p>
             </div>
         </div>
 
-        <!-- Trade Analysis -->
+        <!-- Trading Performance -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Average Win vs Loss -->
-            <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
-                <h3 class="text-xl font-bold text-slate-300 mb-4">Average Win vs Loss</h3>
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Average Win vs Loss</h3>
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">
-                        <span class="text-slate-400">Average Win</span>
-                        <span class="text-green-500 font-bold">${metrics.avgWin.toFixed(2)}</span>
+                        <span class="text-light-text-muted dark:text-dark-text-muted">Average Win</span>
+                        <span class="text-green-500 font-medium">
+                            ${closedTrades.filter(t => t.pnl > 0).reduce((sum, t) => sum + t.pnl, 0) / winningTrades || 0}
+                        </span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-slate-400">Average Loss</span>
-                        <span class="text-red-500 font-bold">${Math.abs(metrics.avgLoss).toFixed(2)}</span>
+                        <span class="text-light-text-muted dark:text-dark-text-muted">Average Loss</span>
+                        <span class="text-red-500 font-medium">
+                            ${Math.abs(closedTrades.filter(t => t.pnl < 0).reduce((sum, t) => sum + t.pnl, 0) / (totalTrades - winningTrades) || 0)}
+                        </span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-slate-400">Risk/Reward Ratio</span>
-                        <span class="text-blue-500 font-bold">
-                            {(Math.abs(metrics.avgWin / metrics.avgLoss)).toFixed(2)}
+                        <span class="text-light-text-muted dark:text-dark-text-muted">Risk/Reward Ratio</span>
+                        <span class="text-theme-500 font-medium">
+                            {((closedTrades.filter(t => t.pnl > 0).reduce((sum, t) => sum + t.pnl, 0) / winningTrades) / 
+                            Math.abs(closedTrades.filter(t => t.pnl < 0).reduce((sum, t) => sum + t.pnl, 0) / (totalTrades - winningTrades)) || 0).toFixed(2)}
                         </span>
                     </div>
                 </div>
             </div>
 
             <!-- Trading Consistency -->
-            <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
-                <h3 class="text-xl font-bold text-slate-300 mb-4">Trading Consistency</h3>
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Trading Consistency</h3>
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">
-                        <span class="text-slate-400">Volatility Score</span>
-                        <span class="text-purple-500 font-bold">{metrics.consistency.toFixed(2)}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400">Largest Win</span>
-                        <span class="text-green-500 font-bold">
-                            ${Math.max(...trades.filter(t => t.pnl > 0).map(t => t.pnl), 0).toFixed(2)}
+                        <span class="text-light-text-muted dark:text-dark-text-muted">Volatility Score</span>
+                        <span class="text-theme-500 font-medium">
+                            {(Math.sqrt(closedTrades.reduce((sum, t) => sum + Math.pow(t.pnl, 2), 0) / totalTrades) || 0).toFixed(2)}
                         </span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-slate-400">Largest Loss</span>
-                        <span class="text-red-500 font-bold">
-                            ${Math.abs(Math.min(...trades.filter(t => t.pnl < 0).map(t => t.pnl), 0)).toFixed(2)}
+                        <span class="text-light-text-muted dark:text-dark-text-muted">Largest Win</span>
+                        <span class="text-green-500 font-medium">
+                            ${Math.max(...closedTrades.map(t => t.pnl), 0).toFixed(2)}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-light-text-muted dark:text-dark-text-muted">Largest Loss</span>
+                        <span class="text-red-500 font-medium">
+                            ${Math.abs(Math.min(...closedTrades.map(t => t.pnl), 0)).toFixed(2)}
                         </span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Performance Chart -->
-        <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
-            <h3 class="text-xl font-bold text-slate-300 mb-4">Cumulative Performance</h3>
-            <TradeChart trades={trades} />
+        <!-- Cumulative Performance -->
+        <div class="card p-6">
+            <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Cumulative Performance</h3>
+            <TradeChart {openTrades} {closedTrades} />
         </div>
 
-        <!-- Trading Patterns -->
+        <!-- Trading Session Analysis -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Time Analysis -->
-            <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
-                <h3 class="text-xl font-bold text-slate-300 mb-4">Trading Session Analysis</h3>
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Trading Session Analysis</h3>
                 <div class="space-y-4">
-                    {#each ['Morning', 'Afternoon', 'Evening'] as session}
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-400">{session} Session</span>
-                            <span class="text-blue-500 font-bold">
-                                {trades.filter(t => {
-                                    const hour = new Date(t.entryDate).getHours();
-                                    return (
-                                        (session === 'Morning' && hour >= 4 && hour < 12) ||
-                                        (session === 'Afternoon' && hour >= 12 && hour < 20) ||
-                                        (session === 'Evening' && (hour >= 20 || hour < 4))
-                                    );
-                                }).length} trades
-                            </span>
-                        </div>
-                    {/each}
+                    <div class="flex justify-between items-center">
+                        <span class="text-light-text-muted dark:text-dark-text-muted">Morning Session</span>
+                        <span class="text-theme-500 font-medium">{tradingSessions.morning} trades</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-light-text-muted dark:text-dark-text-muted">Afternoon Session</span>
+                        <span class="text-theme-500 font-medium">{tradingSessions.afternoon} trades</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-light-text-muted dark:text-dark-text-muted">Evening Session</span>
+                        <span class="text-theme-500 font-medium">{tradingSessions.evening} trades</span>
+                    </div>
                 </div>
             </div>
 
             <!-- Strategy Performance -->
-            <div class="bg-slate-800 p-6 rounded-lg shadow-lg">
-                <h3 class="text-xl font-bold text-slate-300 mb-4">Strategy Performance</h3>
-                <div class="space-y-4">
-                    {#each [...new Set(trades.map(t => t.strategy))].filter(Boolean) as strategy}
-                        {@const strategyTrades = trades.filter(t => t.strategy === strategy)}
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-400">{strategy}</span>
-                            <span class="text-blue-500 font-bold">
-                                Win Rate: {((strategyTrades.filter(t => t.pnl > 0).length / strategyTrades.length) * 100).toFixed(1)}%
-                            </span>
-                        </div>
-                    {/each}
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Strategy Performance</h3>
+                <div class="flex items-center justify-center h-[200px] text-light-text-muted dark:text-dark-text-muted">
+                    Coming Soon
                 </div>
             </div>
-        </div>
-    {:else}
-        <div class="text-center text-slate-400 py-8">
-            Create an account to see your trading analytics
         </div>
     {/if}
 </div>
 
 <style>
-    .gradient-text {
-        background: linear-gradient(45deg, #3b82f6, #8b5cf6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+    .card {
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;
     }
 </style>

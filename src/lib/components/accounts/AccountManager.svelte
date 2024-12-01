@@ -60,13 +60,20 @@
 <div class="space-y-2">
     <!-- Error Message -->
     {#if error}
-        <div class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-2 rounded text-sm">
-            {error}
+        <div class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">
+            <div class="flex">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                <span>{error}</span>
+            </div>
             <button 
-                class="ml-2 text-red-500 hover:text-red-400"
+                class="float-right text-red-500 hover:text-red-400"
                 on:click={() => error = ''}
             >
-                <i class="fas fa-times"></i>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
             </button>
         </div>
     {/if}
@@ -79,9 +86,9 @@
     {:else if $accountStore.accounts.length > 0}
         <div class="py-1">
             {#each $accountStore.accounts as account}
-                <div class="flex items-center justify-between px-4 py-2 hover:bg-slate-600">
+                <div class="group flex items-center justify-between px-4 py-2 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200">
                     <button
-                        class="flex-grow text-left text-sm text-slate-300 hover:text-white"
+                        class="flex-grow text-left text-sm text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 transition-colors duration-200"
                         class:font-bold={$accountStore.currentAccount?._id === account._id}
                         on:click={() => {
                             accountStore.setCurrentAccount(account._id);
@@ -90,38 +97,44 @@
                     >
                         {account.name}
                     </button>
-                    <div class="flex items-center ml-2">
+                    <div class="hidden group-hover:flex items-center ml-2 space-x-1">
                         <button
-                            class="text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-slate-500 flex items-center"
+                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
                             on:click|stopPropagation={() => startEditAccount(account)}
                             title="Edit Account"
                         >
-                            <i class="fas fa-pencil text-lg"></i>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
                         </button>
                         <button
-                            class="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-slate-500 flex items-center"
+                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
                             on:click|stopPropagation={() => handleDeleteAccount(account._id)}
                             title="Delete Account"
                         >
-                            <i class="fas fa-trash-alt text-lg"></i>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
                         </button>
                     </div>
                 </div>
             {/each}
         </div>
     {:else}
-        <div class="px-4 py-2 text-sm text-slate-400">
+        <div class="px-4 py-2 text-sm text-light-text-muted dark:text-dark-text-muted">
             No accounts yet
         </div>
     {/if}
 
     <!-- Add Account Button -->
-    <div class="border-t border-slate-600 px-4 py-2">
+    <div class="border-t border-light-border dark:border-dark-border px-4 py-2">
         <button
-            class="w-full text-left px-2 py-1 text-sm text-blue-400 hover:bg-slate-600 rounded-lg flex items-center"
+            class="w-full text-left px-3 py-2 rounded-lg text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200 flex items-center"
             on:click|stopPropagation={() => showNewAccountModal = true}
         >
-            <i class="fas fa-plus-circle mr-2"></i>
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
             Add Account
         </button>
     </div>
@@ -129,9 +142,9 @@
 
 <!-- New Account Modal -->
 {#if showNewAccountModal}
-    <div class="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center">
-        <div class="bg-slate-800 rounded-lg w-full max-w-md mx-4 p-6">
-            <h2 class="text-2xl font-bold gradient-text mb-4">New Account</h2>
+    <div class="fixed inset-0 bg-light-bg/50 dark:bg-dark-bg/50 backdrop-blur-sm z-[100] flex items-center justify-center">
+        <div class="card w-full max-w-md mx-4 p-6">
+            <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent mb-4">New Account</h2>
             <form on:submit|preventDefault={handleCreateAccount} class="space-y-4">
                 <Input
                     label="Account Name"
@@ -162,9 +175,9 @@
 
 <!-- Edit Account Modal -->
 {#if showEditAccountModal && editingAccount}
-    <div class="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center">
-        <div class="bg-slate-800 rounded-lg w-full max-w-md mx-4 p-6">
-            <h2 class="text-2xl font-bold gradient-text mb-4">Edit Account</h2>
+    <div class="fixed inset-0 bg-light-bg/50 dark:bg-dark-bg/50 backdrop-blur-sm z-[100] flex items-center justify-center">
+        <div class="card w-full max-w-md mx-4 p-6">
+            <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent mb-4">Edit Account</h2>
             <form on:submit|preventDefault={handleUpdateAccount} class="space-y-4">
                 <Input
                     label="Account Name"
@@ -194,9 +207,7 @@
 {/if}
 
 <style>
-    .gradient-text {
-        background: linear-gradient(45deg, #3b82f6, #8b5cf6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+    .card {
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;
     }
 </style>

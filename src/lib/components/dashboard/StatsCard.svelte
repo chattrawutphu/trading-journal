@@ -6,40 +6,47 @@
     export let winRate = 0;
   
     $: pnlClass = pnl > 0 ? 'text-green-500' : pnl < 0 ? 'text-red-500' : '';
-  </script>
+</script>
   
-  <div class="card stats-card bg-slate-800 p-4 rounded-lg shadow-lg">
-    <h3 class="text-sm text-slate-400 mb-2">{title}</h3>
-    <div class="flex justify-between items-baseline mb-2">
-      <span class="text-2xl font-bold {pnlClass}">${pnl.toFixed(2)}</span>
-      <span class="text-sm text-slate-400">{trades} trades</span>
+<div class="card p-6 hover:scale-102 transition-all duration-300">
+    <h3 class="text-sm text-light-text-muted dark:text-dark-text-muted mb-3">{title}</h3>
+    <div class="flex justify-between items-baseline mb-4">
+        <span class="text-2xl font-bold {pnlClass}">${pnl.toFixed(2)}</span>
+        <div class="flex items-center space-x-2">
+            <span class="text-sm text-light-text-muted dark:text-dark-text-muted">{trades} trades</span>
+            <div class="h-4 w-[1px] bg-light-border dark:bg-dark-border"></div>
+            <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 rounded-full" class:bg-green-500={winRate >= 50} class:bg-red-500={winRate < 50}></div>
+                <span class="text-sm text-light-text-muted dark:text-dark-text-muted">{winRate.toFixed(1)}%</span>
+            </div>
+        </div>
     </div>
-    <div class="mb-2">
-      <div class="flex justify-between text-xs mb-1">
-        <span>Win Rate</span>
-        <span>{winRate.toFixed(1)}%</span>
-      </div>
-      <div class="win-rate-bar rounded-full" style="--win-rate: {winRate}%"></div>
+    <div class="space-y-2">
+        <div class="flex justify-between text-xs text-light-text dark:text-dark-text">
+            <span>Win Rate</span>
+            <span class="font-medium">{winRate.toFixed(1)}%</span>
+        </div>
+        <div class="relative h-2 bg-light-hover dark:bg-dark-hover rounded-full overflow-hidden">
+            <div 
+                class="absolute top-0 left-0 h-full rounded-full transition-all duration-300"
+                class:bg-gradient-purple={winRate >= 50}
+                class:bg-red-500={winRate < 50}
+                style="width: {winRate}%"
+            ></div>
+        </div>
     </div>
-  </div>
-  
-  <style>
-    .stats-card {
-      background: rgba(30, 41, 59, 0.7);
-      border: 1px solid rgba(148, 163, 184, 0.1);
-      backdrop-filter: blur(10px);
-      transition: all 0.3s ease;
+</div>
+
+<style>
+    .card {
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+        backdrop-filter: blur(10px);
+        border: 1px solid;
+        border-color: rgba(255, 255, 255, 0.1);
     }
-  
-    .stats-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    :global(.light) .card {
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%);
+        border-color: rgba(0, 0, 0, 0.1);
     }
-  
-    .win-rate-bar {
-      height: 4px;
-      background: linear-gradient(to right, #22c55e var(--win-rate), #ef4444 var(--win-rate));
-      border-radius: 24px;
-    }
-  </style>
-  
+</style>
