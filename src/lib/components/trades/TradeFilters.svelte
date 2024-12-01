@@ -48,7 +48,7 @@
   
 <div class="card p-6 mb-8">
     <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold text-light-text dark:text-dark-text">Filter Trades</h2>
+        <h2 class="text-lg font-semibold text-light-text-muted dark:text-dark-text">Filter Trades</h2>
         <Button 
             variant="secondary"
             on:click={handleReset}

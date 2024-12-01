@@ -1,4 +1,4 @@
-<!-- Previous script content remains the same until the form layout part --><script>
+<!-- Previous script content remains the same until the form initialization part --><script>
     import { createEventDispatcher } from 'svelte';
     import { fade } from 'svelte/transition';
     import Select from '../common/Select.svelte';
@@ -34,17 +34,14 @@
       strategy: '',
       emotions: '',
       notes: '',
+      url: '',
       confidenceLevel: 5,
       greedLevel: 5,
       hasStopLoss: false,
       hasTakeProfit: false,
-      image: null,
       favorite: false,
       disabled: false
     };
-
-    let imagePreview = null;
-    let imageError = '';
   
     $: if (trade) {
       form = { 
@@ -52,9 +49,6 @@
         entryDate: trade.entryDate ? new Date(trade.entryDate).toISOString().slice(0, 16) : getCurrentDateTime(),
         exitDate: trade.exitDate ? new Date(trade.exitDate).toISOString().slice(0, 16) : ''
       };
-      if (trade.image?.data) {
-        imagePreview = `data:${trade.image.contentType};base64,${arrayBufferToBase64(trade.image.data)}`;
-      }
     } else {
       form.account = accountId;
       form.entryDate = entryDate || getCurrentDateTime();
@@ -67,39 +61,6 @@
 
     $: if (form.status === 'CLOSED' && !form.exitDate) {
         form.exitDate = getCurrentDateTime();
-    }
-
-    function arrayBufferToBase64(buffer) {
-      const binary = new Uint8Array(buffer).reduce(
-        (data, byte) => data + String.fromCharCode(byte),
-        ''
-      );
-      return btoa(binary);
-    }
-
-    async function handleImageUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      if (file.size > 409600) {
-        imageError = 'Image size must not exceed 400KB';
-        event.target.value = '';
-        return;
-      }
-
-      imageError = '';
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        imagePreview = e.target.result;
-        form.image = {
-          data: e.target.result.split(',')[1],
-          contentType: file.type,
-          size: file.size
-        };
-      };
-      
-      reader.readAsDataURL(file);
     }
 
     function calculatePnL() {
@@ -169,16 +130,14 @@
         strategy: '',
         emotions: '',
         notes: '',
+        url: '',
         confidenceLevel: 5,
         greedLevel: 5,
         hasStopLoss: false,
         hasTakeProfit: false,
-        image: null,
         favorite: false,
         disabled: false
       };
-      imagePreview = null;
-      imageError = '';
     }
 
     const statusOptions = [
@@ -206,7 +165,7 @@
                 {trade ? 'Edit Trade' : 'New Trade'}
             </h2>
             <button 
-                class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text transition-colors duration-200" 
+                class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text-muted dark:hover:text-dark-text transition-colors duration-200" 
                 on:click={close}
             >
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,7 +340,7 @@
                                 bind:checked={form.hasStopLoss}
                                 class="checkbox"
                             />
-                            <span class="text-light-text dark:text-dark-text">Has Stop Loss</span>
+                            <span class="text-light-text-muted dark:text-dark-text">Has Stop Loss</span>
                         </label>
                         <label class="flex items-center space-x-2">
                             <input
@@ -389,7 +348,7 @@
                                 bind:checked={form.hasTakeProfit}
                                 class="checkbox"
                             />
-                            <span class="text-light-text dark:text-dark-text">Has Take Profit</span>
+                            <span class="text-light-text-muted dark:text-dark-text">Has Take Profit</span>
                         </label>
                     </div>
 
@@ -413,38 +372,13 @@
                             />
                         </div>
 
-                        <!-- Image Upload -->
-                        <div>
-                            <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-1">
-                                Trade Image (max 400KB)
-                            </label>
-                            <div class="flex items-center justify-center w-full">
-                                <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-light-border dark:border-dark-border rounded-lg cursor-pointer bg-light-hover dark:bg-dark-hover hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200">
-                                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <svg class="w-8 h-8 mb-3 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                                        </svg>
-                                        <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
-                                            Click to upload or drag and drop
-                                        </p>
-                                    </div>
-                                    <input 
-                                        type="file"
-                                        accept="image/*"
-                                        class="hidden"
-                                        on:change={handleImageUpload}
-                                    />
-                                </label>
-                            </div>
-                            {#if imageError}
-                                <p class="mt-2 text-sm text-red-500">{imageError}</p>
-                            {/if}
-                            {#if imagePreview}
-                                <div class="mt-4">
-                                    <img src={imagePreview} alt="Trade" class="max-h-48 rounded-lg mx-auto" />
-                                </div>
-                            {/if}
-                        </div>
+                        <!-- URL Input -->
+                        <Input
+                            label="URL"
+                            type="url"
+                            bind:value={form.url}
+                            placeholder="Enter a URL (e.g., TradingView chart, image, etc.)"
+                        />
                     </div>
                 </form>
             </div>

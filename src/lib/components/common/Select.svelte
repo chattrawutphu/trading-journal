@@ -10,7 +10,7 @@
 
 <div class="w-full">
     {#if label}
-        <label class="block mb-2 text-sm font-medium text-light-text dark:text-dark-text">
+        <label class="block mb-2 text-sm font-medium ttext-light-text-muted dark:text-dark-text-muted">
             {label}
             {#if required}
                 <span class="text-red-500">*</span>
@@ -72,7 +72,7 @@
 
     /* Style select options */
     :global(select option) {
-        @apply bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text;
+        @apply bg-light-card dark:bg-dark-card text-light-text-muted dark:text-dark-text;
         padding: 0.5rem;
     }
 

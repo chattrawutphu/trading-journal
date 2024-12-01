@@ -11,7 +11,7 @@
 
 <div class="w-full">
     {#if label}
-        <label class="block mb-2 text-sm font-medium text-light-text dark:text-dark-text">
+        <label class="block mb-2 text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
             {label}
             {#if required}
                 <span class="text-red-500">*</span>

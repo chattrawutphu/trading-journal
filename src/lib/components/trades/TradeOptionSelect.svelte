@@ -150,7 +150,7 @@
         <div class="absolute inset-y-0 right-0 flex items-center pr-3">
             <button
                 type="button"
-                class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text transition-colors duration-200"
+                class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text-muted dark:hover:text-dark-text transition-colors duration-200"
                 on:click={() => isOpen = !isOpen}
             >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,7 +211,7 @@
                                 {:else}
                                     <div class="flex items-center justify-between px-4 py-2">
                                         <div 
-                                            class="flex-1 text-light-text dark:text-dark-text cursor-pointer"
+                                            class="flex-1 text-light-text-muted dark:text-dark-text cursor-pointer"
                                             on:click={() => handleSelect(option)}
                                         >
                                             {option.value}
@@ -219,7 +219,7 @@
                                         <div class="hidden group-hover:flex items-center space-x-1">
                                             <button
                                                 type="button"
-                                                class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text"
+                                                class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-light-text-muted dark:hover:text-dark-text"
                                                 on:click={(e) => startEditing(option, e)}
                                             >
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

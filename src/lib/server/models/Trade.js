@@ -46,19 +46,20 @@ const tradeSchema = new mongoose.Schema({
     strategy: String,
     emotions: String,
     notes: String,
-    // New fields
-    image: {
-      data: Buffer,
-      contentType: String,
-      size: {
-        type: Number,
-        max: 409600, // 400KB in bytes
-        validate: {
-          validator: function(size) {
-            return !this.image || !this.image.data || size <= 409600;
-          },
-          message: 'Image size must not exceed 400KB'
-        }
+    url: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: function(v) {
+          if (!v) return true; // Allow empty
+          try {
+            new URL(v);
+            return true;
+          } catch (e) {
+            return false;
+          }
+        },
+        message: props => `${props.value} is not a valid URL`
       }
     },
     confidenceLevel: {
