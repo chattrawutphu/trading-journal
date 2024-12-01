@@ -2,6 +2,7 @@
     import { createEventDispatcher } from 'svelte';
     import { theme } from '$lib/stores/themeStore';
     import Select from '../common/Select.svelte';
+    import EmptyDayModal from './EmptyDayModal.svelte';
     
     const dispatch = createEventDispatcher();
     
@@ -9,6 +10,8 @@
 
     let selectedMonth = new Date().getMonth();
     let selectedYear = new Date().getFullYear();
+    let showEmptyDayModal = false;
+    let selectedDate = '';
 
     const months = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -116,8 +119,6 @@
     }
 
     function handleDayClick(day, stats) {
-        if (!stats?.trades.length) return;
-        
         const date = new Date(selectedYear, selectedMonth, day);
         const dateStr = date.toLocaleDateString('en-US', {
             weekday: 'long',
@@ -125,6 +126,12 @@
             month: 'long',
             day: 'numeric'
         });
+
+        if (!stats?.trades.length) {
+            selectedDate = date.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+            showEmptyDayModal = true;
+            return;
+        }
 
         dispatch('dayClick', {
             date: dateStr,
@@ -136,6 +143,10 @@
                 return (b.pnl || 0) - (a.pnl || 0);
             })
         });
+    }
+
+    function handleNewTrade() {
+        dispatch('newTrade', selectedDate);
     }
 </script>
 
@@ -177,8 +188,7 @@
                     {#if day !== null}
                         <div 
                             class="absolute inset-0 border border-light-border dark:border-dark-border rounded-md 
-                                   {getCardClass(stats)} hover:shadow transition-all duration-200 
-                                   {stats?.trades.length ? 'cursor-pointer hover:scale-[1.02]' : ''}"
+                                   {getCardClass(stats)} hover:shadow transition-all duration-200 cursor-pointer hover:scale-[1.02]"
                             on:click={() => handleDayClick(day, stats)}
                         >
                             <!-- Date in top right -->
@@ -194,11 +204,6 @@
                                             <span class="text-[10px] text-light-text-muted dark:text-dark-text-muted">
                                                 {stats.trades.length} trades
                                             </span>
-                                            {#if stats.openTrades > 0}
-                                                <span class="text-[10px] text-yellow-600 dark:text-yellow-400">
-                                                    {stats.openTrades} open
-                                                </span>
-                                            {/if}
                                             <div class="flex gap-1 text-[10px]">
                                                 {#if stats.wins > 0}
                                                     <span class="text-green-600 dark:text-green-400">
@@ -231,6 +236,12 @@
         </div>
     </div>
 </div>
+
+<EmptyDayModal
+    bind:show={showEmptyDayModal}
+    date={selectedDate}
+    on:newTrade={handleNewTrade}
+/>
 
 <style>
     .card {

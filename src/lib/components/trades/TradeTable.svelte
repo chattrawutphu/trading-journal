@@ -7,6 +7,9 @@
     export let trades = [];
     export let type = 'closed'; // 'open' or 'closed'
 
+    let sortField = type === 'closed' ? 'exitDate' : 'entryDate';
+    let sortDirection = 'desc';
+
     function formatDate(dateStr) {
         return new Date(dateStr).toLocaleString('en-US', {
             year: 'numeric',
@@ -24,29 +27,106 @@
     function getSideClass(side) {
         return side === 'LONG' ? 'text-green-500' : 'text-red-500';
     }
+
+    function getSortIcon(field) {
+        if (sortField !== field) return '↕';
+        return sortDirection === 'asc' ? '↑' : '↓';
+    }
+
+    function handleSort(field) {
+        if (sortField === field) {
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortField = field;
+            sortDirection = 'desc';
+        }
+    }
+
+    $: sortedTrades = [...trades].sort((a, b) => {
+        let aValue = a[sortField];
+        let bValue = b[sortField];
+
+        // Handle special cases
+        if (sortField === 'entryPrice' || sortField === 'exitPrice' || sortField === 'amount' || sortField === 'quantity' || sortField === 'pnl') {
+            aValue = Number(aValue) || 0;
+            bValue = Number(bValue) || 0;
+        } else if (sortField === 'entryDate' || sortField === 'exitDate') {
+            aValue = new Date(aValue).getTime();
+            bValue = new Date(bValue).getTime();
+        }
+
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
 </script>
 
 <div class="overflow-x-auto">
     <table class="w-full">
         <thead>
             <tr class="border-b border-light-border dark:border-dark-border">
-                <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Symbol</th>
-                <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Side</th>
+                <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+                    <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('symbol')}>
+                        Symbol
+                        <span class="text-xs">{getSortIcon('symbol')}</span>
+                    </button>
+                </th>
+                <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+                    <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('side')}>
+                        Side
+                        <span class="text-xs">{getSortIcon('side')}</span>
+                    </button>
+                </th>
                 {#if type === 'open'}
-                    <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Entry Date</th>
-                    <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Entry Price</th>
-                    <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Amount</th>
-                    <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Quantity</th>
+                    <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+                        <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('entryDate')}>
+                            Entry Date
+                            <span class="text-xs">{getSortIcon('entryDate')}</span>
+                        </button>
+                    </th>
+                    <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('entryPrice')}>
+                            Entry Price
+                            <span class="text-xs">{getSortIcon('entryPrice')}</span>
+                        </button>
+                    </th>
+                    <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('amount')}>
+                            Amount
+                            <span class="text-xs">{getSortIcon('amount')}</span>
+                        </button>
+                    </th>
+                    <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('quantity')}>
+                            Quantity
+                            <span class="text-xs">{getSortIcon('quantity')}</span>
+                        </button>
+                    </th>
                 {:else}
-                    <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Exit Date</th>
-                    <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Entry/Exit</th>
-                    <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">P&L</th>
+                    <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+                        <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('exitDate')}>
+                            Exit Date
+                            <span class="text-xs">{getSortIcon('exitDate')}</span>
+                        </button>
+                    </th>
+                    <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('entryPrice')}>
+                            Entry/Exit
+                            <span class="text-xs">{getSortIcon('entryPrice')}</span>
+                        </button>
+                    </th>
+                    <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('pnl')}>
+                            P&L
+                            <span class="text-xs">{getSortIcon('pnl')}</span>
+                        </button>
+                    </th>
                 {/if}
                 <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Actions</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-light-border dark:divide-dark-border">
-            {#each trades as trade}
+            {#each sortedTrades as trade}
                 <tr class="hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200">
                     <td class="py-2 px-4">
                         <div class="flex items-center gap-2">
@@ -75,7 +155,8 @@
                         <td class="py-2 px-4 text-light-text dark:text-dark-text">{formatDate(trade.exitDate)}</td>
                         <td class="py-2 px-4 text-right">
                             <div class="flex flex-col text-light-text dark:text-dark-text">
-                                <span>{formatCurrency(trade.entryPrice)} / <span>{formatCurrency(trade.exitPrice)}</span>
+                                <span>{formatCurrency(trade.entryPrice)}</span>
+                                <span>{formatCurrency(trade.exitPrice)}</span>
                             </div>
                         </td>
                         <td class="py-2 px-4 text-right">

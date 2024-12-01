@@ -7,6 +7,7 @@
     import TradeModal from '$lib/components/trades/TradeModal.svelte';
     import TradeViewModal from '$lib/components/trades/TradeViewModal.svelte';
     import DayTradesModal from '$lib/components/dashboard/DayTradesModal.svelte';
+    import EmptyDayModal from '$lib/components/dashboard/EmptyDayModal.svelte';
     import Loading from '$lib/components/common/Loading.svelte';
     import Button from '$lib/components/common/Button.svelte';
     import { api } from '$lib/utils/api';
@@ -19,9 +20,11 @@
     let showEditModal = false;
     let showViewModal = false;
     let showNewTradeModal = false;
+    let showEmptyDayModal = false;
     let selectedTrade = null;
     let selectedDate = '';
     let selectedDayTrades = [];
+    let newTradeDate = '';
   
     $: if ($accountStore.currentAccount) {
       loadTrades();
@@ -50,6 +53,11 @@
         selectedDate = event.detail.date;
         selectedDayTrades = event.detail.trades;
         showDayModal = true;
+    }
+
+    function handleNewTradeFromCalendar(event) {
+        newTradeDate = event.detail;
+        showNewTradeModal = true;
     }
 
     function handleView(event) {
@@ -96,6 +104,7 @@
             showEditModal = false;
             showNewTradeModal = false;
             selectedTrade = null;
+            newTradeDate = '';
         } catch (err) {
             error = err.message;
         } finally {
@@ -121,6 +130,7 @@
 
     function closeNewTradeModal() {
         showNewTradeModal = false;
+        newTradeDate = '';
     }
 
     $: totalPnL = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
@@ -226,6 +236,7 @@
                 <TradeCalendar 
                     trades={[...openTrades, ...closedTrades]} 
                     on:dayClick={handleDayClick}
+                    on:newTrade={handleNewTradeFromCalendar}
                 />
             </div>
         </div>
@@ -248,6 +259,7 @@
     on:view={handleView}
     on:edit={handleEdit}
     on:delete={handleDelete}
+    on:newTrade={handleNewTradeFromCalendar}
 />
 
 <TradeModal
@@ -261,6 +273,7 @@
 <TradeModal
     bind:show={showNewTradeModal}
     accountId={$accountStore.currentAccount?._id}
+    entryDate={newTradeDate}
     on:submit={handleSubmit}
     on:close={closeNewTradeModal}
 />
@@ -268,6 +281,12 @@
 <TradeViewModal
     bind:show={showViewModal}
     trade={selectedTrade}
+/>
+
+<EmptyDayModal
+    bind:show={showEmptyDayModal}
+    date={selectedDate}
+    on:newTrade={handleNewTradeFromCalendar}
 />
 
 <style>
