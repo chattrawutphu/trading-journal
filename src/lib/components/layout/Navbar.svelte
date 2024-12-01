@@ -39,7 +39,11 @@
                     <!-- Account Selector -->
                     <div class="relative" bind:this={accountMenuRef}>
                         <button 
+<<<<<<< HEAD
                             class="flex items-center space-x-2 px-3 py-2 rounded-lg text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"
+=======
+                            class="flex items-center space-x-2 text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 transition-colors duration-200"
+>>>>>>> 702d7e8fc3f8a3091c7cf8f4ff9673ed75b2bb0a
                             on:click|stopPropagation={() => showAccountMenu = !showAccountMenu}
                         >
                             <span>{$accountStore?.currentAccount?.name || 'Select Account'}</span>
@@ -49,7 +53,11 @@
                         </button>
   
                         {#if showAccountMenu}
+<<<<<<< HEAD
                             <div class="absolute right-0 mt-2 w-64 card overflow-hidden">
+=======
+                            <div class="absolute right-0 mt-2 w-64 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 transition-colors duration-200">
+>>>>>>> 702d7e8fc3f8a3091c7cf8f4ff9673ed75b2bb0a
                                 <AccountManager on:close={() => showAccountMenu = false} />
                             </div>
                         {/if}
@@ -58,7 +66,11 @@
                     <!-- User Menu -->
                     <div class="relative" bind:this={userMenuRef}>
                         <button 
+<<<<<<< HEAD
                             class="flex items-center space-x-2 px-3 py-2 rounded-lg text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"
+=======
+                            class="flex items-center space-x-2 text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 transition-colors duration-200"
+>>>>>>> 702d7e8fc3f8a3091c7cf8f4ff9673ed75b2bb0a
                             on:click|stopPropagation={() => showUserMenu = !showUserMenu}
                         >
                             <span>{$auth?.user?.name || 'User'}</span>
@@ -68,6 +80,7 @@
                         </button>
   
                         {#if showUserMenu}
+<<<<<<< HEAD
                             <div class="absolute right-0 mt-2 w-48 card overflow-hidden">
                                 <div class="py-1">
                                     <button
@@ -83,6 +96,21 @@
                                         Logout
                                     </button>
                                 </div>
+=======
+                            <div class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 transition-colors duration-200">
+                                <button
+                                    class="block w-full text-left px-4 py-2 text-sm text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"
+                                    on:click={() => goto('/profile')}
+                                >
+                                    Profile Settings
+                                </button>
+                                <button
+                                    class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"
+                                    on:click={handleLogout}
+                                >
+                                    Logout
+                                </button>
+>>>>>>> 702d7e8fc3f8a3091c7cf8f4ff9673ed75b2bb0a
                             </div>
                         {/if}
                     </div>
@@ -91,9 +119,12 @@
         </div>
     </div>
 </nav>
+<<<<<<< HEAD
 
 <style>
     .card {
         @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;
     }
 </style>
+=======
+>>>>>>> 702d7e8fc3f8a3091c7cf8f4ff9673ed75b2bb0a
