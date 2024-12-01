@@ -1,11 +1,15 @@
 <script>
     import { theme } from '$lib/stores/themeStore';
     import Select from '$lib/components/common/Select.svelte';
+    import DayTradesModal from './DayTradesModal.svelte';
     
     export let trades = [];
 
     let selectedMonth = new Date().getMonth();
     let selectedYear = new Date().getFullYear();
+    let showModal = false;
+    let selectedDayTrades = [];
+    let selectedDate = '';
 
     const months = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -71,9 +75,9 @@
     function getCardClass(stats) {
         if (!stats || stats.pnl === 0) return '';
         if ($theme === 'light') {
-            return stats.pnl > 0 ? 'bg-green-50' : 'bg-red-50';
+            return stats.pnl > 0 ? 'bg-green-50/50' : 'bg-red-50/50';
         }
-        return '';
+        return stats.pnl > 0 ? 'bg-green-900/10' : 'bg-red-900/10';
     }
 
     function getTextClass(pnl) {
@@ -92,9 +96,23 @@
             maximumFractionDigits: 2
         }).format(pnl);
     }
+
+    function handleDayClick(day, stats) {
+        if (!stats?.trades.length) return;
+        
+        const date = new Date(selectedYear, selectedMonth, day);
+        selectedDate = date.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        selectedDayTrades = [...stats.trades].sort((a, b) => b.pnl - a.pnl);
+        showModal = true;
+    }
 </script>
 
-<div class="card p-6 space-y-4">
+<div class="card p-6 space-y-6">
     <div class="flex justify-between items-center">
         <h2 class="text-xl font-semibold">Trading Calendar</h2>
         <div class="flex gap-4">
@@ -112,7 +130,7 @@
     </div>
 
     <!-- Calendar Grid -->
-    <div class="grid grid-cols-7 gap-2">
+    <div class="grid grid-cols-7 gap-4">
         <!-- Day headers -->
         {#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
             <div class="text-center py-2 text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
@@ -123,57 +141,62 @@
         <!-- Calendar days -->
         {#each calendarDays as day}
             {@const stats = getDayStats(day)}
-            <div class="aspect-square">
+            <div class="w-full pb-[100%] relative">
                 {#if day !== null}
-                    <div class="h-full p-2 border border-light-border dark:border-dark-border rounded-lg {getCardClass(stats)} hover:shadow-lg transition-all duration-200 cursor-pointer">
-                        <div class="flex flex-col h-full">
-                            <!-- Date -->
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
-                                    {day}
-                                </span>
-                                {#if stats?.trades.length > 0}
-                                    <span class="text-xs px-1.5 py-0.5 rounded-full bg-light-card dark:bg-dark-card">
-                                        {stats.trades.length}
-                                    </span>
-                                {/if}
-                            </div>
-                            
-                            {#if stats?.trades.length > 0}
-                                <!-- Win/Loss -->
-                                <div class="flex gap-1 text-xs mb-1">
-                                    {#if stats.wins > 0}
-                                        <span class="text-green-600 dark:text-green-400">W{stats.wins}</span>
-                                    {/if}
-                                    {#if stats.losses > 0}
-                                        <span class="text-red-600 dark:text-red-400">L{stats.losses}</span>
-                                    {/if}
-                                </div>
-                                
-                                <!-- Symbols -->
-                                <div class="flex flex-wrap gap-1 mb-1">
-                                    {#each [...stats.symbols].slice(0, 2) as symbol}
-                                        <span class="text-[10px] px-1 bg-light-card dark:bg-dark-card rounded">
-                                            {symbol}
+                    <div 
+                        class="absolute inset-0 border border-light-border dark:border-dark-border rounded-lg 
+                               {getCardClass(stats)} hover:shadow-lg transition-all duration-200 
+                               {stats?.trades.length ? 'cursor-pointer hover:scale-[1.02]' : ''}"
+                        on:click={() => handleDayClick(day, stats)}
+                    >
+                        <!-- Date in top right -->
+                        <div class="absolute top-2 right-3 text-sm font-medium">
+                            {day}
+                        </div>
+
+                        {#if stats?.trades.length > 0}
+                            <div class="absolute inset-0 p-3 pt-8 flex flex-col">
+                                <!-- Trade count & Win/Loss -->
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                                            {stats.trades.length} trade{stats.trades.length > 1 ? 's' : ''}
                                         </span>
-                                    {/each}
-                                    {#if stats.symbols.size > 2}
-                                        <span class="text-[10px] px-1">+{stats.symbols.size - 2}</span>
-                                    {/if}
+                                    </div>
+                                    <div class="flex gap-2 text-xs">
+                                        {#if stats.wins > 0}
+                                            <span class="text-green-600 dark:text-green-400">
+                                                {stats.wins}W
+                                            </span>
+                                        {/if}
+                                        {#if stats.losses > 0}
+                                            <span class="text-red-600 dark:text-red-400">
+                                                {stats.losses}L
+                                            </span>
+                                        {/if}
+                                    </div>
                                 </div>
 
                                 <!-- P&L -->
-                                <span class="mt-auto text-sm font-medium {getTextClass(stats.pnl)}">
-                                    {formatPnL(stats.pnl)}
-                                </span>
-                            {/if}
-                        </div>
+                                <div class="mt-auto">
+                                    <span class="text-sm font-medium {getTextClass(stats.pnl)}">
+                                        {formatPnL(stats.pnl)}
+                                    </span>
+                                </div>
+                            </div>
+                        {/if}
                     </div>
                 {/if}
             </div>
         {/each}
     </div>
 </div>
+
+<DayTradesModal 
+    bind:show={showModal}
+    trades={selectedDayTrades}
+    date={selectedDate}
+/>
 
 <style>
     .card {
