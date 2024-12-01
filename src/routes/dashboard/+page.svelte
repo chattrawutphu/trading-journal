@@ -1,11 +1,12 @@
-<!-- src/routes/dashboard/+page.svelte -->
 <script>
     import { onMount } from 'svelte';
-    import { goto } from '$app/navigation';
     import { accountStore } from '$lib/stores/accountStore';
     import TradingStats from '$lib/components/dashboard/TradingStats.svelte';
     import TradeChart from '$lib/components/dashboard/TradeChart.svelte';
     import TradeCalendar from '$lib/components/dashboard/TradeCalendar.svelte';
+    import TradeModal from '$lib/components/trades/TradeModal.svelte';
+    import TradeViewModal from '$lib/components/trades/TradeViewModal.svelte';
+    import DayTradesModal from '$lib/components/dashboard/DayTradesModal.svelte';
     import Loading from '$lib/components/common/Loading.svelte';
     import Button from '$lib/components/common/Button.svelte';
     import { api } from '$lib/utils/api';
@@ -14,6 +15,13 @@
     let error = '';
     let openTrades = [];
     let closedTrades = [];
+    let showDayModal = false;
+    let showEditModal = false;
+    let showViewModal = false;
+    let showNewTradeModal = false;
+    let selectedTrade = null;
+    let selectedDate = '';
+    let selectedDayTrades = [];
   
     $: if ($accountStore.currentAccount) {
       loadTrades();
@@ -38,8 +46,81 @@
       }
     }
 
-    function handleNewTrade() {
-        goto('/trades?newTrade=true');
+    function handleDayClick(event) {
+        selectedDate = event.detail.date;
+        selectedDayTrades = event.detail.trades;
+        showDayModal = true;
+    }
+
+    function handleView(event) {
+        selectedTrade = event.detail;
+        showViewModal = true;
+        showDayModal = false;
+    }
+
+    function handleEdit(event) {
+        selectedTrade = event.detail;
+        showEditModal = true;
+        showDayModal = false;
+    }
+
+    async function handleDelete(event) {
+        if (!confirm('Are you sure you want to delete this trade?')) return;
+
+        try {
+            loading = true;
+            error = '';
+
+            await api.deleteTrade(event.detail);
+            await loadTrades();
+            showDayModal = false;
+        } catch (err) {
+            error = err.message;
+        } finally {
+            loading = false;
+        }
+    }
+
+    async function handleSubmit(event) {
+        try {
+            loading = true;
+            error = '';
+
+            if (selectedTrade) {
+                await api.updateTrade(selectedTrade._id, event.detail);
+            } else {
+                await api.createTrade(event.detail);
+            }
+            
+            await loadTrades();
+            showEditModal = false;
+            showNewTradeModal = false;
+            selectedTrade = null;
+        } catch (err) {
+            error = err.message;
+        } finally {
+            loading = false;
+        }
+    }
+
+    function closeEditModal() {
+        showEditModal = false;
+        selectedTrade = null;
+    }
+
+    function closeViewModal() {
+        showViewModal = false;
+        selectedTrade = null;
+    }
+
+    function closeDayModal() {
+        showDayModal = false;
+        selectedDate = '';
+        selectedDayTrades = [];
+    }
+
+    function closeNewTradeModal() {
+        showNewTradeModal = false;
     }
 
     $: totalPnL = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
@@ -63,7 +144,7 @@
     <!-- Header -->
     <div class="flex justify-between items-center">
         <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">Dashboard</h1>
-        <Button variant="primary" on:click={handleNewTrade}>
+        <Button variant="primary" on:click={() => showNewTradeModal = true}>
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
@@ -142,7 +223,10 @@
 
             <!-- Calendar -->
             <div class="flex-1">
-                <TradeCalendar trades={[...openTrades, ...closedTrades]} />
+                <TradeCalendar 
+                    trades={[...openTrades, ...closedTrades]} 
+                    on:dayClick={handleDayClick}
+                />
             </div>
         </div>
 
@@ -156,7 +240,36 @@
         </div>
     {/if}
 </div>
-  
+
+<DayTradesModal
+    bind:show={showDayModal}
+    trades={selectedDayTrades}
+    date={selectedDate}
+    on:view={handleView}
+    on:edit={handleEdit}
+    on:delete={handleDelete}
+/>
+
+<TradeModal
+    bind:show={showEditModal}
+    trade={selectedTrade}
+    accountId={$accountStore.currentAccount?._id}
+    on:submit={handleSubmit}
+    on:close={closeEditModal}
+/>
+
+<TradeModal
+    bind:show={showNewTradeModal}
+    accountId={$accountStore.currentAccount?._id}
+    on:submit={handleSubmit}
+    on:close={closeNewTradeModal}
+/>
+
+<TradeViewModal
+    bind:show={showViewModal}
+    trade={selectedTrade}
+/>
+
 <style>
     .card {
         @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;

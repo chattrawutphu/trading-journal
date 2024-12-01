@@ -1,15 +1,14 @@
 <script>
+    import { createEventDispatcher } from 'svelte';
     import { theme } from '$lib/stores/themeStore';
     import Select from '../common/Select.svelte';
-    import DayTradesModal from './DayTradesModal.svelte';
+    
+    const dispatch = createEventDispatcher();
     
     export let trades = [];
 
     let selectedMonth = new Date().getMonth();
     let selectedYear = new Date().getFullYear();
-    let showModal = false;
-    let selectedDayTrades = [];
-    let selectedDate = '';
 
     const months = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -33,10 +32,14 @@
     );
 
     $: dailyTrades = trades.reduce((acc, trade) => {
-        if (!trade.exitDate) return acc;
+        let tradeDate;
+        if (trade.status === 'CLOSED') {
+            tradeDate = new Date(trade.exitDate);
+        } else {
+            tradeDate = new Date(trade.entryDate);
+        }
         
         try {
-            const tradeDate = new Date(trade.exitDate);
             if (isNaN(tradeDate.getTime())) return acc;
             
             const dateKey = tradeDate.toISOString().split('T')[0];
@@ -46,15 +49,20 @@
                     pnl: 0,
                     symbols: new Set(),
                     wins: 0,
-                    losses: 0
+                    losses: 0,
+                    openTrades: 0
                 };
             }
             
             acc[dateKey].trades.push(trade);
-            acc[dateKey].pnl += trade.pnl || 0;
+            if (trade.status === 'CLOSED') {
+                acc[dateKey].pnl += trade.pnl || 0;
+                if (trade.pnl > 0) acc[dateKey].wins++;
+                else if (trade.pnl < 0) acc[dateKey].losses++;
+            } else {
+                acc[dateKey].openTrades++;
+            }
             acc[dateKey].symbols.add(trade.symbol);
-            if (trade.pnl > 0) acc[dateKey].wins++;
-            else if (trade.pnl < 0) acc[dateKey].losses++;
             
         } catch (err) {
             console.error('Error processing trade date:', err);
@@ -77,19 +85,25 @@
     }
 
     function getCardClass(stats) {
-        if (!stats || stats.pnl === 0) return '';
+        if (!stats || (!stats.pnl && !stats.openTrades)) return '';
+        if (stats.openTrades > 0) {
+            return $theme === 'light' ? 'bg-yellow-50' : 'bg-yellow-900/10';
+        }
         if ($theme === 'light') {
             return stats.pnl > 0 ? 'bg-green-100' : 'bg-red-100';
         }
         return stats.pnl > 0 ? 'bg-green-900/20' : 'bg-red-900/20';
     }
 
-    function getTextClass(pnl) {
-        if (pnl === 0) return '';
-        if ($theme === 'dark') {
-            return pnl > 0 ? 'text-green-300' : 'text-red-300';
+    function getTextClass(stats) {
+        if (!stats || (!stats.pnl && !stats.openTrades)) return '';
+        if (stats.openTrades > 0) {
+            return $theme === 'dark' ? 'text-yellow-300' : 'text-yellow-600';
         }
-        return pnl > 0 ? 'text-green-600' : 'text-red-600';
+        if ($theme === 'dark') {
+            return stats.pnl > 0 ? 'text-green-300' : 'text-red-300';
+        }
+        return stats.pnl > 0 ? 'text-green-600' : 'text-red-600';
     }
 
     function formatPnL(pnl) {
@@ -105,14 +119,23 @@
         if (!stats?.trades.length) return;
         
         const date = new Date(selectedYear, selectedMonth, day);
-        selectedDate = date.toLocaleDateString('en-US', {
+        const dateStr = date.toLocaleDateString('en-US', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
             day: 'numeric'
         });
-        selectedDayTrades = [...stats.trades].sort((a, b) => b.pnl - a.pnl);
-        showModal = true;
+
+        dispatch('dayClick', {
+            date: dateStr,
+            trades: [...stats.trades].sort((a, b) => {
+                // Sort by status (open first) then by PnL
+                if (a.status !== b.status) {
+                    return a.status === 'OPEN' ? -1 : 1;
+                }
+                return (b.pnl || 0) - (a.pnl || 0);
+            })
+        });
     }
 </script>
 
@@ -171,6 +194,11 @@
                                             <span class="text-[10px] text-light-text-muted dark:text-dark-text-muted">
                                                 {stats.trades.length} trades
                                             </span>
+                                            {#if stats.openTrades > 0}
+                                                <span class="text-[10px] text-yellow-600 dark:text-yellow-400">
+                                                    {stats.openTrades} open
+                                                </span>
+                                            {/if}
                                             <div class="flex gap-1 text-[10px]">
                                                 {#if stats.wins > 0}
                                                     <span class="text-green-600 dark:text-green-400">
@@ -187,11 +215,13 @@
                                     </div>
 
                                     <!-- P&L -->
-                                    <div class="mt-auto">
-                                        <span class="text-xs font-medium {getTextClass(stats.pnl)}">
-                                            {formatPnL(stats.pnl)}
-                                        </span>
-                                    </div>
+                                    {#if stats.pnl !== 0}
+                                        <div class="mt-auto">
+                                            <span class="text-xs font-medium {getTextClass(stats)}">
+                                                {formatPnL(stats.pnl)}
+                                            </span>
+                                        </div>
+                                    {/if}
                                 </div>
                             {/if}
                         </div>
@@ -201,12 +231,6 @@
         </div>
     </div>
 </div>
-
-<DayTradesModal 
-    bind:show={showModal}
-    trades={selectedDayTrades}
-    date={selectedDate}
-/>
 
 <style>
     .card {
