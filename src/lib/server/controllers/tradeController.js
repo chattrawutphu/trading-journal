@@ -68,16 +68,23 @@ export const updateTrade = async (req, res) => {
   try {
     const { tradeId } = req.params;
     const { image, ...tradeData } = req.body;
-    
-    const trade = await Trade.findById(tradeId).populate('account');
 
+    // First find the trade without populating to check existence
+    const trade = await Trade.findById(tradeId);
     if (!trade) {
       res.status(404);
       throw new Error('Trade not found');
     }
 
+    // Then get the account to check ownership
+    const account = await Account.findById(trade.account);
+    if (!account) {
+      res.status(404);
+      throw new Error('Account not found');
+    }
+
     // Check if user owns the account associated with this trade
-    if (trade.account.user.toString() !== req.user._id.toString()) {
+    if (account.user.toString() !== req.user._id.toString()) {
       res.status(403);
       throw new Error('Not authorized to update this trade');
     }
@@ -111,7 +118,10 @@ export const updateTrade = async (req, res) => {
 
     res.json(updatedTrade);
   } catch (error) {
-    res.status(400);
+    if (error.name === 'CastError') {
+      res.status(400);
+      throw new Error('Invalid trade ID');
+    }
     throw error;
   }
 };

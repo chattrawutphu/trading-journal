@@ -26,12 +26,14 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cookieParser()); // Add cookie parser middleware
+app.use(cookieParser());
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:4173'], // Allow both dev and preview servers
-  credentials: true // Important for cookies
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json({ limit: '1mb' })); // Increased limit for base64 images
+app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Add auth token to request if present in cookies
@@ -78,6 +80,22 @@ app.use((err, req, res, next) => {
     return res.status(401).json({
       success: false,
       error: 'Token expired'
+    });
+  }
+
+  // Handle Mongoose validation errors
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      success: false,
+      error: Object.values(err.errors).map(e => e.message).join(', ')
+    });
+  }
+
+  // Handle Cast errors (invalid ObjectId)
+  if (err.name === 'CastError') {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid ID format'
     });
   }
 
