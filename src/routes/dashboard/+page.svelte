@@ -4,6 +4,7 @@
     import { accountStore } from '$lib/stores/accountStore';
     import TradingStats from '$lib/components/dashboard/TradingStats.svelte';
     import TradeChart from '$lib/components/dashboard/TradeChart.svelte';
+    import TradeCalendar from '$lib/components/dashboard/TradeCalendar.svelte';
     import Loading from '$lib/components/common/Loading.svelte';
     import { api } from '$lib/utils/api';
   
@@ -63,6 +64,9 @@
     {:else if $accountStore.currentAccount}
         <!-- Stats -->
         <TradingStats />
+
+        <!-- Calendar -->
+        <TradeCalendar trades={[...openTrades, ...closedTrades]} />
 
         <!-- Performance Chart -->
         <TradeChart {openTrades} {closedTrades} />
