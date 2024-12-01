@@ -1,6 +1,6 @@
 <script>
     import { theme } from '$lib/stores/themeStore';
-    import Select from '$lib/components/common/Select.svelte';
+    import Select from '../common/Select.svelte';
     import DayTradesModal from './DayTradesModal.svelte';
     
     export let trades = [];
@@ -92,8 +92,8 @@
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
         }).format(pnl);
     }
 
@@ -112,83 +112,89 @@
     }
 </script>
 
-<div class="card p-6 space-y-6">
-    <div class="flex justify-between items-center">
-        <h2 class="text-xl font-semibold">Trading Calendar</h2>
-        <div class="flex gap-4">
-            <Select 
-                options={months.map((month, i) => ({ value: i, label: month }))}
-                bind:value={selectedMonth}
-                className="w-40"
-            />
-            <Select 
-                options={years.map(year => ({ value: year, label: year.toString() }))}
-                bind:value={selectedYear}
-                className="w-32"
-            />
+<div class="card h-full flex flex-col">
+    <div class="p-4 border-b border-light-border dark:border-dark-border">
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-semibold">Trading Calendar</h2>
+            <div class="flex gap-2">
+                <Select 
+                    options={months.map((month, i) => ({ value: i, label: month }))}
+                    bind:value={selectedMonth}
+                    className="w-36"
+                />
+                <Select 
+                    options={years.map(year => ({ value: year, label: year.toString() }))}
+                    bind:value={selectedYear}
+                    className="w-24"
+                />
+            </div>
         </div>
     </div>
 
     <!-- Calendar Grid -->
-    <div class="grid grid-cols-7 gap-4">
+    <div class="flex-1 p-4 grid grid-rows-[auto_1fr]">
         <!-- Day headers -->
-        {#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
-            <div class="text-center py-2 text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
-                {day}
-            </div>
-        {/each}
+        <div class="grid grid-cols-7 gap-1">
+            {#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
+                <div class="text-center py-1 text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                    {day}
+                </div>
+            {/each}
+        </div>
 
         <!-- Calendar days -->
-        {#each calendarDays as day}
-            {@const stats = getDayStats(day)}
-            <div class="w-full pb-[100%] relative">
-                {#if day !== null}
-                    <div 
-                        class="absolute inset-0 border border-light-border dark:border-dark-border rounded-lg 
-                               {getCardClass(stats)} hover:shadow-lg transition-all duration-200 
-                               {stats?.trades.length ? 'cursor-pointer hover:scale-[1.02]' : ''}"
-                        on:click={() => handleDayClick(day, stats)}
-                    >
-                        <!-- Date in top right -->
-                        <div class="absolute top-2 right-3 text-sm font-medium">
-                            {day}
-                        </div>
+        <div class="grid grid-cols-7 gap-1">
+            {#each calendarDays as day}
+                {@const stats = getDayStats(day)}
+                <div class="relative aspect-square">
+                    {#if day !== null}
+                        <div 
+                            class="absolute inset-0 border border-light-border dark:border-dark-border rounded-md 
+                                   {getCardClass(stats)} hover:shadow transition-all duration-200 
+                                   {stats?.trades.length ? 'cursor-pointer hover:scale-[1.02]' : ''}"
+                            on:click={() => handleDayClick(day, stats)}
+                        >
+                            <!-- Date in top right -->
+                            <div class="absolute top-1 right-1.5 text-xs font-medium">
+                                {day}
+                            </div>
 
-                        {#if stats?.trades.length > 0}
-                            <div class="absolute inset-0 p-3 pt-8 flex flex-col">
-                                <!-- Trade count & Win/Loss -->
-                                <div class="space-y-1">
-                                    <div class="flex items-center gap-1">
-                                        <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                                            {stats.trades.length} trade{stats.trades.length > 1 ? 's' : ''}
+                            {#if stats?.trades.length > 0}
+                                <div class="absolute inset-0 p-1.5 pt-5 flex flex-col">
+                                    <!-- Trade count & Win/Loss -->
+                                    <div class="space-y-0.5">
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-[10px] text-light-text-muted dark:text-dark-text-muted">
+                                                {stats.trades.length}t
+                                            </span>
+                                            <div class="flex gap-1 text-[10px]">
+                                                {#if stats.wins > 0}
+                                                    <span class="text-green-600 dark:text-green-400">
+                                                        {stats.wins}w
+                                                    </span>
+                                                {/if}
+                                                {#if stats.losses > 0}
+                                                    <span class="text-red-600 dark:text-red-400">
+                                                        {stats.losses}l
+                                                    </span>
+                                                {/if}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- P&L -->
+                                    <div class="mt-auto">
+                                        <span class="text-xs font-medium {getTextClass(stats.pnl)}">
+                                            {formatPnL(stats.pnl)}
                                         </span>
                                     </div>
-                                    <div class="flex gap-2 text-xs">
-                                        {#if stats.wins > 0}
-                                            <span class="text-green-600 dark:text-green-400">
-                                                {stats.wins}W
-                                            </span>
-                                        {/if}
-                                        {#if stats.losses > 0}
-                                            <span class="text-red-600 dark:text-red-400">
-                                                {stats.losses}L
-                                            </span>
-                                        {/if}
-                                    </div>
                                 </div>
-
-                                <!-- P&L -->
-                                <div class="mt-auto">
-                                    <span class="text-sm font-medium {getTextClass(stats.pnl)}">
-                                        {formatPnL(stats.pnl)}
-                                    </span>
-                                </div>
-                            </div>
-                        {/if}
-                    </div>
-                {/if}
-            </div>
-        {/each}
+                            {/if}
+                        </div>
+                    {/if}
+                </div>
+            {/each}
+        </div>
     </div>
 </div>
 

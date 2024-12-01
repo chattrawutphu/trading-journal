@@ -66,11 +66,11 @@ export const createTrade = async (req, res) => {
 
 export const updateTrade = async (req, res) => {
   try {
-    const { tradeId } = req.params;
+    const { id } = req.params; // Changed from tradeId to id to match route parameter
     const { image, ...tradeData } = req.body;
 
     // First find the trade without populating to check existence
-    const trade = await Trade.findById(tradeId);
+    const trade = await Trade.findById(id);
     if (!trade) {
       res.status(404);
       throw new Error('Trade not found');
@@ -108,7 +108,7 @@ export const updateTrade = async (req, res) => {
     }
 
     const updatedTrade = await Trade.findByIdAndUpdate(
-      tradeId,
+      id,
       { 
         ...tradeData,
         image: imageData
@@ -116,11 +116,16 @@ export const updateTrade = async (req, res) => {
       { new: true }
     );
 
+    if (!updatedTrade) {
+      res.status(404);
+      throw new Error('Trade not found');
+    }
+
     res.json(updatedTrade);
   } catch (error) {
     if (error.name === 'CastError') {
       res.status(400);
-      throw new Error('Invalid trade ID');
+      throw new Error('Invalid trade ID format');
     }
     throw error;
   }
@@ -128,8 +133,8 @@ export const updateTrade = async (req, res) => {
 
 export const deleteTrade = async (req, res) => {
   try {
-    const { tradeId } = req.params;
-    const trade = await Trade.findById(tradeId).populate('account');
+    const { id } = req.params; // Changed from tradeId to id
+    const trade = await Trade.findById(id).populate('account');
 
     if (!trade) {
       res.status(404);
@@ -152,8 +157,8 @@ export const deleteTrade = async (req, res) => {
 
 export const toggleFavorite = async (req, res) => {
   try {
-    const { tradeId } = req.params;
-    const trade = await Trade.findById(tradeId).populate('account');
+    const { id } = req.params; // Changed from tradeId to id
+    const trade = await Trade.findById(id).populate('account');
 
     if (!trade) {
       res.status(404);
@@ -178,8 +183,8 @@ export const toggleFavorite = async (req, res) => {
 
 export const toggleDisabled = async (req, res) => {
   try {
-    const { tradeId } = req.params;
-    const trade = await Trade.findById(tradeId).populate({
+    const { id } = req.params; // Changed from tradeId to id
+    const trade = await Trade.findById(id).populate({
       path: 'account',
       populate: { path: 'user' }
     });
@@ -202,7 +207,7 @@ export const toggleDisabled = async (req, res) => {
   } catch (error) {
     if (error.name === 'CastError') {
       res.status(400);
-      throw new Error('Invalid trade ID');
+      throw new Error('Invalid trade ID format');
     }
     res.status(error.status || 500);
     throw error;

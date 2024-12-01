@@ -8,8 +8,7 @@
       today: { pnl: 0, trades: 0, winRate: 0 },
       yesterday: { pnl: 0, trades: 0, winRate: 0 },
       week: { pnl: 0, trades: 0, winRate: 0 },
-      month: { pnl: 0, trades: 0, winRate: 0 },
-      total: { pnl: 0, trades: 0, winRate: 0 }
+      month: { pnl: 0, trades: 0, winRate: 0 }
     };
 
     let loading = true;
@@ -24,7 +23,7 @@
       error = null;
 
       try {
-        const periods = ['today', 'yesterday', 'week', 'month', 'total'];
+        const periods = ['today', 'yesterday', 'week', 'month'];
         const results = await Promise.all(
           periods.map(period => 
             api.getStats($accountStore.currentSubAccount._id, period)
@@ -46,8 +45,7 @@
       { title: 'Today', period: 'today' },
       { title: 'Yesterday', period: 'yesterday' },
       { title: 'This Week', period: 'week' },
-      { title: 'This Month', period: 'month' },
-      { title: 'Total', period: 'total' }
+      { title: 'This Month', period: 'month' }
     ];
 </script>
   
@@ -64,9 +62,9 @@
         </div>
     {/if}
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {#each statCards as { title, period }}
-            <div class="relative {loading ? 'animate-pulse' : ''}">
+            <div class="relative">
                 {#if loading}
                     <div class="absolute inset-0 bg-light-hover dark:bg-dark-hover rounded-lg"></div>
                 {/if}
@@ -80,18 +78,3 @@
         {/each}
     </div>
 </div>
-
-<style>
-    .animate-pulse {
-        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% {
-            opacity: 1;
-        }
-        50% {
-            opacity: 0.5;
-        }
-    }
-</style>

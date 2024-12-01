@@ -42,7 +42,11 @@
     let imageError = '';
   
     $: if (trade) {
-      form = { ...trade };
+      form = { 
+        ...trade,
+        entryDate: trade.entryDate ? new Date(trade.entryDate).toISOString().slice(0, 16) : '',
+        exitDate: trade.exitDate ? new Date(trade.exitDate).toISOString().slice(0, 16) : ''
+      };
       if (trade.image?.data) {
         imagePreview = `data:${trade.image.contentType};base64,${arrayBufferToBase64(trade.image.data)}`;
       }
@@ -96,6 +100,7 @@
     function handleSubmit() {
       const formData = { ...form };
       
+      // Convert numeric fields
       formData.quantity = Number(formData.quantity);
       formData.amount = Number(formData.amount);
       formData.entryPrice = Number(formData.entryPrice);
@@ -104,11 +109,22 @@
       formData.confidenceLevel = Number(formData.confidenceLevel);
       formData.greedLevel = Number(formData.greedLevel);
 
-      if (formData.entryDate) {
-        formData.entryDate = new Date(formData.entryDate).toISOString();
-      }
-      if (formData.exitDate) {
-        formData.exitDate = new Date(formData.exitDate).toISOString();
+      // Handle dates
+      try {
+        if (formData.entryDate) {
+          const entryDate = new Date(formData.entryDate);
+          if (!isNaN(entryDate.getTime())) {
+            formData.entryDate = entryDate.toISOString();
+          }
+        }
+        if (formData.exitDate) {
+          const exitDate = new Date(formData.exitDate);
+          if (!isNaN(exitDate.getTime())) {
+            formData.exitDate = exitDate.toISOString();
+          }
+        }
+      } catch (err) {
+        console.error('Error processing dates:', err);
       }
 
       if (!trade) {
@@ -165,7 +181,8 @@
       label: String(i + 1)
     }));
 </script>
-  
+
+<!-- Rest of the component template remains unchanged -->
 {#if show}
     <div class="fixed inset-0 bg-light-bg/50 dark:bg-dark-bg/50 backdrop-blur-sm z-[100] flex items-center justify-center" transition:fade>
         <div class="card w-full max-w-2xl mx-4 relative">
