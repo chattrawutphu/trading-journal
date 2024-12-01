@@ -1,80 +1,88 @@
-<!-- src/lib/components/dashboard/TradingStats.svelte -->
 <script>
-    import StatsCard from './StatsCard.svelte';
-    import { api } from '$lib/utils/api';
     import { accountStore } from '$lib/stores/accountStore';
-  
+    import { api } from '$lib/utils/api';
+    import { onMount } from 'svelte';
+
     let stats = {
-      today: { pnl: 0, trades: 0, winRate: 0 },
-      yesterday: { pnl: 0, trades: 0, winRate: 0 },
-      week: { pnl: 0, trades: 0, winRate: 0 },
-      month: { pnl: 0, trades: 0, winRate: 0 }
+        today: { pnl: 0, trades: 0 },
+        yesterday: { pnl: 0, trades: 0 },
+        week: { pnl: 0, trades: 0 },
+        month: { pnl: 0, trades: 0 },
+        total: { pnl: 0, trades: 0 }
     };
 
-    let loading = true;
-    let error = null;
-  
-    $: if ($accountStore.currentSubAccount) {
-      loadStats();
+    let loading = false;
+    let error = '';
+
+    $: if ($accountStore.currentAccount) {
+        loadStats();
     }
-  
+
     async function loadStats() {
-      loading = true;
-      error = null;
+        try {
+            loading = true;
+            error = '';
 
-      try {
-        const periods = ['today', 'yesterday', 'week', 'month'];
-        const results = await Promise.all(
-          periods.map(period => 
-            api.getStats($accountStore.currentSubAccount._id, period)
-          )
-        );
-        
-        periods.forEach((period, index) => {
-          stats[period] = results[index];
-        });
-      } catch (err) {
-        console.error('Error loading stats:', err);
-        error = 'Failed to load trading statistics. Please try again later.';
-      } finally {
-        loading = false;
-      }
+            const periods = ['today', 'yesterday', 'week', 'month', 'total'];
+            const results = await Promise.all(
+                periods.map(period => api.getStats($accountStore.currentAccount._id, period))
+            );
+
+            periods.forEach((period, i) => {
+                stats[period] = results[i];
+            });
+        } catch (err) {
+            error = err.message;
+        } finally {
+            loading = false;
+        }
     }
 
-    const statCards = [
-      { title: 'Today', period: 'today' },
-      { title: 'Yesterday', period: 'yesterday' },
-      { title: 'This Week', period: 'week' },
-      { title: 'This Month', period: 'month' }
-    ];
+    function getIcon(period) {
+        switch (period) {
+            case 'today':
+                return `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>`;
+            case 'yesterday':
+                return `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>`;
+            case 'week':
+                return `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zM12 12h.01"/>`;
+            case 'month':
+                return `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>`;
+            case 'total':
+                return `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>`;
+            default:
+                return '';
+        }
+    }
 </script>
-  
-<div class="space-y-6">
-    {#if error}
-        <div class="bg-red-500 bg-opacity-10 text-red-500 p-4 rounded-lg text-sm">
-            {error}
-            <button 
-                class="ml-2 underline hover:no-underline"
-                on:click={loadStats}
-            >
-                Try again
-            </button>
-        </div>
-    {/if}
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {#each statCards as { title, period }}
-            <div class="relative">
-                {#if loading}
-                    <div class="absolute inset-0 bg-light-hover dark:bg-dark-hover rounded-lg"></div>
-                {/if}
-                <StatsCard 
-                    {title}
-                    pnl={stats[period].pnl}
-                    trades={stats[period].trades}
-                    winRate={stats[period].winRate}
-                />
+<div class="grid grid-cols-5 gap-4">
+    {#each Object.entries(stats) as [period, data]}
+        <div class="card p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted capitalize">
+                    {period}
+                </h3>
+                <div class="w-8 h-8 rounded-full {data.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
+                    <svg class="w-4 h-4 {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {@html getIcon(period)}
+                    </svg>
+                </div>
             </div>
-        {/each}
-    </div>
+            <div class="space-y-1">
+                <p class="text-xl font-bold {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                    ${data.pnl.toFixed(2)}
+                </p>
+                <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                    {data.trades} trade{data.trades !== 1 ? 's' : ''}
+                </p>
+            </div>
+        </div>
+    {/each}
 </div>
+
+<style>
+    .card {
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;
+    }
+</style>

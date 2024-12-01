@@ -1,11 +1,13 @@
 <!-- src/routes/dashboard/+page.svelte -->
 <script>
     import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
     import { accountStore } from '$lib/stores/accountStore';
     import TradingStats from '$lib/components/dashboard/TradingStats.svelte';
     import TradeChart from '$lib/components/dashboard/TradeChart.svelte';
     import TradeCalendar from '$lib/components/dashboard/TradeCalendar.svelte';
     import Loading from '$lib/components/common/Loading.svelte';
+    import Button from '$lib/components/common/Button.svelte';
     import { api } from '$lib/utils/api';
   
     let loading = false;
@@ -36,6 +38,10 @@
       }
     }
 
+    function handleNewTrade() {
+        goto('/trades?newTrade=true');
+    }
+
     $: totalPnL = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
     $: winRate = closedTrades.length > 0 
         ? Math.round((closedTrades.filter(t => t.pnl > 0).length / closedTrades.length) * 100)
@@ -57,6 +63,12 @@
     <!-- Header -->
     <div class="flex justify-between items-center">
         <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">Dashboard</h1>
+        <Button variant="primary" on:click={handleNewTrade}>
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New Trade
+        </Button>
     </div>
 
     {#if loading}
@@ -68,7 +80,7 @@
         <!-- Calendar Section -->
         <div class="flex gap-4 h-[500px]">
             <!-- Stats Cards -->
-            <div class="w-64 card p-4 flex flex-col gap-4">
+            <div class="w-[18.6%] card p-4 flex flex-col gap-4">
                 <!-- Total P&L -->
                 <div class="flex-1">
                     <div class="flex items-center justify-between mb-2">

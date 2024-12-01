@@ -184,7 +184,7 @@
 
 <!-- Rest of the component template remains unchanged -->
 {#if show}
-    <div class="fixed inset-0 bg-light-bg/50 dark:bg-dark-bg/50 backdrop-blur-sm z-[100] flex items-center justify-center" transition:fade>
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" transition:fade>
         <div class="card w-full max-w-2xl mx-4 relative">
             <!-- Header -->
             <div class="px-8 py-4 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-lg">

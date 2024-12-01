@@ -8,6 +8,7 @@ import {
   deleteTrade,
   toggleFavorite,
   toggleDisabled,
+  getStats,
 } from '../controllers/tradeController.js';
 
 const router = express.Router();
@@ -17,6 +18,8 @@ router.use(protect);
 router.route('/')
   .get(getTrades)
   .post(createTrade);
+
+router.get('/stats', getStats);
 
 router.route('/:id')
   .put(updateTrade)

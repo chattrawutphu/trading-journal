@@ -17,7 +17,7 @@ async function fetchWithAuth(endpoint, options = {}) {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers,
-      credentials: 'include', // Important for cookies
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -108,6 +108,10 @@ export const api = {
     return fetchWithAuth(`/trades?accountId=${accountId}&${queryString}`);
   },
 
+  async getStats(accountId, period) {
+    return fetchWithAuth(`/trades/stats?accountId=${accountId}&period=${period}`);
+  },
+
   async createTrade(tradeData) {
     return fetchWithAuth('/trades', {
       method: 'POST',
@@ -181,10 +185,5 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ section, data }),
     });
-  },
-
-  // Stats endpoints
-  async getStats(accountId, period) {
-    return fetchWithAuth(`/stats/${accountId}?period=${period}`);
   },
 };

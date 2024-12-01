@@ -1,125 +1,142 @@
-<!-- src/routes/trades/+page.svelte -->
 <script>
     import { onMount } from 'svelte';
+    import { page } from '$app/stores';
     import { accountStore } from '$lib/stores/accountStore';
-    import TradeFilters from '$lib/components/trades/TradeFilters.svelte';
     import TradeTable from '$lib/components/trades/TradeTable.svelte';
     import TradeModal from '$lib/components/trades/TradeModal.svelte';
+    import TradeViewModal from '$lib/components/trades/TradeViewModal.svelte';
+    import TradeFilters from '$lib/components/trades/TradeFilters.svelte';
     import Loading from '$lib/components/common/Loading.svelte';
     import Button from '$lib/components/common/Button.svelte';
     import { api } from '$lib/utils/api';
-  
-    let showTradeModal = false;
-    let selectedTrade = null;
-    let filters = {
-      startDate: '',
-      endDate: '',
-      symbol: '',
-      filterType: 'all',
-      itemsPerPage: '10'
-    };
-  
-    let openTrades = [];
-    let closedTrades = [];
+
     let loading = false;
     let error = '';
-  
+    let trades = [];
+    let showEditModal = false;
+    let showViewModal = false;
+    let selectedTrade = null;
+
+    $: openTrades = trades.filter(t => t.status === 'OPEN');
+    $: closedTrades = trades.filter(t => t.status === 'CLOSED');
+
     $: if ($accountStore.currentAccount) {
-      loadTrades();
+        loadTrades();
     }
-  
+
+    $: if ($page.url.searchParams.get('newTrade') === 'true') {
+        showEditModal = true;
+        // Clear the URL parameter without refreshing the page
+        const url = new URL(window.location);
+        url.searchParams.delete('newTrade');
+        window.history.replaceState({}, '', url);
+    }
+
     onMount(() => {
-      accountStore.loadAccounts();
+        accountStore.loadAccounts();
     });
-  
+
     async function loadTrades() {
-      try {
-        loading = true;
-        error = '';
-        
-        const response = await api.getTrades($accountStore.currentAccount._id, filters);
-        openTrades = response.filter(trade => trade.status === 'OPEN');
-        closedTrades = response.filter(trade => trade.status === 'CLOSED');
-      } catch (err) {
-        error = err.message;
-      } finally {
-        loading = false;
-      }
+        try {
+            loading = true;
+            error = '';
+            
+            const response = await api.getTrades($accountStore.currentAccount._id);
+            trades = response;
+        } catch (err) {
+            error = err.message;
+        } finally {
+            loading = false;
+        }
     }
-  
-    async function handleTradeAction(event) {
-      const { action, tradeId } = event.detail;
-      
-      try {
-        switch (action) {
-          case 'view':
-            selectedTrade = openTrades.concat(closedTrades).find(t => t._id === tradeId);
-            showTradeModal = true;
-            break;
-            
-          case 'edit':
-            selectedTrade = openTrades.concat(closedTrades).find(t => t._id === tradeId);
-            showTradeModal = true;
-            break;
-            
-          case 'duplicate':
-            const tradeToDuplicate = openTrades.concat(closedTrades).find(t => t._id === tradeId);
-            if (tradeToDuplicate) {
-              const { _id, exitDate, exitPrice, exitReason, ...rest } = tradeToDuplicate;
-              selectedTrade = { ...rest, status: 'OPEN' };
-              showTradeModal = true;
+
+    async function handleSubmit(event) {
+        try {
+            loading = true;
+            error = '';
+
+            if (selectedTrade) {
+                await api.updateTrade(selectedTrade._id, event.detail);
+            } else {
+                await api.createTrade(event.detail);
             }
-            break;
-            
-          case 'delete':
-            if (confirm('Are you sure you want to delete this trade?')) {
-              await api.deleteTrade(tradeId);
-              await loadTrades();
-            }
-            break;
-            
-          case 'favorite':
+
+            showEditModal = false;
+            selectedTrade = null;
+            await loadTrades();
+        } catch (err) {
+            error = err.message;
+        } finally {
+            loading = false;
+        }
+    }
+
+    function handleView(event) {
+        selectedTrade = event.detail;
+        showViewModal = true;
+    }
+
+    function handleEdit(event) {
+        selectedTrade = event.detail;
+        showEditModal = true;
+    }
+
+    async function handleDelete(tradeId) {
+        if (!confirm('Are you sure you want to delete this trade?')) return;
+
+        try {
+            loading = true;
+            error = '';
+
+            await api.deleteTrade(tradeId);
+            await loadTrades();
+        } catch (err) {
+            error = err.message;
+        } finally {
+            loading = false;
+        }
+    }
+
+    async function handleFavorite(tradeId) {
+        try {
+            loading = true;
+            error = '';
+
             await api.toggleFavorite(tradeId);
             await loadTrades();
-            break;
-            
-          case 'toggle-disable':
+        } catch (err) {
+            error = err.message;
+        } finally {
+            loading = false;
+        }
+    }
+
+    async function handleDisable(tradeId) {
+        try {
+            loading = true;
+            error = '';
+
             await api.toggleDisabled(tradeId);
             await loadTrades();
-            break;
+        } catch (err) {
+            error = err.message;
+        } finally {
+            loading = false;
         }
-      } catch (err) {
-        error = err.message;
-      }
     }
-  
-    async function handleTradeSubmit(event) {
-      try {
-        const tradeData = event.detail;
-        
-        if (selectedTrade?._id) {
-          await api.updateTrade(selectedTrade._id, tradeData);
-        } else {
-          await api.createTrade({
-            ...tradeData,
-            account: $accountStore.currentAccount._id
-          });
-        }
-        
-        showTradeModal = false;
+
+    function closeEditModal() {
+        showEditModal = false;
         selectedTrade = null;
-        await loadTrades();
-      } catch (err) {
-        error = err.message;
-      }
     }
-  
-    function handleFilterChange() {
-      loadTrades();
+
+    function closeViewModal() {
+        showViewModal = false;
+        selectedTrade = null;
     }
 </script>
-  
-<div class="space-y-8 p-8">
+
+<div class="space-y-4 p-8">
     {#if error}
         <div class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">
             <div class="flex">
@@ -130,108 +147,76 @@
             </div>
         </div>
     {/if}
-  
+
     <!-- Header -->
     <div class="flex justify-between items-center">
         <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">Trade History</h1>
-        {#if $accountStore.currentAccount}
-            <Button 
-                variant="primary"
-                icon='<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>'
-                on:click={() => {
-                    selectedTrade = null;
-                    showTradeModal = true;
-                }}
-            >
-                New Trade
-            </Button>
-        {:else}
-            <div class="text-light-text-muted dark:text-dark-text-muted">Create an account to start trading</div>
-        {/if}
+        <Button variant="primary" on:click={() => showEditModal = true}>
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New Trade
+        </Button>
     </div>
 
     {#if loading}
         <Loading message="Loading trades..." overlay={true} />
-    {:else}
+    {:else if $accountStore.currentAccount}
         <!-- Filters -->
-        {#if $accountStore.currentAccount}
-            <TradeFilters
-                bind:filters
-                on:filter={handleFilterChange}
-            />
-        {/if}
-      
-        <!-- Open Positions -->
-        {#if openTrades.length > 0}
-            <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-semibold text-light-text dark:text-dark-text">Open Positions</h2>
-                    <span class="text-sm text-light-text-muted dark:text-dark-text-muted">{openTrades.length} trades</span>
-                </div>
-                <TradeTable
-                    trades={openTrades}
-                    type="open"
-                    on:action={handleTradeAction}
-                />
-            </div>
-        {/if}
-      
-        <!-- Closed Trades -->
-        {#if closedTrades.length > 0}
-            <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-semibold text-light-text dark:text-dark-text">Closed Trades</h2>
-                    <span class="text-sm text-light-text-muted dark:text-dark-text-muted">{closedTrades.length} trades</span>
-                </div>
-                <TradeTable
-                    trades={closedTrades}
-                    type="closed"
-                    on:action={handleTradeAction}
-                />
-            </div>
-        {/if}
+        <TradeFilters />
 
-        <!-- Empty State -->
-        {#if openTrades.length === 0 && closedTrades.length === 0}
-            <div class="card p-8 text-center">
-                <div class="flex flex-col items-center space-y-4">
-                    <div class="w-16 h-16 rounded-full bg-theme-500 bg-opacity-10 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                    </div>
-                    <div class="space-y-2">
-                        <h3 class="text-lg font-medium text-light-text dark:text-dark-text">No trades yet</h3>
-                        <p class="text-light-text-muted dark:text-dark-text-muted">Start by adding your first trade</p>
-                    </div>
-                    <Button 
-                        variant="primary"
-                        on:click={() => {
-                            selectedTrade = null;
-                            showTradeModal = true;
-                        }}
-                    >
-                        Add Trade
-                    </Button>
-                </div>
+        <!-- Open Trades -->
+        <div class="card">
+            <div class="p-4 border-b border-light-border dark:border-dark-border">
+                <h2 class="text-xl font-semibold">Open Positions</h2>
             </div>
-        {/if}
-    {/if}
-  
-    <!-- Trade Modal -->
-    {#if $accountStore.currentAccount}
-        <TradeModal
-            show={showTradeModal}
-            trade={selectedTrade}
-            accountId={$accountStore.currentAccount._id}
-            on:submit={handleTradeSubmit}
-            on:close={() => {
-                showTradeModal = false;
-                selectedTrade = null;
-            }}
-        />
+            <TradeTable 
+                trades={openTrades}
+                type="open"
+                on:view={handleView}
+                on:edit={handleEdit}
+                on:delete={e => handleDelete(e.detail)}
+                on:favorite={e => handleFavorite(e.detail)}
+                on:disable={e => handleDisable(e.detail)}
+            />
+        </div>
+
+        <!-- Closed Trades -->
+        <div class="card">
+            <div class="p-4 border-b border-light-border dark:border-dark-border">
+                <h2 class="text-xl font-semibold">Closed Trades</h2>
+            </div>
+            <TradeTable 
+                trades={closedTrades}
+                type="closed"
+                on:view={handleView}
+                on:edit={handleEdit}
+                on:delete={e => handleDelete(e.detail)}
+                on:favorite={e => handleFavorite(e.detail)}
+                on:disable={e => handleDisable(e.detail)}
+            />
+        </div>
+    {:else}
+        <div class="card p-8 text-center">
+            <p class="text-light-text-muted dark:text-dark-text-muted">
+                Create an account to see your trades
+            </p>
+        </div>
     {/if}
 </div>
+
+<TradeModal
+    bind:show={showEditModal}
+    trade={selectedTrade}
+    accountId={$accountStore.currentAccount?._id}
+    on:submit={handleSubmit}
+    on:close={closeEditModal}
+/>
+
+<TradeViewModal
+    bind:show={showViewModal}
+    trade={selectedTrade}
+/>
 
 <style>
     .card {

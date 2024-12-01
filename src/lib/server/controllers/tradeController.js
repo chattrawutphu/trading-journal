@@ -23,6 +23,66 @@ export const getTrades = async (req, res) => {
   }
 };
 
+export const getStats = async (req, res) => {
+  try {
+    const { accountId, period } = req.query;
+    const account = await Account.findOne({
+      _id: accountId,
+      user: req.user._id,
+    });
+
+    if (!account) {
+      res.status(404);
+      throw new Error('Account not found');
+    }
+
+    const now = new Date();
+    let startDate;
+
+    switch (period) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'yesterday':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        now.setDate(now.getDate() - 1);
+        now.setHours(23, 59, 59, 999);
+        break;
+      case 'week':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        break;
+      case 'total':
+        startDate = new Date(0); // Beginning of time
+        break;
+      default:
+        res.status(400);
+        throw new Error('Invalid period');
+    }
+
+    const trades = await Trade.find({
+      account: accountId,
+      status: 'CLOSED',
+      exitDate: {
+        $gte: startDate,
+        $lte: now
+      }
+    });
+
+    const stats = {
+      pnl: trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0),
+      trades: trades.length
+    };
+
+    res.json(stats);
+  } catch (error) {
+    res.status(400);
+    throw error;
+  }
+};
+
 export const createTrade = async (req, res) => {
   try {
     const { account: accountId, image, ...tradeData } = req.body;
@@ -66,7 +126,7 @@ export const createTrade = async (req, res) => {
 
 export const updateTrade = async (req, res) => {
   try {
-    const { id } = req.params; // Changed from tradeId to id to match route parameter
+    const { id } = req.params;
     const { image, ...tradeData } = req.body;
 
     // First find the trade without populating to check existence
@@ -133,7 +193,7 @@ export const updateTrade = async (req, res) => {
 
 export const deleteTrade = async (req, res) => {
   try {
-    const { id } = req.params; // Changed from tradeId to id
+    const { id } = req.params;
     const trade = await Trade.findById(id).populate('account');
 
     if (!trade) {
@@ -157,7 +217,7 @@ export const deleteTrade = async (req, res) => {
 
 export const toggleFavorite = async (req, res) => {
   try {
-    const { id } = req.params; // Changed from tradeId to id
+    const { id } = req.params;
     const trade = await Trade.findById(id).populate('account');
 
     if (!trade) {
@@ -183,7 +243,7 @@ export const toggleFavorite = async (req, res) => {
 
 export const toggleDisabled = async (req, res) => {
   try {
-    const { id } = req.params; // Changed from tradeId to id
+    const { id } = req.params;
     const trade = await Trade.findById(id).populate({
       path: 'account',
       populate: { path: 'user' }

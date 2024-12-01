@@ -21,12 +21,16 @@
 
     $: daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
     $: firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
+    $: lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0).getDay();
     
-    $: calendarDays = Array.from({length: 42}, (_, i) => {
-        const dayNumber = i - firstDayOfMonth + 1;
-        if (dayNumber < 1 || dayNumber > daysInMonth) return null;
-        return dayNumber;
-    });
+    $: calendarDays = Array.from(
+        { length: daysInMonth + firstDayOfMonth + (6 - lastDayOfMonth) }, 
+        (_, i) => {
+            const dayNumber = i - firstDayOfMonth + 1;
+            if (dayNumber < 1 || dayNumber > daysInMonth) return null;
+            return dayNumber;
+        }
+    );
 
     $: dailyTrades = trades.reduce((acc, trade) => {
         if (!trade.exitDate) return acc;
@@ -75,17 +79,17 @@
     function getCardClass(stats) {
         if (!stats || stats.pnl === 0) return '';
         if ($theme === 'light') {
-            return stats.pnl > 0 ? 'bg-green-50/50' : 'bg-red-50/50';
+            return stats.pnl > 0 ? 'bg-green-100' : 'bg-red-100';
         }
-        return stats.pnl > 0 ? 'bg-green-900/10' : 'bg-red-900/10';
+        return stats.pnl > 0 ? 'bg-green-900/20' : 'bg-red-900/20';
     }
 
     function getTextClass(pnl) {
         if (pnl === 0) return '';
         if ($theme === 'dark') {
-            return pnl > 0 ? 'text-green-400' : 'text-red-400';
+            return pnl > 0 ? 'text-green-300' : 'text-red-300';
         }
-        return pnl > 0 ? 'text-green-700' : 'text-red-700';
+        return pnl > 0 ? 'text-green-600' : 'text-red-600';
     }
 
     function formatPnL(pnl) {
@@ -165,17 +169,17 @@
                                     <div class="space-y-0.5">
                                         <div class="flex items-center gap-1">
                                             <span class="text-[10px] text-light-text-muted dark:text-dark-text-muted">
-                                                {stats.trades.length}t
+                                                {stats.trades.length} trades
                                             </span>
                                             <div class="flex gap-1 text-[10px]">
                                                 {#if stats.wins > 0}
                                                     <span class="text-green-600 dark:text-green-400">
-                                                        {stats.wins}w
+                                                        {stats.wins} wins
                                                     </span>
                                                 {/if}
                                                 {#if stats.losses > 0}
                                                     <span class="text-red-600 dark:text-red-400">
-                                                        {stats.losses}l
+                                                        {stats.losses} losses
                                                     </span>
                                                 {/if}
                                             </div>
