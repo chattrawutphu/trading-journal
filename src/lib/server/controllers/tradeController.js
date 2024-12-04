@@ -23,6 +23,81 @@ export const getTrades = async (req, res) => {
   }
 };
 
+function getDateRange(period) {
+  const now = new Date();
+  let startDate = new Date();
+  let endDate = new Date();
+
+  switch (period) {
+    case 'today':
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      break;
+
+    case 'yesterday':
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      endDate = new Date(startDate);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case 'week':
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+      break;
+
+    case 'prevWeek':
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() - 1);
+      startDate = new Date(endDate);
+      startDate.setDate(startDate.getDate() - 6);
+      break;
+
+    case 'month':
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+
+    case 'prevMonth':
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+      startDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+      break;
+
+    case 'year':
+      startDate = new Date(now.getFullYear(), 0, 1);
+      break;
+
+    case 'prevYear':
+      endDate = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
+      startDate = new Date(now.getFullYear() - 1, 0, 1);
+      break;
+
+    case 'q1':
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear(), 2, 31, 23, 59, 59, 999);
+      break;
+
+    case 'q2':
+      startDate = new Date(now.getFullYear(), 3, 1);
+      endDate = new Date(now.getFullYear(), 5, 30, 23, 59, 59, 999);
+      break;
+
+    case 'q3':
+      startDate = new Date(now.getFullYear(), 6, 1);
+      endDate = new Date(now.getFullYear(), 8, 30, 23, 59, 59, 999);
+      break;
+
+    case 'q4':
+      startDate = new Date(now.getFullYear(), 9, 1);
+      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      break;
+
+    case 'total':
+      startDate = new Date(0); // Beginning of time
+      break;
+
+    default:
+      throw new Error('Invalid period');
+  }
+
+  return { startDate, endDate };
+}
+
 export const getStats = async (req, res) => {
   try {
     const { accountId, period } = req.query;
@@ -36,32 +111,7 @@ export const getStats = async (req, res) => {
       throw new Error('Account not found');
     }
 
-    const now = new Date();
-    let startDate;
-    let endDate = now;
-
-    switch (period) {
-      case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        break;
-      case 'yesterday':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-        endDate = new Date(startDate);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'week':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-        break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-        break;
-      case 'total':
-        startDate = new Date(0); // Beginning of time
-        break;
-      default:
-        res.status(400);
-        throw new Error('Invalid period');
-    }
+    const { startDate, endDate } = getDateRange(period);
 
     // Get all trades before the start date to calculate starting balance
     const previousTrades = await Trade.find({

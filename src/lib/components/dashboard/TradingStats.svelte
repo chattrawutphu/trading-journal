@@ -1,18 +1,14 @@
 <script>
     import { accountStore } from '$lib/stores/accountStore';
+    import { tradingStatsStore, PERIOD_OPTIONS } from '$lib/stores/tradingStatsStore';
     import { api } from '$lib/utils/api';
     import { onMount } from 'svelte';
+    import TradingStatsConfig from './TradingStatsConfig.svelte';
 
-    let stats = {
-        today: { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 },
-        yesterday: { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 },
-        week: { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 },
-        month: { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 },
-        total: { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 }
-    };
-
+    let stats = {};
     let loading = false;
     let error = '';
+    let showConfig = false;
 
     $: if ($accountStore.currentAccount) {
         loadStats();
@@ -23,12 +19,13 @@
             loading = true;
             error = '';
 
-            const periods = ['today', 'yesterday', 'week', 'month', 'total'];
             const results = await Promise.all(
-                periods.map(period => api.getStats($accountStore.currentAccount._id, period))
+                $tradingStatsStore.selectedPeriods.map(period => 
+                    api.getStats($accountStore.currentAccount._id, period)
+                )
             );
 
-            periods.forEach((period, i) => {
+            $tradingStatsStore.selectedPeriods.forEach((period, i) => {
                 stats[period] = results[i];
             });
         } catch (err) {
@@ -36,18 +33,6 @@
         } finally {
             loading = false;
         }
-    }
-
-    const icons = {
-        today: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>',
-        yesterday: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>',
-        week: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zM12 12h.01"/>',
-        month: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>',
-        total: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>'
-    };
-
-    function getIcon(period) {
-        return icons[period] || '';
     }
 
     function formatPercentage(value) {
@@ -66,21 +51,35 @@
 </script>
 
 <div class="grid grid-cols-5 gap-4">
-    {#each Object.entries(stats) as [period, data]}
-        <div class="card p-4">
+    {#each $tradingStatsStore.selectedPeriods as period, index}
+        {@const data = stats[period] || { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 }}
+        {@const isLastCard = index === $tradingStatsStore.selectedPeriods.length - 1}
+        <div class="card p-4 relative">
+            {#if isLastCard}
+                <button
+                    class="absolute -top-0 -right-0 p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"
+                    on:click={() => showConfig = true}
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </button>
+            {/if}
+
             <div class="flex items-center justify-between mb-3">
                 <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted capitalize">
-                    {period}
+                    {PERIOD_OPTIONS[period].label}
                 </h3>
                 <div class="w-8 h-8 rounded-full {data.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
                     <svg class="w-4 h-4 {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        {@html getIcon(period)}
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[period].icon}/>
                     </svg>
                 </div>
             </div>
             <div class="space-y-2">
                 <div class="flex items-baseline justify-between">
-                    <p class="text-xl {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                    <p class="text-lg {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
                         {formatCurrency(data.pnl)}
                     </p>
                     {#if data.balanceChange !== 0}
@@ -98,6 +97,8 @@
         </div>
     {/each}
 </div>
+
+<TradingStatsConfig bind:show={showConfig} />
 
 <style>
     .card {
