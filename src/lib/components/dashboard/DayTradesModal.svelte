@@ -19,6 +19,9 @@
         dispatch('newTrade', selectedDate);
         close();
     }
+
+    $: openTrades = trades.filter(trade => trade.status === 'OPEN');
+    $: closedTrades = trades.filter(trade => trade.status === 'CLOSED');
 </script>
 
 {#if show}
@@ -52,14 +55,42 @@
         </div>
 
         <!-- Content -->
-        <div class="p-4">
-            <TradeTable 
-                {trades} 
-                type="closed"
-                on:view
-                on:edit
-                on:delete
-            />
+        <div class="p-4 space-y-6">
+            {#if openTrades.length > 0}
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">Open Trades</h3>
+                    <TradeTable 
+                        trades={openTrades} 
+                        type="open"
+                        on:view
+                        on:edit
+                        on:delete
+                        on:favorite
+                        on:disable
+                    />
+                </div>
+            {/if}
+
+            {#if closedTrades.length > 0}
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">Closed Trades</h3>
+                    <TradeTable 
+                        trades={closedTrades} 
+                        type="closed"
+                        on:view
+                        on:edit
+                        on:delete
+                        on:favorite
+                        on:disable
+                    />
+                </div>
+            {/if}
+
+            {#if trades.length === 0}
+                <div class="text-center py-8 text-light-text-muted dark:text-dark-text-muted">
+                    No trades found for this day
+                </div>
+            {/if}
         </div>
     </div>
 </div>

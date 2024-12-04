@@ -7,6 +7,9 @@
     export let error = '';
     export let required = false;
     export let icon = '';
+
+    $: hasValue = value !== '' && value !== null && value !== undefined;
+    $: isValid = hasValue && !error;
 </script>
 
 <div class="w-full">
@@ -32,9 +35,10 @@
             {required}
             bind:value
             class="
-                input w-full
+                input w-full transition-all duration-200
                 {icon ? 'pl-10' : ''}
-                {error ? 'border-red-500 focus:ring-red-500' : ''}
+                {error ? 'border-red-500 focus:ring-red-500 pr-10' : ''}
+                {isValid ? 'border-green-500 focus:ring-green-500 pr-10' : ''}
             "
             on:input
             on:change
@@ -56,11 +60,29 @@
                     />
                 </svg>
             </div>
+        {:else if isValid}
+            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <svg 
+                    class="h-5 w-5 text-green-500" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                >
+                    <path 
+                        stroke-linecap="round" 
+                        stroke-linejoin="round" 
+                        stroke-width="2" 
+                        d="M5 13l4 4L19 7" 
+                    />
+                </svg>
+            </div>
         {/if}
     </div>
     
     {#if error}
-        <p class="mt-1 text-sm text-red-500">{error}</p>
+        <p class="mt-1 text-sm text-red-500" transition:fade={{ duration: 150 }}>
+            {error}
+        </p>
     {/if}
 </div>
 
@@ -105,7 +127,8 @@
     }
 
     /* Style date input */
-    input[type="date"]::-webkit-calendar-picker-indicator {
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
         @apply dark:invert opacity-70 hover:opacity-100 cursor-pointer;
     }
 

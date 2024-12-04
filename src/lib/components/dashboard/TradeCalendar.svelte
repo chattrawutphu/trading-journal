@@ -89,24 +89,42 @@
 
     function getCardClass(stats) {
         if (!stats || (!stats.pnl && !stats.openTrades)) return '';
+        
+        // Check for closed trades first
+        const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
+        if (hasClosedTrades) {
+            if ($theme === 'light') {
+                return stats.pnl > 0 ? 'bg-green-100' : 'bg-red-100';
+            }
+            return stats.pnl > 0 ? 'bg-green-900/20' : 'bg-red-900/20';
+        }
+        
+        // If no closed trades but has open trades
         if (stats.openTrades > 0) {
             return $theme === 'light' ? 'bg-yellow-50' : 'bg-yellow-900/10';
         }
-        if ($theme === 'light') {
-            return stats.pnl > 0 ? 'bg-green-100' : 'bg-red-100';
-        }
-        return stats.pnl > 0 ? 'bg-green-900/20' : 'bg-red-900/20';
+        
+        return '';
     }
 
     function getTextClass(stats) {
         if (!stats || (!stats.pnl && !stats.openTrades)) return '';
+        
+        // Check for closed trades first
+        const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
+        if (hasClosedTrades) {
+            if ($theme === 'dark') {
+                return stats.pnl > 0 ? 'text-green-300' : 'text-red-300';
+            }
+            return stats.pnl > 0 ? 'text-green-600' : 'text-red-600';
+        }
+        
+        // If no closed trades but has open trades
         if (stats.openTrades > 0) {
             return $theme === 'dark' ? 'text-yellow-300' : 'text-yellow-600';
         }
-        if ($theme === 'dark') {
-            return stats.pnl > 0 ? 'text-green-300' : 'text-red-300';
-        }
-        return stats.pnl > 0 ? 'text-green-600' : 'text-red-600';
+        
+        return '';
     }
 
     function formatPnL(pnl) {

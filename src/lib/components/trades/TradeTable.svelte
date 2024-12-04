@@ -155,8 +155,7 @@
                         <td class="py-2 px-4 text-light-text-muted dark:text-dark-text">{formatDate(trade.exitDate)}</td>
                         <td class="py-2 px-4 text-right">
                             <div class="flex flex-col text-light-text-muted dark:text-dark-text">
-                                <span>{formatCurrency(trade.entryPrice)}</span>
-                                <span>{formatCurrency(trade.exitPrice)}</span>
+                                <span>{formatCurrency(trade.entryPrice)} / {formatCurrency(trade.exitPrice)}</span>
                             </div>
                         </td>
                         <td class="py-2 px-4 text-right">

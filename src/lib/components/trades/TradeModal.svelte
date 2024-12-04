@@ -1,21 +1,38 @@
-<!-- Previous script content remains the same until the form initialization part --><script>
+<script>
     import { createEventDispatcher } from 'svelte';
     import { fade } from 'svelte/transition';
     import Select from '../common/Select.svelte';
     import Input from '../common/Input.svelte';
     import Button from '../common/Button.svelte';
     import TradeOptionSelect from './TradeOptionSelect.svelte';
+    import { validateTradeForm } from '$lib/utils/validators';
   
     const dispatch = createEventDispatcher();
   
     export let show = false;
     export let trade = null;
     export let accountId = null;
-    export let entryDate = ''; // New prop for pre-filled entry date
+    export let entryDate = '';
+
+    let errors = {};
+    let touched = {};
+
+    const emotionOptions = [
+        { value: 'confident', label: '😊 Confident' },
+        { value: 'fearful', label: '😨 Fearful' },
+        { value: 'angry', label: '😡 Angry' },
+        { value: 'disappointed', label: '😔 Disappointed' },
+        { value: 'uncertain', label: '🤔 Uncertain' },
+        { value: 'calm', label: '😌 Calm' },
+        { value: 'frustrated', label: '😤 Frustrated' },
+        { value: 'excited', label: '🤩 Excited' },
+        { value: 'anxious', label: '😰 Anxious' },
+        { value: 'neutral', label: '😐 Neutral' }
+    ];
 
     function getCurrentDateTime() {
         const now = new Date();
-        return now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+        return now.toISOString().slice(0, 16);
     }
   
     let form = {
@@ -54,7 +71,6 @@
       form.entryDate = entryDate || getCurrentDateTime();
     }
 
-    // Update form when entryDate prop changes
     $: if (entryDate && !trade) {
         form.entryDate = entryDate;
     }
@@ -70,13 +86,30 @@
         } else {
           form.pnl = (form.entryPrice - form.exitPrice) * form.amount;
         }
+        validateField('pnl');
       }
+    }
+
+    function validateField(field) {
+        touched[field] = true;
+        errors = validateTradeForm(form);
+    }
+
+    function handleInput(field) {
+        return () => validateField(field);
     }
   
     function handleSubmit() {
+      errors = validateTradeForm(form);
+      
+      if (Object.keys(errors).length > 0) {
+        // Mark all fields as touched to show all errors
+        Object.keys(form).forEach(key => touched[key] = true);
+        return;
+      }
+
       const formData = { ...form };
       
-      // Convert numeric fields
       formData.quantity = Number(formData.quantity);
       formData.amount = Number(formData.amount);
       formData.entryPrice = Number(formData.entryPrice);
@@ -85,7 +118,6 @@
       formData.confidenceLevel = Number(formData.confidenceLevel);
       formData.greedLevel = Number(formData.greedLevel);
 
-      // Handle dates
       try {
         if (formData.entryDate) {
           const entryDate = new Date(formData.entryDate);
@@ -138,6 +170,8 @@
         favorite: false,
         disabled: false
       };
+      errors = {};
+      touched = {};
     }
 
     const statusOptions = [
@@ -165,7 +199,7 @@
                 {trade ? 'Edit Trade' : 'New Trade'}
             </h2>
             <button 
-                class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text-muted dark:hover:text-dark-text transition-colors duration-200" 
+                class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text transition-colors duration-200" 
                 on:click={close}
             >
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,6 +216,7 @@
                         <div>
                             <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-1">
                                 Symbol
+                                <span class="text-red-500">*</span>
                             </label>
                             <div class="input-wrapper">
                                 <TradeOptionSelect
@@ -189,8 +224,13 @@
                                     bind:value={form.symbol}
                                     required
                                     placeholder="Select or add symbol"
+                                    error={touched.symbol && errors.symbol}
+                                    on:input={handleInput('symbol')}
                                 />
                             </div>
+                            {#if touched.symbol && errors.symbol}
+                                <p class="mt-1 text-sm text-red-500">{errors.symbol}</p>
+                            {/if}
                         </div>
                         <Select
                             label="Side"
@@ -230,6 +270,8 @@
                                 type="datetime-local"
                                 bind:value={form.entryDate}
                                 required
+                                error={touched.entryDate && errors.entryDate}
+                                on:input={handleInput('entryDate')}
                             />
                             {#if form.status === 'CLOSED'}
                                 <Input
@@ -237,6 +279,8 @@
                                     type="datetime-local"
                                     bind:value={form.exitDate}
                                     required
+                                    error={touched.exitDate && errors.exitDate}
+                                    on:input={handleInput('exitDate')}
                                 />
                             {/if}
                             <Input
@@ -245,6 +289,8 @@
                                 step="0.00000001"
                                 bind:value={form.quantity}
                                 placeholder="0.00"
+                                error={touched.quantity && errors.quantity}
+                                on:input={handleInput('quantity')}
                             />
                         </div>
 
@@ -257,6 +303,8 @@
                                 bind:value={form.entryPrice}
                                 required
                                 placeholder="0.00"
+                                error={touched.entryPrice && errors.entryPrice}
+                                on:input={handleInput('entryPrice')}
                             />
                             {#if form.status === 'CLOSED'}
                                 <Input
@@ -266,6 +314,8 @@
                                     bind:value={form.exitPrice}
                                     required
                                     placeholder="0.00"
+                                    error={touched.exitPrice && errors.exitPrice}
+                                    on:input={handleInput('exitPrice')}
                                 />
                             {/if}
                             <Input
@@ -275,6 +325,8 @@
                                 bind:value={form.amount}
                                 required
                                 placeholder="0.00"
+                                error={touched.amount && errors.amount}
+                                on:input={handleInput('amount')}
                             />
                         </div>
                     </div>
@@ -288,6 +340,8 @@
                                 bind:value={form.pnl}
                                 required
                                 placeholder="0.00"
+                                error={touched.pnl && errors.pnl}
+                                on:input={handleInput('pnl')}
                             />
                             <Button 
                                 type="button"
@@ -340,7 +394,7 @@
                                 bind:checked={form.hasStopLoss}
                                 class="checkbox"
                             />
-                            <span class="text-light-text-muted dark:text-dark-text">Has Stop Loss</span>
+                            <span class="text-light-text-muted dark:text-dark-text-muted">Has Stop Loss</span>
                         </label>
                         <label class="flex items-center space-x-2">
                             <input
@@ -348,15 +402,15 @@
                                 bind:checked={form.hasTakeProfit}
                                 class="checkbox"
                             />
-                            <span class="text-light-text-muted dark:text-dark-text">Has Take Profit</span>
+                            <span class="text-light-text-muted dark:text-dark-text-muted">Has Take Profit</span>
                         </label>
                     </div>
 
                     <!-- Additional Info -->
                     <div class="space-y-4">
-                        <Input
+                        <Select
                             label="Emotions"
-                            type="text"
+                            options={emotionOptions}
                             bind:value={form.emotions}
                             placeholder="How did you feel during this trade?"
                         />
@@ -378,19 +432,28 @@
                             type="url"
                             bind:value={form.url}
                             placeholder="Enter a URL (e.g., TradingView chart, image, etc.)"
+                            error={touched.url && errors.url}
+                            on:input={handleInput('url')}
                         />
                     </div>
                 </form>
             </div>
 
             <!-- Footer with Buttons -->
-            <div class="px-6 py-4 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-lg">
-                <Button type="button" variant="secondary" on:click={close}>
-                    Cancel
-                </Button>
-                <Button type="submit" variant="primary" on:click={handleSubmit}>
-                    Save Trade
-                </Button>
+            <div class="px-6 py-4 border-t border-light-border dark:border-dark-border flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-lg">
+                <div class="text-sm text-red-500">
+                    {#if Object.keys(errors).length > 0}
+                        Please fix the errors before submitting
+                    {/if}
+                </div>
+                <div class="flex gap-4">
+                    <Button type="button" variant="secondary" on:click={close}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" variant="primary" on:click={handleSubmit}>
+                        Save Trade
+                    </Button>
+                </div>
             </div>
         </div>
     </div>
@@ -408,5 +471,13 @@
     .input-wrapper :global(input),
     .input-wrapper :global(.input) {
         @apply bg-light-bg dark:bg-dark-bg;
+    }
+
+    .input-wrapper :global(.input.error) {
+        @apply border-red-500 focus:ring-red-500;
+    }
+
+    .input-wrapper :global(.input.success) {
+        @apply border-green-500 focus:ring-green-500;
     }
 </style>
