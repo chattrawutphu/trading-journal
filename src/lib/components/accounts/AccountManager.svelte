@@ -1,6 +1,6 @@
-<!-- src/lib/components/accounts/AccountManager.svelte -->
 <script>
     import { createEventDispatcher } from 'svelte';
+    import { fade, fly } from 'svelte/transition';
     import { accountStore } from '$lib/stores/accountStore';
     import Button from '../common/Button.svelte';
     import Input from '../common/Input.svelte';
@@ -142,72 +142,136 @@
 
 <!-- New Account Modal -->
 {#if showNewAccountModal}
-    <div class="fixed inset-0 bg-light-bg/50 dark:bg-dark-bg/50 backdrop-blur-sm z-[100] flex items-center justify-center">
-        <div class="card w-full max-w-md mx-4 p-6">
-            <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent mb-4">New Account</h2>
-            <form on:submit|preventDefault={handleCreateAccount} class="space-y-4">
-                <Input
-                    label="Account Name"
-                    type="text"
-                    bind:value={newAccountName}
-                    required
-                    placeholder="e.g., Binance Spot"
-                />
-                <div class="flex justify-end gap-4">
-                    <Button 
-                        type="button" 
-                        variant="secondary" 
-                        on:click={() => {
-                            showNewAccountModal = false;
-                            newAccountName = '';
-                        }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button type="submit" variant="primary">
-                        Create Account
-                    </Button>
-                </div>
-            </form>
+    <div 
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-all duration-300"
+        on:click={() => {
+            showNewAccountModal = false;
+            newAccountName = '';
+        }}
+        transition:fade={{ duration: 200 }}
+    >
+        <div 
+            class="card w-full max-w-md mx-auto relative transform transition-all duration-300 ease-out"
+            on:click|stopPropagation
+            in:fly={{ y: 20, duration: 300, delay: 150 }}
+            out:fly={{ y: 20, duration: 200 }}
+        >
+            <!-- Header -->
+            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+                <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">New Account</h2>
+                <button 
+                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
+                    on:click={() => {
+                        showNewAccountModal = false;
+                        newAccountName = '';
+                    }}
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="px-8 py-6">
+                <form on:submit|preventDefault={handleCreateAccount}>
+                    <Input
+                        label="Account Name"
+                        type="text"
+                        bind:value={newAccountName}
+                        required
+                        placeholder="e.g., Binance Spot"
+                    />
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+                <Button 
+                    type="button" 
+                    variant="secondary" 
+                    on:click={() => {
+                        showNewAccountModal = false;
+                        newAccountName = '';
+                    }}
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" variant="primary" on:click={handleCreateAccount}>
+                    Create Account
+                </Button>
+            </div>
         </div>
     </div>
 {/if}
 
 <!-- Edit Account Modal -->
 {#if showEditAccountModal && editingAccount}
-    <div class="fixed inset-0 bg-light-bg/50 dark:bg-dark-bg/50 backdrop-blur-sm z-[100] flex items-center justify-center">
-        <div class="card w-full max-w-md mx-4 p-6">
-            <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent mb-4">Edit Account</h2>
-            <form on:submit|preventDefault={handleUpdateAccount} class="space-y-4">
-                <Input
-                    label="Account Name"
-                    type="text"
-                    bind:value={editingAccount.name}
-                    required
-                    placeholder="e.g., Binance Spot"
-                />
-                <div class="flex justify-end gap-4">
-                    <Button 
-                        type="button" 
-                        variant="secondary" 
-                        on:click={() => {
-                            showEditAccountModal = false;
-                            editingAccount = null;
-                        }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button type="submit" variant="primary">
-                        Save Changes
-                    </Button>
-                </div>
-            </form>
+    <div 
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-all duration-300"
+        on:click={() => {
+            showEditAccountModal = false;
+            editingAccount = null;
+        }}
+        transition:fade={{ duration: 200 }}
+    >
+        <div 
+            class="card w-full max-w-md mx-auto relative transform transition-all duration-300 ease-out"
+            on:click|stopPropagation
+            in:fly={{ y: 20, duration: 300, delay: 150 }}
+            out:fly={{ y: 20, duration: 200 }}
+        >
+            <!-- Header -->
+            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+                <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">Edit Account</h2>
+                <button 
+                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
+                    on:click={() => {
+                        showEditAccountModal = false;
+                        editingAccount = null;
+                    }}
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="px-8 py-6">
+                <form on:submit|preventDefault={handleUpdateAccount}>
+                    <Input
+                        label="Account Name"
+                        type="text"
+                        bind:value={editingAccount.name}
+                        required
+                        placeholder="e.g., Binance Spot"
+                    />
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+                <Button 
+                    type="button" 
+                    variant="secondary" 
+                    on:click={() => {
+                        showEditAccountModal = false;
+                        editingAccount = null;
+                    }}
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" variant="primary" on:click={handleUpdateAccount}>
+                    Save Changes
+                </Button>
+            </div>
         </div>
     </div>
 {/if}
 
 <style>
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl transition-colors duration-200;
     }
 </style>
