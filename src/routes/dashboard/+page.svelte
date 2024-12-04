@@ -51,7 +51,7 @@
     }
 
     function handleDayClick(event) {
-        selectedDate = event.detail.inputDate; // Use inputDate for form fields
+        selectedDate = event.detail.date;
         selectedDisplayDate = event.detail.displayDate;
         selectedDayTrades = event.detail.trades;
         showDayModal = true;
@@ -136,6 +136,10 @@
         newTradeDate = '';
     }
 
+    function handleNewTrade() {
+        showNewTradeModal = true;
+    }
+
     $: totalPnL = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
     $: winRate = closedTrades.length > 0 
         ? Math.round((closedTrades.filter(t => t.pnl > 0).length / closedTrades.length) * 100)
@@ -157,7 +161,7 @@
     <!-- Header -->
     <div class="flex justify-between items-center">
         <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">Dashboard</h1>
-        <Button variant="primary" on:click={() => showNewTradeModal = true}>
+        <Button variant="primary" on:click={handleNewTrade}>
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>

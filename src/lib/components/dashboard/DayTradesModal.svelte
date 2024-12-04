@@ -9,15 +9,17 @@
     export let show = false;
     export let trades = [];
     export let date = '';
-    export let displayDate = ''; // Add display date prop
+    export let displayDate = '';
 
     function close() {
         show = false;
     }
 
     function handleNewTrade() {
-        // Use the ISO date string directly
-        dispatch('newTrade', date);
+        // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
+        const formattedDate = new Date(date);
+        formattedDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+        dispatch('newTrade', formattedDate.toISOString().slice(0, 16));
         close();
     }
 
@@ -27,18 +29,18 @@
 
 {#if show}
 <div 
-    class="fixed inset-0 bg-black/50  z-50 flex items-center justify-center p-4 " 
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-100" 
     on:click={close}
     transition:fade={{ duration: 200 }}
 >
     <div 
-        class="card w-full max-w-4xl mx-auto relative transform  ease-out" 
+        class="card w-full max-w-4xl mx-auto relative transform transition-all duration-100 ease-out" 
         on:click|stopPropagation
         in:fly={{ y: 20, duration: 300, delay: 150 }}
         out:fly={{ y: 20, duration: 200 }}
     >
         <!-- Header -->
-        <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl  bg-opacity-90 dark:bg-opacity-90 z-10">
+        <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
             <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">
                 {displayDate || new Date(date).toLocaleDateString('en-US', {
                     weekday: 'long',

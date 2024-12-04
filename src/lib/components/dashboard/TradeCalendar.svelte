@@ -34,14 +34,18 @@
         }
     );
 
-    function createDateWithTime(year, month, day) {
-        // Create date at noon to avoid timezone issues
-        const date = new Date(year, month, day, 12, 0, 0);
-        return date;
+    function isFutureDate(day) {
+        const date = new Date(selectedYear, selectedMonth, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return date > today;
     }
 
     function formatDateForInput(date) {
-        return date.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+        // Set time to noon to avoid timezone issues
+        const d = new Date(date);
+        d.setHours(12, 0, 0, 0);
+        return d.toISOString().slice(0, 16);
     }
 
     $: dailyTrades = trades.reduce((acc, trade) => {
@@ -86,7 +90,7 @@
     function getDayStats(day) {
         if (!day) return null;
         try {
-            const date = createDateWithTime(selectedYear, selectedMonth, day);
+            const date = new Date(selectedYear, selectedMonth, day);
             if (isNaN(date.getTime())) return null;
             
             const dateKey = date.toISOString().split('T')[0];
@@ -97,24 +101,25 @@
         }
     }
 
-    function getCardClass(stats) {
-        if (!stats || (!stats.pnl && !stats.openTrades)) return '';
+    function getCardClass(stats, day) {
+        if (isFutureDate(day)) return 'opacity-50 bg-light-hover/10 dark:bg-dark-hover/10';
+        if (!stats || (!stats.pnl && !stats.openTrades)) return 'cursor-pointer';
         
         // Check for closed trades first
         const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
         if (hasClosedTrades) {
             if ($theme === 'light') {
-                return stats.pnl > 0 ? 'bg-green-100' : 'bg-red-100';
+                return `cursor-pointer ${stats.pnl > 0 ? 'bg-green-100' : 'bg-red-100'}`;
             }
-            return stats.pnl > 0 ? 'bg-green-900/20' : 'bg-red-900/20';
+            return `cursor-pointer ${stats.pnl > 0 ? 'bg-green-900/20' : 'bg-red-900/20'}`;
         }
         
         // If no closed trades but has open trades
         if (stats.openTrades > 0) {
-            return $theme === 'light' ? 'bg-yellow-50' : 'bg-yellow-900/10';
+            return `cursor-pointer ${$theme === 'light' ? 'bg-yellow-50' : 'bg-yellow-900/10'}`;
         }
         
-        return '';
+        return 'cursor-pointer';
     }
 
     function getTextClass(stats) {
@@ -147,16 +152,10 @@
     }
 
     function handleDayClick(day, stats) {
-        // Create date object for the selected day at noon
-        const date = createDateWithTime(selectedYear, selectedMonth, day);
-        
-        // Create ISO string for consistent date handling
-        const isoDate = date.toISOString();
-        
-        // Format date for input field
-        const inputDate = formatDateForInput(date);
-        
-        // Create formatted date string for display only
+        if (isFutureDate(day)) return;
+
+        const date = new Date(selectedYear, selectedMonth, day);
+        const formattedDate = formatDateForInput(date);
         const displayDate = date.toLocaleDateString('en-US', {
             weekday: 'long',
             year: 'numeric',
@@ -165,14 +164,13 @@
         });
 
         if (!stats?.trades.length) {
-            selectedDate = inputDate;
+            selectedDate = formattedDate;
             showEmptyDayModal = true;
             return;
         }
 
         dispatch('dayClick', {
-            date: isoDate,
-            inputDate,
+            date: formattedDate,
             displayDate,
             trades: [...stats.trades].sort((a, b) => {
                 if (a.status !== b.status) {
@@ -226,7 +224,7 @@
                     {#if day !== null}
                         <div 
                             class="absolute inset-0 border border-light-border dark:border-dark-border rounded-md 
-                                   {getCardClass(stats)} hover:shadow transition-all duration-200 cursor-pointer hover:scale-[1.02]"
+                                   {getCardClass(stats, day)} hover:shadow transition-all duration-200 {!isFutureDate(day) && 'hover:scale-[1.02]'}"
                             on:click={() => handleDayClick(day, stats)}
                         >
                             <!-- Date in top right -->
@@ -240,7 +238,7 @@
                                     <div class="space-y-0.5">
                                         <div class="flex items-center gap-1">
                                             <span class="text-[10px] text-light-text-muted dark:text-dark-text-muted">
-                                                {stats.trades.length} trades
+                                                {stats.trades.length} trade{stats.trades.length !== 1 ? 's' : ''}
                                             </span>
                                             <div class="flex gap-1 text-[10px]">
                                                 {#if stats.wins > 0}

@@ -267,7 +267,7 @@
 <div class="card">
     <div class="p-4 border-b border-light-border dark:border-dark-border">
         <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold">Performance Chart</h2>
+            <h2 class="text-xl font-semibold bg-gradient-purple bg-clip-text text-transparent">Performance Chart</h2>
             <div class="flex gap-2">
                 <Select 
                     options={dateRanges}
