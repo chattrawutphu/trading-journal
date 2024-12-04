@@ -3,10 +3,11 @@ import express from 'express';
 import { protect } from '../middleware/auth.js';
 import {
   getAccounts,
+  getAccount,
   createAccount,
   updateAccount,
-  deleteAccount,
   updateBalance,
+  deleteAccount
 } from '../controllers/accountController.js';
 
 const router = express.Router();
@@ -17,11 +18,12 @@ router.route('/')
   .get(getAccounts)
   .post(createAccount);
 
-router.route('/:accountId')
+router.route('/:id')
+  .get(getAccount)
   .put(updateAccount)
   .delete(deleteAccount);
 
-router.route('/:accountId/balance')
+router.route('/:id/balance')
   .put(updateBalance);
 
 export default router;

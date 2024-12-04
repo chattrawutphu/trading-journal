@@ -82,6 +82,10 @@ export const api = {
     return fetchWithAuth('/accounts');
   },
 
+  async getAccount(accountId) {
+    return fetchWithAuth(`/accounts/${accountId}`);
+  },
+
   async createAccount(accountData) {
     return fetchWithAuth('/accounts', {
       method: 'POST',

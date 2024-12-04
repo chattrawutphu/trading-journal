@@ -45,7 +45,7 @@
                 <div class="flex items-center">
                     <div class="text-light-text dark:text-dark-text">
                         <span class="text-light-text-muted dark:text-dark-text-muted mr-2">Balance:</span>
-                        <span class="font-semibold text-theme-500">{formatBalance($accountStore.currentAccount.balance)}</span>
+                        <span class="font-semibold text-theme-500">{formatBalance($accountStore.currentAccount.actualBalance)}</span>
                     </div>
                 </div>
             {/if}
