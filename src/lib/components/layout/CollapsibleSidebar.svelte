@@ -46,7 +46,7 @@
     $: isActive = (path) => $page.url.pathname === path;
 </script>
 
-<aside class="h-screen bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col transition-all duration-300 {collapsed ? 'w-20' : 'w-64'}">
+<aside class="h-screen bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col transition-all duration-100 {collapsed ? 'w-20' : 'w-64'}">
     <!-- Header -->
     <div class="p-4 border-b border-light-border dark:border-dark-border flex items-center justify-between">
         {#if !collapsed}

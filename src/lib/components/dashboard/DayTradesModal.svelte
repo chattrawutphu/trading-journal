@@ -27,12 +27,12 @@
 
 {#if show}
 <div 
-    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300" 
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-100" 
     on:click={close}
     transition:fade={{ duration: 200 }}
 >
     <div 
-        class="card w-full max-w-4xl mx-auto relative transform transition-all duration-300 ease-out" 
+        class="card w-full max-w-4xl mx-auto relative transform transition-all duration-100 ease-out" 
         on:click|stopPropagation
         in:fly={{ y: 20, duration: 300, delay: 150 }}
         out:fly={{ y: 20, duration: 200 }}
