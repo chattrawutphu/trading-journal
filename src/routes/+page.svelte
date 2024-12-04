@@ -136,7 +136,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {#each features as feature, i}
                     <div 
-                        class="bg-slate-700 rounded-xl p-6 transform hover:scale-105 transition-all duration-100"
+                        class="bg-slate-700 rounded-xl p-6 transform hover:scale-105 "
                         style="animation-delay: {i * 200}ms"
                     >
                         <div class="w-12 h-12 rounded-lg bg-gradient-to-br {feature.color} flex items-center justify-center mb-4">

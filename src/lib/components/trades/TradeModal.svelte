@@ -214,19 +214,19 @@
 
 {#if show}
     <div
-        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-100"
+        class="fixed inset-0 bg-black/50  z-50 flex items-center justify-center p-4 "
         on:click={close}
         transition:fade={{ duration: 200 }}
     >
         <div
-            class="card w-full max-w-4xl mx-auto relative transform transition-all duration-100 ease-out"
+            class="card w-full max-w-4xl mx-auto relative transform  ease-out"
             on:click|stopPropagation
             in:fly={{ y: 20, duration: 300, delay: 150 }}
             out:fly={{ y: 20, duration: 200 }}
         >
             <!-- Header -->
             <div
-                class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl  bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <div class="flex items-center gap-3">
                     <h2
@@ -580,7 +580,7 @@
 
             <!-- Footer -->
             <div
-                class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl  bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <div class="flex items-center">
                     {#if Object.keys(errors).length > 0}

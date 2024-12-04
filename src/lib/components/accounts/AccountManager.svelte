@@ -183,7 +183,7 @@
 <!-- New Account Modal -->
 {#if showNewAccountModal}
     <div 
-        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-all duration-100"
+        class="fixed inset-0 bg-black/50  z-[100] flex items-center justify-center p-4 "
         on:click={() => {
             showNewAccountModal = false;
             newAccountName = '';
@@ -192,13 +192,13 @@
         transition:fade={{ duration: 200 }}
     >
         <div 
-            class="card w-full max-w-md mx-auto relative transform transition-all duration-100 ease-out"
+            class="card w-full max-w-md mx-auto relative transform  ease-out"
             on:click|stopPropagation
             in:fly={{ y: 20, duration: 300, delay: 150 }}
             out:fly={{ y: 20, duration: 200 }}
         >
             <!-- Header -->
-            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl  bg-opacity-90 dark:bg-opacity-90 z-10">
                 <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">New Account</h2>
                 <button 
                     class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
@@ -236,7 +236,7 @@
             </div>
 
             <!-- Footer -->
-            <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+            <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl  bg-opacity-90 dark:bg-opacity-90 z-10">
                 <Button 
                     type="button" 
                     variant="secondary" 
@@ -259,7 +259,7 @@
 <!-- Edit Account Modal -->
 {#if showEditAccountModal && editingAccount}
     <div 
-        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-all duration-100"
+        class="fixed inset-0 bg-black/50  z-[100] flex items-center justify-center p-4 "
         on:click={() => {
             showEditAccountModal = false;
             editingAccount = null;
@@ -267,13 +267,13 @@
         transition:fade={{ duration: 200 }}
     >
         <div 
-            class="card w-full max-w-md mx-auto relative transform transition-all duration-100 ease-out"
+            class="card w-full max-w-md mx-auto relative transform  ease-out"
             on:click|stopPropagation
             in:fly={{ y: 20, duration: 300, delay: 150 }}
             out:fly={{ y: 20, duration: 200 }}
         >
             <!-- Header -->
-            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl  bg-opacity-90 dark:bg-opacity-90 z-10">
                 <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">Edit Account</h2>
                 <button 
                     class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
@@ -310,7 +310,7 @@
             </div>
 
             <!-- Footer -->
-            <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+            <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl  bg-opacity-90 dark:bg-opacity-90 z-10">
                 <Button 
                     type="button" 
                     variant="secondary" 
@@ -332,7 +332,7 @@
 <!-- Update Balance Modal -->
 {#if showBalanceModal && updatingBalance}
     <div 
-        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-all duration-100"
+        class="fixed inset-0 bg-black/50  z-[100] flex items-center justify-center p-4 "
         on:click={() => {
             showBalanceModal = false;
             updatingBalance = null;
@@ -340,13 +340,13 @@
         transition:fade={{ duration: 200 }}
     >
         <div 
-            class="card w-full max-w-md mx-auto relative transform transition-all duration-100 ease-out"
+            class="card w-full max-w-md mx-auto relative transform  ease-out"
             on:click|stopPropagation
             in:fly={{ y: 20, duration: 300, delay: 150 }}
             out:fly={{ y: 20, duration: 200 }}
         >
             <!-- Header -->
-            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl  bg-opacity-90 dark:bg-opacity-90 z-10">
                 <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">Update Balance</h2>
                 <button 
                     class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
@@ -376,7 +376,7 @@
             </div>
 
             <!-- Footer -->
-            <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+            <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl  bg-opacity-90 dark:bg-opacity-90 z-10">
                 <Button 
                     type="button" 
                     variant="secondary" 

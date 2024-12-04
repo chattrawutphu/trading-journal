@@ -15,7 +15,7 @@
     }
 </script>
   
-<div class="card p-6 hover:scale-102 transition-all duration-100">
+<div class="card p-6 hover:scale-102 ">
     <h3 class="text-sm text-light-text-muted dark:text-dark-text-muted mb-3">{title}</h3>
     <div class="flex justify-between items-baseline mb-4">
         <div class="flex flex-col">
@@ -42,7 +42,7 @@
         </div>
         <div class="relative h-2 bg-light-hover dark:bg-dark-hover rounded-full overflow-hidden">
             <div 
-                class="absolute top-0 left-0 h-full rounded-full transition-all duration-100"
+                class="absolute top-0 left-0 h-full rounded-full "
                 class:bg-gradient-purple={winRate >= 50}
                 class:bg-red-500={winRate < 50}
                 style="width: {winRate}%"

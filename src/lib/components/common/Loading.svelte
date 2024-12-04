@@ -19,7 +19,7 @@
 </script>
 
 {#if overlay}
-    <div class="fixed inset-0 bg-light-bg/50 dark:bg-dark-bg/50 backdrop-blur-sm z-50 flex items-center justify-center">
+    <div class="fixed inset-0 bg-light-bg/50 dark:bg-dark-bg/50  z-50 flex items-center justify-center">
         <div class="card p-8 flex flex-col items-center space-y-4">
             {#if type === 'spinner'}
                 <div class="relative {sizeClasses[size]}">

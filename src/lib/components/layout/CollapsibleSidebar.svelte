@@ -47,7 +47,7 @@
 </script>
 
 <aside class="h-screen p-2 ">
-    <div class="rounded-md h-full bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col transition-all duration-100 {collapsed ? 'w-20' : 'w-64'}">
+    <div class="rounded-md h-full bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col  {collapsed ? 'w-20' : 'w-64'}">
     <!-- Header -->
     <div class="p-4 border-b border-light-border dark:border-dark-border flex items-center justify-between">
         {#if !collapsed}

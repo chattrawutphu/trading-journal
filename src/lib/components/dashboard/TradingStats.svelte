@@ -93,11 +93,6 @@
                     <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
                         {data.trades} trade{data.trades !== 1 ? 's' : ''}
                     </p>
-                    {#if data.startingBalance > 0}
-                        <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
-                            Balance: {formatCurrency(data.startingBalance)}
-                        </p>
-                    {/if}
                 </div>
             </div>
         </div>
