@@ -9,15 +9,15 @@
     export let show = false;
     export let trades = [];
     export let date = '';
+    export let displayDate = ''; // Add display date prop
 
     function close() {
         show = false;
     }
 
     function handleNewTrade() {
-        // Convert date string to ISO format for the trade form
-        const selectedDate = new Date(date).toISOString().slice(0, 16);
-        dispatch('newTrade', selectedDate);
+        // Use the ISO date string directly
+        dispatch('newTrade', date);
         close();
     }
 
@@ -40,7 +40,7 @@
         <!-- Header -->
         <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
             <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">
-                {new Date(date).toLocaleDateString('en-US', {
+                {displayDate || new Date(date).toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',

@@ -13,10 +13,11 @@ export const getAccounts = async (req, res) => {
 
 export const createAccount = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, balance } = req.body;
 
     const account = await Account.create({
       name,
+      balance: balance || 0,
       user: req.user._id,
     });
 
@@ -29,7 +30,7 @@ export const createAccount = async (req, res) => {
 
 export const updateAccount = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, balance } = req.body;
     const { accountId } = req.params;
 
     const account = await Account.findOne({
@@ -43,6 +44,34 @@ export const updateAccount = async (req, res) => {
     }
 
     account.name = name;
+    if (balance !== undefined) {
+      account.balance = balance;
+    }
+    await account.save();
+
+    res.json(account);
+  } catch (error) {
+    res.status(400);
+    throw error;
+  }
+};
+
+export const updateBalance = async (req, res) => {
+  try {
+    const { balance } = req.body;
+    const { accountId } = req.params;
+
+    const account = await Account.findOne({
+      _id: accountId,
+      user: req.user._id,
+    });
+
+    if (!account) {
+      res.status(404);
+      throw new Error('Account not found');
+    }
+
+    account.balance = balance;
     await account.save();
 
     res.json(account);

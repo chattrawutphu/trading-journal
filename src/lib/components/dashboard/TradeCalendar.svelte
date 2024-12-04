@@ -34,6 +34,16 @@
         }
     );
 
+    function createDateWithTime(year, month, day) {
+        // Create date at noon to avoid timezone issues
+        const date = new Date(year, month, day, 12, 0, 0);
+        return date;
+    }
+
+    function formatDateForInput(date) {
+        return date.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+    }
+
     $: dailyTrades = trades.reduce((acc, trade) => {
         let tradeDate;
         if (trade.status === 'CLOSED') {
@@ -76,7 +86,7 @@
     function getDayStats(day) {
         if (!day) return null;
         try {
-            const date = new Date(selectedYear, selectedMonth, day);
+            const date = createDateWithTime(selectedYear, selectedMonth, day);
             if (isNaN(date.getTime())) return null;
             
             const dateKey = date.toISOString().split('T')[0];
@@ -137,8 +147,17 @@
     }
 
     function handleDayClick(day, stats) {
-        const date = new Date(selectedYear, selectedMonth, day);
-        const dateStr = date.toLocaleDateString('en-US', {
+        // Create date object for the selected day at noon
+        const date = createDateWithTime(selectedYear, selectedMonth, day);
+        
+        // Create ISO string for consistent date handling
+        const isoDate = date.toISOString();
+        
+        // Format date for input field
+        const inputDate = formatDateForInput(date);
+        
+        // Create formatted date string for display only
+        const displayDate = date.toLocaleDateString('en-US', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
@@ -146,15 +165,16 @@
         });
 
         if (!stats?.trades.length) {
-            selectedDate = date.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+            selectedDate = inputDate;
             showEmptyDayModal = true;
             return;
         }
 
         dispatch('dayClick', {
-            date: dateStr,
+            date: isoDate,
+            inputDate,
+            displayDate,
             trades: [...stats.trades].sort((a, b) => {
-                // Sort by status (open first) then by PnL
                 if (a.status !== b.status) {
                     return a.status === 'OPEN' ? -1 : 1;
                 }

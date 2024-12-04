@@ -10,16 +10,23 @@
   
     let showNewAccountModal = false;
     let showEditAccountModal = false;
+    let showBalanceModal = false;
     let newAccountName = '';
+    let newAccountBalance = 0;
     let editingAccount = null;
+    let updatingBalance = null;
     let error = '';
   
     async function handleCreateAccount() {
       if (newAccountName.trim()) {
         try {
           error = '';
-          await accountStore.createAccount({ name: newAccountName });
+          await accountStore.createAccount({ 
+            name: newAccountName,
+            balance: parseFloat(newAccountBalance) || 0
+          });
           newAccountName = '';
+          newAccountBalance = 0;
           showNewAccountModal = false;
         } catch (err) {
           error = err.message;
@@ -31,9 +38,25 @@
       if (editingAccount && editingAccount.name.trim()) {
         try {
           error = '';
-          await accountStore.updateAccount(editingAccount._id, { name: editingAccount.name });
+          await accountStore.updateAccount(editingAccount._id, { 
+            name: editingAccount.name,
+            balance: parseFloat(editingAccount.balance) || 0
+          });
           showEditAccountModal = false;
           editingAccount = null;
+        } catch (err) {
+          error = err.message;
+        }
+      }
+    }
+
+    async function handleUpdateBalance() {
+      if (updatingBalance) {
+        try {
+          error = '';
+          await accountStore.updateBalance(updatingBalance._id, parseFloat(updatingBalance.balance) || 0);
+          showBalanceModal = false;
+          updatingBalance = null;
         } catch (err) {
           error = err.message;
         }
@@ -54,6 +77,11 @@
     function startEditAccount(account) {
       editingAccount = { ...account };
       showEditAccountModal = true;
+    }
+
+    function startUpdateBalance(account) {
+      updatingBalance = { ...account };
+      showBalanceModal = true;
     }
 </script>
 
@@ -95,9 +123,21 @@
                             dispatch('close');
                         }}
                     >
-                        {account.name}
+                        <span>{account.name}</span>
+                        <span class="ml-2 text-light-text-muted dark:text-dark-text-muted">
+                            ${account.balance?.toLocaleString() || '0'}
+                        </span>
                     </button>
                     <div class="hidden group-hover:flex items-center ml-2 space-x-1">
+                        <button
+                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
+                            on:click|stopPropagation={() => startUpdateBalance(account)}
+                            title="Update Balance"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </button>
                         <button
                             class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
                             on:click|stopPropagation={() => startEditAccount(account)}
@@ -147,6 +187,7 @@
         on:click={() => {
             showNewAccountModal = false;
             newAccountName = '';
+            newAccountBalance = 0;
         }}
         transition:fade={{ duration: 200 }}
     >
@@ -164,6 +205,7 @@
                     on:click={() => {
                         showNewAccountModal = false;
                         newAccountName = '';
+                        newAccountBalance = 0;
                     }}
                 >
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,7 +215,7 @@
             </div>
 
             <!-- Content -->
-            <div class="px-8 py-6">
+            <div class="px-8 py-6 space-y-4">
                 <form on:submit|preventDefault={handleCreateAccount}>
                     <Input
                         label="Account Name"
@@ -181,6 +223,14 @@
                         bind:value={newAccountName}
                         required
                         placeholder="e.g., Binance Spot"
+                    />
+                    <Input
+                        label="Initial Balance"
+                        type="number"
+                        bind:value={newAccountBalance}
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
                     />
                 </form>
             </div>
@@ -193,6 +243,7 @@
                     on:click={() => {
                         showNewAccountModal = false;
                         newAccountName = '';
+                        newAccountBalance = 0;
                     }}
                 >
                     Cancel
@@ -238,7 +289,7 @@
             </div>
 
             <!-- Content -->
-            <div class="px-8 py-6">
+            <div class="px-8 py-6 space-y-4">
                 <form on:submit|preventDefault={handleUpdateAccount}>
                     <Input
                         label="Account Name"
@@ -246,6 +297,14 @@
                         bind:value={editingAccount.name}
                         required
                         placeholder="e.g., Binance Spot"
+                    />
+                    <Input
+                        label="Balance"
+                        type="number"
+                        bind:value={editingAccount.balance}
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
                     />
                 </form>
             </div>
@@ -264,6 +323,72 @@
                 </Button>
                 <Button type="submit" variant="primary" on:click={handleUpdateAccount}>
                     Save Changes
+                </Button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+<!-- Update Balance Modal -->
+{#if showBalanceModal && updatingBalance}
+    <div 
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-all duration-100"
+        on:click={() => {
+            showBalanceModal = false;
+            updatingBalance = null;
+        }}
+        transition:fade={{ duration: 200 }}
+    >
+        <div 
+            class="card w-full max-w-md mx-auto relative transform transition-all duration-100 ease-out"
+            on:click|stopPropagation
+            in:fly={{ y: 20, duration: 300, delay: 150 }}
+            out:fly={{ y: 20, duration: 200 }}
+        >
+            <!-- Header -->
+            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+                <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">Update Balance</h2>
+                <button 
+                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
+                    on:click={() => {
+                        showBalanceModal = false;
+                        updatingBalance = null;
+                    }}
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="px-8 py-6">
+                <form on:submit|preventDefault={handleUpdateBalance}>
+                    <Input
+                        label="New Balance"
+                        type="number"
+                        bind:value={updatingBalance.balance}
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                    />
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+                <Button 
+                    type="button" 
+                    variant="secondary" 
+                    on:click={() => {
+                        showBalanceModal = false;
+                        updatingBalance = null;
+                    }}
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" variant="primary" on:click={handleUpdateBalance}>
+                    Update Balance
                 </Button>
             </div>
         </div>

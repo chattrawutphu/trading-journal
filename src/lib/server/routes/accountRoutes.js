@@ -6,6 +6,7 @@ import {
   createAccount,
   updateAccount,
   deleteAccount,
+  updateBalance,
 } from '../controllers/accountController.js';
 
 const router = express.Router();
@@ -19,5 +20,8 @@ router.route('/')
 router.route('/:accountId')
   .put(updateAccount)
   .delete(deleteAccount);
+
+router.route('/:accountId/balance')
+  .put(updateBalance);
 
 export default router;

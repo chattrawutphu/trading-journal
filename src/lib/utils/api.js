@@ -96,6 +96,13 @@ export const api = {
     });
   },
 
+  async updateBalance(accountId, balance) {
+    return fetchWithAuth(`/accounts/${accountId}/balance`, {
+      method: 'PUT',
+      body: JSON.stringify({ balance }),
+    });
+  },
+
   async deleteAccount(accountId) {
     return fetchWithAuth(`/accounts/${accountId}`, {
       method: 'DELETE',

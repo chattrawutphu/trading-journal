@@ -92,6 +92,32 @@ function createAccountStore() {
         throw error;
       }
     },
+    updateBalance: async (accountId, balance) => {
+      try {
+        update(state => ({ ...state, loading: true, error: null }));
+        const updatedAccount = await api.updateBalance(accountId, balance);
+        update(state => {
+          const updatedAccounts = state.accounts.map(account => 
+            account._id === accountId ? updatedAccount : account
+          );
+          return {
+            ...state,
+            accounts: updatedAccounts,
+            currentAccount: state.currentAccount?._id === accountId ? updatedAccount : state.currentAccount,
+            loading: false
+          };
+        });
+        return updatedAccount;
+      } catch (error) {
+        console.error('Error updating balance:', error);
+        update(state => ({ 
+          ...state, 
+          loading: false, 
+          error: error.message || 'Failed to update balance'
+        }));
+        throw error;
+      }
+    },
     deleteAccount: async (accountId) => {
       try {
         update(state => ({ ...state, loading: true, error: null }));

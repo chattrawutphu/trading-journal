@@ -23,6 +23,7 @@
     let showEmptyDayModal = false;
     let selectedTrade = null;
     let selectedDate = '';
+    let selectedDisplayDate = '';
     let selectedDayTrades = [];
     let newTradeDate = '';
   
@@ -50,7 +51,8 @@
     }
 
     function handleDayClick(event) {
-        selectedDate = event.detail.date;
+        selectedDate = event.detail.inputDate; // Use inputDate for form fields
+        selectedDisplayDate = event.detail.displayDate;
         selectedDayTrades = event.detail.trades;
         showDayModal = true;
     }
@@ -125,6 +127,7 @@
     function closeDayModal() {
         showDayModal = false;
         selectedDate = '';
+        selectedDisplayDate = '';
         selectedDayTrades = [];
     }
 
@@ -256,6 +259,7 @@
     bind:show={showDayModal}
     trades={selectedDayTrades}
     date={selectedDate}
+    displayDate={selectedDisplayDate}
     on:view={handleView}
     on:edit={handleEdit}
     on:delete={handleDelete}
@@ -273,7 +277,7 @@
 <TradeModal
     bind:show={showNewTradeModal}
     accountId={$accountStore.currentAccount?._id}
-    entryDate={newTradeDate}
+    entryDate={newTradeDate || selectedDate}
     on:submit={handleSubmit}
     on:close={closeNewTradeModal}
 />

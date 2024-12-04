@@ -4,14 +4,28 @@
     export let pnl = 0;
     export let trades = 0;
     export let winRate = 0;
+    export let balanceChange = 0;
   
     $: pnlClass = pnl > 0 ? 'text-green-500' : pnl < 0 ? 'text-red-500' : '';
+    $: balanceChangeClass = balanceChange > 0 ? 'text-green-500' : balanceChange < 0 ? 'text-red-500' : '';
+    
+    function formatPercentage(value) {
+        const sign = value > 0 ? '+' : '';
+        return `${sign}${value.toFixed(2)}%`;
+    }
 </script>
   
 <div class="card p-6 hover:scale-102 transition-all duration-100">
     <h3 class="text-sm text-light-text-muted dark:text-dark-text-muted mb-3">{title}</h3>
     <div class="flex justify-between items-baseline mb-4">
-        <span class="text-2xl font-bold {pnlClass}">${pnl.toFixed(2)}</span>
+        <div class="flex flex-col">
+            <span class="text-2xl font-bold {pnlClass}">${pnl.toFixed(2)}</span>
+            {#if balanceChange !== 0}
+                <span class="text-sm {balanceChangeClass}">
+                    {formatPercentage(balanceChange)}
+                </span>
+            {/if}
+        </div>
         <div class="flex items-center space-x-2">
             <span class="text-sm text-light-text-muted dark:text-dark-text-muted">{trades} trades</span>
             <div class="h-4 w-[1px] bg-light-border dark:bg-dark-border"></div>

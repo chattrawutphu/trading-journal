@@ -24,13 +24,32 @@
         showUserMenu = false;
       }
     }
+
+    function formatBalance(balance) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(balance || 0);
+    }
 </script>
 
 <svelte:window on:click={handleClickOutside}/>
   
-<nav class="bg-light-card dark:bg-dark-card border-b border-light-border dark:border-dark-border transition-colors duration-200">
+<nav class>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-end h-16">
+        <div class="flex justify-between h-16">
+            <!-- Balance Display -->
+            {#if $auth?.isAuthenticated && $accountStore?.currentAccount}
+                <div class="flex items-center">
+                    <div class="text-light-text dark:text-dark-text">
+                        <span class="text-light-text-muted dark:text-dark-text-muted mr-2">Balance:</span>
+                        <span class="font-semibold text-theme-500">{formatBalance($accountStore.currentAccount.balance)}</span>
+                    </div>
+                </div>
+            {/if}
+
             {#if $auth?.isAuthenticated}
                 <div class="flex items-center space-x-4">
                     <!-- Theme Toggle -->

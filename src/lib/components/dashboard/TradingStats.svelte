@@ -4,11 +4,11 @@
     import { onMount } from 'svelte';
 
     let stats = {
-        today: { pnl: 0, trades: 0 },
-        yesterday: { pnl: 0, trades: 0 },
-        week: { pnl: 0, trades: 0 },
-        month: { pnl: 0, trades: 0 },
-        total: { pnl: 0, trades: 0 }
+        today: { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 },
+        yesterday: { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 },
+        week: { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 },
+        month: { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 },
+        total: { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 }
     };
 
     let loading = false;
@@ -38,21 +38,30 @@
         }
     }
 
+    const icons = {
+        today: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>',
+        yesterday: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+        week: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zM12 12h.01"/>',
+        month: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>',
+        total: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>'
+    };
+
     function getIcon(period) {
-        switch (period) {
-            case 'today':
-                return `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>`;
-            case 'yesterday':
-                return `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>`;
-            case 'week':
-                return `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zM12 12h.01"/>`;
-            case 'month':
-                return `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>`;
-            case 'total':
-                return `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>`;
-            default:
-                return '';
-        }
+        return icons[period] || '';
+    }
+
+    function formatPercentage(value) {
+        const sign = value > 0 ? '+' : '';
+        return `${sign}${value.toFixed(2)}%`;
+    }
+
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
     }
 </script>
 
@@ -69,13 +78,27 @@
                     </svg>
                 </div>
             </div>
-            <div class="space-y-1">
-                <p class="text-xl font-bold {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
-                    ${data.pnl.toFixed(2)}
-                </p>
-                <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
-                    {data.trades} trade{data.trades !== 1 ? 's' : ''}
-                </p>
+            <div class="space-y-2">
+                <div class="flex items-baseline justify-between">
+                    <p class="text-xl {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                        {formatCurrency(data.pnl)}
+                    </p>
+                    {#if data.balanceChange !== 0}
+                        <p class="text-xl font-bold {data.balanceChange > 0 ? 'text-green-500' : 'text-red-500'}">
+                            {formatPercentage(data.balanceChange)}
+                        </p>
+                    {/if}
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                        {data.trades} trade{data.trades !== 1 ? 's' : ''}
+                    </p>
+                    {#if data.startingBalance > 0}
+                        <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                            Balance: {formatCurrency(data.startingBalance)}
+                        </p>
+                    {/if}
+                </div>
             </div>
         </div>
     {/each}

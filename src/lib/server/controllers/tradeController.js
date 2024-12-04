@@ -38,6 +38,7 @@ export const getStats = async (req, res) => {
 
     const now = new Date();
     let startDate;
+    let endDate = now;
 
     switch (period) {
       case 'today':
@@ -45,8 +46,8 @@ export const getStats = async (req, res) => {
         break;
       case 'yesterday':
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-        now.setDate(now.getDate() - 1);
-        now.setHours(23, 59, 59, 999);
+        endDate = new Date(startDate);
+        endDate.setHours(23, 59, 59, 999);
         break;
       case 'week':
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
@@ -62,18 +63,34 @@ export const getStats = async (req, res) => {
         throw new Error('Invalid period');
     }
 
-    const trades = await Trade.find({
+    // Get all trades before the start date to calculate starting balance
+    const previousTrades = await Trade.find({
+      account: accountId,
+      status: 'CLOSED',
+      exitDate: { $lt: startDate }
+    });
+
+    // Calculate starting balance
+    const previousPnL = previousTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+    const startingBalance = account.balance - previousPnL;
+
+    // Get trades for the period
+    const periodTrades = await Trade.find({
       account: accountId,
       status: 'CLOSED',
       exitDate: {
         $gte: startDate,
-        $lte: now
+        $lte: endDate
       }
     });
 
+    const periodPnL = periodTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+
     const stats = {
-      pnl: trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0),
-      trades: trades.length
+      pnl: periodPnL,
+      trades: periodTrades.length,
+      startingBalance,
+      balanceChange: startingBalance > 0 ? (periodPnL / startingBalance) * 100 : 0
     };
 
     res.json(stats);
