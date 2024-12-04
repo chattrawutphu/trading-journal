@@ -7,6 +7,13 @@ export const validateTradeForm = (form) => {
     if (!form.entryPrice || form.entryPrice <= 0) errors.entryPrice = 'Valid entry price is required';
     if (!form.amount || form.amount <= 0) errors.amount = 'Valid amount is required';
 
+    // Optional leverage validation
+    if (form.leverage !== undefined && form.leverage !== '') {
+        if (!Number.isInteger(Number(form.leverage)) || Number(form.leverage) < 1) {
+            errors.leverage = 'Leverage must be a positive whole number';
+        }
+    }
+
     // Status-specific validations
     if (form.status === 'CLOSED') {
         if (!form.exitDate) {

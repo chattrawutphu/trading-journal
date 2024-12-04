@@ -6,6 +6,7 @@
     import Button from '../common/Button.svelte';
     import TradeOptionSelect from './TradeOptionSelect.svelte';
     import { validateTradeForm } from '$lib/utils/validators';
+    import { leverageStore } from '$lib/stores/leverageStore';
   
     const dispatch = createEventDispatcher();
   
@@ -16,6 +17,7 @@
 
     let errors = {};
     let touched = {};
+    let previousSymbol = '';
 
     const emotionOptions = [
         { value: 'confident', label: '😊 Confident' },
@@ -57,15 +59,30 @@
       hasStopLoss: false,
       hasTakeProfit: false,
       favorite: false,
-      disabled: false
+      leverage: 1
     };
+
+    // Watch for symbol changes to update leverage from cache
+    $: if (form.symbol !== previousSymbol) {
+        if (form.symbol) {
+            form.leverage = leverageStore.getLeverage(form.symbol);
+        }
+        previousSymbol = form.symbol;
+    }
+
+    // Watch for leverage changes to update cache
+    $: if (form.symbol && form.leverage) {
+        leverageStore.setLeverage(form.symbol, form.leverage);
+    }
   
     $: if (trade) {
       form = { 
         ...trade,
         entryDate: trade.entryDate ? new Date(trade.entryDate).toISOString().slice(0, 16) : getCurrentDateTime(),
-        exitDate: trade.exitDate ? new Date(trade.exitDate).toISOString().slice(0, 16) : ''
+        exitDate: trade.exitDate ? new Date(trade.exitDate).toISOString().slice(0, 16) : '',
+        leverage: trade.leverage || leverageStore.getLeverage(trade.symbol)
       };
+      previousSymbol = trade.symbol;
     } else {
       form.account = accountId;
       form.entryDate = entryDate || getCurrentDateTime();
@@ -117,6 +134,7 @@
       if (formData.pnl) formData.pnl = Number(formData.pnl);
       formData.confidenceLevel = Number(formData.confidenceLevel);
       formData.greedLevel = Number(formData.greedLevel);
+      if (formData.leverage) formData.leverage = Number(formData.leverage);
 
       try {
         if (formData.entryDate) {
@@ -168,10 +186,11 @@
         hasStopLoss: false,
         hasTakeProfit: false,
         favorite: false,
-        disabled: false
+        leverage: 1
       };
       errors = {};
       touched = {};
+      previousSymbol = '';
     }
 
     const statusOptions = [
@@ -292,6 +311,17 @@
                                 error={touched.quantity && errors.quantity}
                                 on:input={handleInput('quantity')}
                             />
+                            <Input
+                                label="Leverage"
+                                type="number"
+                                step="1"
+                                min="1"
+                                bind:value={form.leverage}
+                                placeholder="1"
+                                error={touched.leverage && errors.leverage}
+                                on:input={handleInput('leverage')}
+                            />
+                            
                         </div>
 
                         <!-- Right Column -->
@@ -327,6 +357,12 @@
                                 placeholder="0.00"
                                 error={touched.amount && errors.amount}
                                 on:input={handleInput('amount')}
+                            />
+                            <Select
+                                label="Emotions"
+                                options={emotionOptions}
+                                bind:value={form.emotions}
+                                placeholder="How did you feel during this trade?"
                             />
                         </div>
                     </div>
@@ -408,12 +444,6 @@
 
                     <!-- Additional Info -->
                     <div class="space-y-4">
-                        <Select
-                            label="Emotions"
-                            options={emotionOptions}
-                            bind:value={form.emotions}
-                            placeholder="How did you feel during this trade?"
-                        />
                         <div>
                             <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-1">
                                 Notes
