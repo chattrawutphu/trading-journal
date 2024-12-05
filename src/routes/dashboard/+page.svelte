@@ -9,7 +9,11 @@
     import TradeViewModal from '$lib/components/trades/TradeViewModal.svelte';
     import DayTradesModal from '$lib/components/dashboard/DayTradesModal.svelte';
     import EmptyDayModal from '$lib/components/dashboard/EmptyDayModal.svelte';
+<<<<<<< HEAD
     import NewAccountModal from '$lib/components/accounts/NewAccountModal.svelte';
+=======
+    import AccountManager from '$lib/components/accounts/AccountManager.svelte';
+>>>>>>> 48c7d3cfa9c3e678604e55ce52b1ed9bd21c629a
     import Loading from '$lib/components/common/Loading.svelte';
     import Button from '$lib/components/common/Button.svelte';
     import { api } from '$lib/utils/api';
@@ -304,6 +308,7 @@ function handleAddAccount() {
 </div>
 
 <!-- Modals -->
+<<<<<<< HEAD
 <NewAccountModal 
     bind:show={showAccountModal}
     on:close={() => showAccountModal = false}
@@ -345,6 +350,43 @@ function handleAddAccount() {
         trade={selectedTrade}
     />
 
+=======
+{#if $accountStore.currentAccount}
+    <DayTradesModal
+        bind:show={showDayModal}
+        trades={selectedDayTrades}
+        transactions={selectedDayTransactions}
+        date={selectedDate}
+        displayDate={selectedDisplayDate}
+        accountId={$accountStore.currentAccount?._id}
+        on:view={handleView}
+        on:edit={handleEdit}
+        on:delete={handleDelete}
+        on:newTrade={handleNewTradeFromCalendar}
+    />
+
+    <TradeModal
+        bind:show={showEditModal}
+        trade={selectedTrade}
+        accountId={$accountStore.currentAccount?._id}
+        on:submit={handleSubmit}
+        on:close={closeEditModal}
+    />
+
+    <TradeModal
+        bind:show={showNewTradeModal}
+        accountId={$accountStore.currentAccount?._id}
+        entryDate={newTradeDate || selectedDate}
+        on:submit={handleSubmit}
+        on:close={closeNewTradeModal}
+    />
+
+    <TradeViewModal
+        bind:show={showViewModal}
+        trade={selectedTrade}
+    />
+
+>>>>>>> 48c7d3cfa9c3e678604e55ce52b1ed9bd21c629a
     <EmptyDayModal
         bind:show={showEmptyDayModal}
         date={selectedDate}
