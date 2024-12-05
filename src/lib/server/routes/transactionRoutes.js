@@ -1,5 +1,10 @@
 import express from 'express';
-import { createTransaction, getTransactions } from '../controllers/transactionController.js';
+import { 
+  createTransaction, 
+  getTransactions, 
+  updateTransaction, 
+  deleteTransaction 
+} from '../controllers/transactionController.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -12,5 +17,9 @@ router.route('/')
 
 router.route('/:accountId')
   .get(getTransactions);
+
+router.route('/:transactionId')
+  .put(updateTransaction)
+  .delete(deleteTransaction);
 
 export default router;

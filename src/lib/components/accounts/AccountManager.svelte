@@ -17,6 +17,7 @@
     let newAccountBalance = 0;
     let editingAccount = null;
     let transactionAmount = 0;
+    let transactionDate = new Date().toISOString().split('T')[0];
     let error = '';
   
     async function handleCreateAccount() {
@@ -56,12 +57,18 @@
       if (editingAccount && transactionAmount > 0) {
         try {
           error = '';
-          await transactionStore.createTransaction(editingAccount._id, 'deposit', transactionAmount);
+          await transactionStore.createTransaction(
+            editingAccount._id, 
+            'deposit', 
+            transactionAmount,
+            new Date(transactionDate)
+          );
           await accountStore.setCurrentAccount(editingAccount._id);
           await accountStore.loadAccounts();
           showDepositModal = false;
           editingAccount = null;
           transactionAmount = 0;
+          transactionDate = new Date().toISOString().split('T')[0];
         } catch (err) {
           error = err.message;
         }
@@ -72,12 +79,18 @@
       if (editingAccount && transactionAmount > 0) {
         try {
           error = '';
-          await transactionStore.createTransaction(editingAccount._id, 'withdrawal', transactionAmount);
+          await transactionStore.createTransaction(
+            editingAccount._id, 
+            'withdrawal', 
+            transactionAmount,
+            new Date(transactionDate)
+          );
           await accountStore.setCurrentAccount(editingAccount._id);
           await accountStore.loadAccounts();
           showWithdrawModal = false;
           editingAccount = null;
           transactionAmount = 0;
+          transactionDate = new Date().toISOString().split('T')[0];
         } catch (err) {
           error = err.message;
         }
@@ -103,12 +116,14 @@
     function startDeposit(account) {
       editingAccount = { ...account };
       transactionAmount = 0;
+      transactionDate = new Date().toISOString().split('T')[0];
       showDepositModal = true;
     }
 
     function startWithdraw(account) {
       editingAccount = { ...account };
       transactionAmount = 0;
+      transactionDate = new Date().toISOString().split('T')[0];
       showWithdrawModal = true;
     }
 </script>
@@ -366,6 +381,7 @@
             showDepositModal = false;
             editingAccount = null;
             transactionAmount = 0;
+            transactionDate = new Date().toISOString().split('T')[0];
         }}
         transition:fade={{ duration: 200 }}
     >
@@ -384,6 +400,7 @@
                         showDepositModal = false;
                         editingAccount = null;
                         transactionAmount = 0;
+                        transactionDate = new Date().toISOString().split('T')[0];
                     }}
                 >
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -403,6 +420,11 @@
                         step="0.01"
                         placeholder="0.00"
                     />
+                    <Input
+                        label="Date"
+                        type="date"
+                        bind:value={transactionDate}
+                    />
                 </form>
             </div>
 
@@ -415,6 +437,7 @@
                         showDepositModal = false;
                         editingAccount = null;
                         transactionAmount = 0;
+                        transactionDate = new Date().toISOString().split('T')[0];
                     }}
                 >
                     Cancel
@@ -435,6 +458,7 @@
             showWithdrawModal = false;
             editingAccount = null;
             transactionAmount = 0;
+            transactionDate = new Date().toISOString().split('T')[0];
         }}
         transition:fade={{ duration: 200 }}
     >
@@ -453,6 +477,7 @@
                         showWithdrawModal = false;
                         editingAccount = null;
                         transactionAmount = 0;
+                        transactionDate = new Date().toISOString().split('T')[0];
                     }}
                 >
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -472,6 +497,11 @@
                         step="0.01"
                         placeholder="0.00"
                     />
+                    <Input
+                        label="Date"
+                        type="date"
+                        bind:value={transactionDate}
+                    />
                 </form>
             </div>
 
@@ -484,6 +514,7 @@
                         showWithdrawModal = false;
                         editingAccount = null;
                         transactionAmount = 0;
+                        transactionDate = new Date().toISOString().split('T')[0];
                     }}
                 >
                     Cancel

@@ -228,4 +228,17 @@ export const api = {
       body: JSON.stringify(transactionData),
     });
   },
+
+  async updateTransaction(transactionId, transactionData) {
+    return fetchWithAuth(`/transactions/${transactionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(transactionData),
+    });
+  },
+
+  async deleteTransaction(transactionId) {
+    return fetchWithAuth(`/transactions/${transactionId}`, {
+      method: 'DELETE',
+    });
+  },
 };

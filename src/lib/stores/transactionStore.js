@@ -10,12 +10,13 @@ function createTransactionStore() {
 
   return {
     subscribe,
-    createTransaction: async (accountId, type, amount) => {
+    createTransaction: async (accountId, type, amount, date = new Date()) => {
       try {
         const response = await api.createTransaction({
           accountId,
           type,
-          amount: parseFloat(amount)
+          amount: parseFloat(amount),
+          date: date.toISOString()
         });
         if (!response.success) {
           throw new Error(response.error);
@@ -23,6 +24,28 @@ function createTransactionStore() {
         return response.data;
       } catch (error) {
         throw new Error(error.message || 'Failed to create transaction');
+      }
+    },
+    updateTransaction: async (transactionId, data) => {
+      try {
+        const response = await api.updateTransaction(transactionId, data);
+        if (!response.success) {
+          throw new Error(response.error);
+        }
+        return response.data;
+      } catch (error) {
+        throw new Error(error.message || 'Failed to update transaction');
+      }
+    },
+    deleteTransaction: async (transactionId) => {
+      try {
+        const response = await api.deleteTransaction(transactionId);
+        if (!response.success) {
+          throw new Error(response.error);
+        }
+        return response.data;
+      } catch (error) {
+        throw new Error(error.message || 'Failed to delete transaction');
       }
     },
     fetchTransactions: async (accountId) => {
