@@ -217,7 +217,7 @@
 
     <!-- Add Account Button -->
     <div class="border-t border-light-border dark:border-dark-border px-4 py-2">
-        <button
+        <button id="add-account"
             class="w-full text-left px-3 py-2 rounded-lg text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200 flex items-center"
             on:click|stopPropagation={() => showNewAccountModal = true}
         >

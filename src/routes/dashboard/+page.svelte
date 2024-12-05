@@ -9,6 +9,7 @@
     import TradeViewModal from '$lib/components/trades/TradeViewModal.svelte';
     import DayTradesModal from '$lib/components/dashboard/DayTradesModal.svelte';
     import EmptyDayModal from '$lib/components/dashboard/EmptyDayModal.svelte';
+    import AccountManager from '$lib/components/accounts/AccountManager.svelte';
     import Loading from '$lib/components/common/Loading.svelte';
     import Button from '$lib/components/common/Button.svelte';
     import { api } from '$lib/utils/api';
@@ -22,6 +23,7 @@
     let showViewModal = false;
     let showNewTradeModal = false;
     let showEmptyDayModal = false;
+    let showAccountModal = false;
     let selectedTrade = null;
     let selectedDate = '';
     let selectedDisplayDate = '';
@@ -163,6 +165,10 @@
         showNewTradeModal = true;
     }
 
+function handleAddAccount() {
+    showAccountModal = true;
+}
+
     $: totalPnL = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
     $: winRate = closedTrades.length > 0 
         ? Math.round((closedTrades.filter(t => t.pnl > 0).length / closedTrades.length) * 100)
@@ -184,12 +190,14 @@
     <!-- Header -->
     <div class="flex justify-between items-center">
         <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">Dashboard</h1>
-        <Button variant="primary" on:click={handleNewTrade}>
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            New Trade
-        </Button>
+        {#if $accountStore.currentAccount}
+            <Button variant="primary" on:click={handleNewTrade}>
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                New Trade
+            </Button>
+        {/if}
     </div>
 
     {#if initialLoad}
@@ -275,53 +283,68 @@
         <!-- Performance Chart -->
         <TradeChart {openTrades} {closedTrades} />
     {:else}
-        <div class="card p-8 text-center">
-            <p class="text-light-text-muted dark:text-dark-text-muted">
-                Create an account to see your trading statistics
-            </p>
+        <div class="card p-16 text-center space-y-6">
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">Create an account to see your trading statistics</h2>
+                <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
+                    Track your performance, analyze your trades, and improve your trading strategy with our comprehensive trading tools.
+                </p>
+                <Button variant="primary" on:click={handleAddAccount}>
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Account
+                </Button>
+            </div>
         </div>
     {/if}
 </div>
 
-<DayTradesModal
-    bind:show={showDayModal}
-    trades={selectedDayTrades}
-    transactions={selectedDayTransactions}
-    date={selectedDate}
-    displayDate={selectedDisplayDate}
-    accountId={$accountStore.currentAccount?._id}
-    on:view={handleView}
-    on:edit={handleEdit}
-    on:delete={handleDelete}
-    on:newTrade={handleNewTradeFromCalendar}
-/>
+<!-- Modals -->
+{#if $accountStore.currentAccount}
+    <DayTradesModal
+        bind:show={showDayModal}
+        trades={selectedDayTrades}
+        transactions={selectedDayTransactions}
+        date={selectedDate}
+        displayDate={selectedDisplayDate}
+        accountId={$accountStore.currentAccount?._id}
+        on:view={handleView}
+        on:edit={handleEdit}
+        on:delete={handleDelete}
+        on:newTrade={handleNewTradeFromCalendar}
+    />
 
-<TradeModal
-    bind:show={showEditModal}
-    trade={selectedTrade}
-    accountId={$accountStore.currentAccount?._id}
-    on:submit={handleSubmit}
-    on:close={closeEditModal}
-/>
+    <TradeModal
+        bind:show={showEditModal}
+        trade={selectedTrade}
+        accountId={$accountStore.currentAccount?._id}
+        on:submit={handleSubmit}
+        on:close={closeEditModal}
+    />
 
-<TradeModal
-    bind:show={showNewTradeModal}
-    accountId={$accountStore.currentAccount?._id}
-    entryDate={newTradeDate || selectedDate}
-    on:submit={handleSubmit}
-    on:close={closeNewTradeModal}
-/>
+    <TradeModal
+        bind:show={showNewTradeModal}
+        accountId={$accountStore.currentAccount?._id}
+        entryDate={newTradeDate || selectedDate}
+        on:submit={handleSubmit}
+        on:close={closeNewTradeModal}
+    />
 
-<TradeViewModal
-    bind:show={showViewModal}
-    trade={selectedTrade}
-/>
+    <TradeViewModal
+        bind:show={showViewModal}
+        trade={selectedTrade}
+    />
 
-<EmptyDayModal
-    bind:show={showEmptyDayModal}
-    date={selectedDate}
-    on:newTrade={handleNewTradeFromCalendar}
-/>
+    <EmptyDayModal
+        bind:show={showEmptyDayModal}
+        date={selectedDate}
+        on:newTrade={handleNewTradeFromCalendar}
+    />
+{/if}
 
 <style>
     .card {
