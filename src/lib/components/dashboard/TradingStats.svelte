@@ -12,16 +12,10 @@
     let error = '';
     let showConfig = false;
     let isHovering = false;
-    let initialLoad = true;
-    let dataLoaded = false;
 
     onMount(async () => {
-        try {
-            if ($accountStore.currentAccount) {
-                await loadStats();
-            }
-        } finally {
-            initialLoad = false;
+        if ($accountStore.currentAccount) {
+            await loadStats();
         }
 
         // Subscribe to trade updates
@@ -36,23 +30,29 @@
         
         try {
             loading = true;
-            dataLoaded = false;
             error = '';
 
-            const results = await Promise.all(
-                $tradingStatsStore.selectedPeriods.map(period => 
-                    api.getStats($accountStore.currentAccount._id, period)
-                )
+            // Create a single batch request for all periods
+            const accountId = $accountStore.currentAccount._id;
+            const requests = $tradingStatsStore.selectedPeriods.map(period => 
+                api.getStats(accountId, period)
+                    .catch(err => {
+                        console.error(`Error loading stats for ${period}:`, err);
+                        return null; // Return null for failed requests
+                    })
             );
 
+            // Wait for all requests to complete
+            const results = await Promise.all(requests);
+
+            // Process results
             $tradingStatsStore.selectedPeriods.forEach((period, i) => {
-                stats[period] = results[i];
+                if (results[i] !== null) {
+                    stats[period] = results[i];
+                }
             });
-            dataLoaded = true;
-            dispatch('statsLoaded', { loaded: true });
         } catch (err) {
             error = err.message;
-            dispatch('statsLoaded', { loaded: false, error: err.message });
         } finally {
             loading = false;
         }
@@ -71,8 +71,6 @@
             maximumFractionDigits: 2
         }).format(value);
     }
-
-    $: showLoading = loading || initialLoad || !dataLoaded;
 </script>
 
 <div 
@@ -80,7 +78,7 @@
     on:mouseenter={() => isHovering = true}
     on:mouseleave={() => isHovering = false}
 >
-    {#if showLoading}
+    {#if loading}
         <div class="col-span-5">
             <div class="card p-4 flex items-center justify-center">
                 <div class="animate-pulse flex space-x-4">

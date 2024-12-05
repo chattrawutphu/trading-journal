@@ -3,6 +3,8 @@
     import { theme } from '$lib/stores/themeStore';
     import { browser } from '$app/environment';
     import Select from '../common/Select.svelte';
+    import Chart from 'chart.js/auto';
+    import 'chartjs-adapter-date-fns';
 
     export let openTrades = [];
     export let closedTrades = [];
@@ -11,7 +13,6 @@
     let chart;
     let chartType = 'line';
     let dateRange = 30; // Default to 30 days
-    let Chart;
 
     const chartTypes = [
         { value: 'line', label: 'Line Chart' },
@@ -82,8 +83,8 @@
         });
     }
 
-    async function updateChart() {
-        if (!browser || !chartCanvas || !Chart) return;
+    function updateChart() {
+        if (!browser || !chartCanvas) return;
 
         if (chart) {
             chart.destroy();
@@ -246,12 +247,8 @@
         chart = new Chart(ctx, config);
     }
 
-    onMount(async () => {
-        const chartModule = await import('chart.js/auto');
-        const dateAdapterModule = await import('chartjs-adapter-date-fns');
-        Chart = chartModule.default;
+    onMount(() => {
         updateChart();
-
         return () => {
             if (chart) {
                 chart.destroy();
@@ -259,7 +256,7 @@
         };
     });
 
-    $: if (browser && Chart && chartCanvas && (openTrades || closedTrades || chartType || dateRange || $theme)) {
+    $: if (browser && chartCanvas && (openTrades || closedTrades || chartType || dateRange || $theme)) {
         updateChart();
     }
 </script>

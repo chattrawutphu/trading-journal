@@ -27,8 +27,6 @@
     let selectedDayTrades = [];
     let newTradeDate = '';
     let initialLoad = true;
-    let dataLoaded = false;
-    let statsLoaded = false;
   
     onMount(async () => {
         try {
@@ -48,24 +46,15 @@
         
         try {
             loading = true;
-            dataLoaded = false;
             error = '';
             
             const response = await api.getTrades($accountStore.currentAccount._id);
             openTrades = response.filter(trade => trade.status === 'OPEN');
             closedTrades = response.filter(trade => trade.status === 'CLOSED');
-            dataLoaded = true;
         } catch (err) {
             error = err.message;
         } finally {
             loading = false;
-        }
-    }
-
-    function handleStatsLoaded(event) {
-        statsLoaded = event.detail.loaded;
-        if (!event.detail.loaded && event.detail.error) {
-            error = event.detail.error;
         }
     }
 
@@ -171,7 +160,6 @@
     $: winRate = closedTrades.length > 0 
         ? Math.round((closedTrades.filter(t => t.pnl > 0).length / closedTrades.length) * 100)
         : 0;
-    $: showLoading = loading || initialLoad || !dataLoaded || !statsLoaded;
 </script>
   
 <div class="space-y-4 p-8">
@@ -197,11 +185,11 @@
         </Button>
     </div>
 
-    {#if showLoading}
+    {#if initialLoad}
         <Loading message="Loading data..." overlay={true} />
     {:else if $accountStore.currentAccount}
         <!-- Stats -->
-        <TradingStats on:statsLoaded={handleStatsLoaded} />
+        <TradingStats />
 
         <!-- Calendar Section -->
         <div class="flex gap-4 h-[500px]">
