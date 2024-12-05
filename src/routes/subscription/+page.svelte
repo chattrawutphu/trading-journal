@@ -14,7 +14,8 @@
                 'Single account'
             ],
             badge: SUBSCRIPTION_FEATURES.basic.badge,
-            current: true
+            current: true,
+            type: SUBSCRIPTION_TYPES.BASIC
         },
         {
             name: 'Pro',
@@ -29,7 +30,8 @@
                 'Priority support'
             ],
             badge: SUBSCRIPTION_FEATURES.pro.badge,
-            popular: true
+            popular: true,
+            type: SUBSCRIPTION_TYPES.PRO
         },
         {
             name: 'Pro+',
@@ -43,7 +45,8 @@
                 'White-label options',
                 'Dedicated support'
             ],
-            badge: SUBSCRIPTION_FEATURES.pro_plus.badge
+            badge: SUBSCRIPTION_FEATURES.pro_plus.badge,
+            type: SUBSCRIPTION_TYPES.PRO_PLUS
         }
     ];
 
@@ -74,6 +77,40 @@
             month: 'long',
             day: 'numeric'
         });
+    }
+
+    async function handleStripePayment(plan) {
+        try {
+            // Mock payment process
+            subscriptionStore.setLoading(true);
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Update subscription type
+            subscriptionStore.setSubscription(plan.type);
+            // Mock success
+            alert('Payment successful! Your subscription has been upgraded.');
+        } catch (error) {
+            subscriptionStore.setError(error.message);
+        } finally {
+            subscriptionStore.setLoading(false);
+        }
+    }
+
+    async function handleMetaMaskPayment(plan) {
+        try {
+            // Mock payment process
+            subscriptionStore.setLoading(true);
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Update subscription type
+            subscriptionStore.setSubscription(plan.type);
+            // Mock success
+            alert('Payment successful! Your subscription has been upgraded.');
+        } catch (error) {
+            subscriptionStore.setError(error.message);
+        } finally {
+            subscriptionStore.setLoading(false);
+        }
     }
 
     $: isPaidUser = $subscriptionStore.type === SUBSCRIPTION_TYPES.PRO || $subscriptionStore.type === SUBSCRIPTION_TYPES.PRO_PLUS;
@@ -207,13 +244,21 @@
                     <!-- Action Buttons -->
                     <div class="space-y-3">
                         {#if !plan.current}
-                            <button class="w-full py-3 px-4 bg-theme-500 hover:bg-theme-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2">
+                            <button 
+                                class="w-full py-3 px-4 bg-theme-500 hover:bg-theme-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                                on:click={() => handleStripePayment(plan)}
+                                disabled={$subscriptionStore.loading}
+                            >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                                 </svg>
                                 Pay with Stripe
                             </button>
-                            <button class="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2">
+                            <button 
+                                class="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                                on:click={() => handleMetaMaskPayment(plan)}
+                                disabled={$subscriptionStore.loading}
+                            >
                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
                                     <path d="M12 6l-4 4h3v4h2v-4h3z"/>
@@ -253,3 +298,9 @@
         </div>
     {/if}
 </div>
+
+<style>
+    .bg-gradient-purple {
+        @apply bg-gradient-to-r from-purple-500 to-pink-500;
+    }
+</style>

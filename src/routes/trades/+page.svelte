@@ -34,6 +34,9 @@
     $: openTrades = trades.filter(t => t.status === 'OPEN');
     $: closedTrades = trades.filter(t => t.status === 'CLOSED');
     $: showLoading = loading || initialLoad || !dataLoaded;
+    $: hasOpenTrades = openTrades.length > 0;
+    $: hasClosedTrades = closedTrades.length > 0;
+    $: hasTrades = trades.length > 0;
 
     $: if ($page.url.searchParams.get('newTrade') === 'true') {
         showEditModal = true;
@@ -290,40 +293,58 @@
             <Loading message="Loading..." overlay={true} />
         {:else}
             {#if activeTab === 'trades'}
-                <!-- Filters -->
-                <TradeFilters />
+                {#if hasTrades}
+                    <!-- Filters -->
+                    <TradeFilters />
 
-                <!-- Open Trades -->
-                <div class="card">
-                    <div class="p-4 border-b border-light-border dark:border-dark-border">
-                        <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Open Positions</h2>
-                    </div>
-                    <TradeTable 
-                        trades={openTrades}
-                        type="open"
-                        on:view={handleView}
-                        on:edit={handleEdit}
-                        on:delete={e => handleDelete(e.detail)}
-                        on:favorite={e => handleFavorite(e.detail)}
-                        on:disable={e => handleDisable(e.detail)}
-                    />
-                </div>
+                    {#if hasOpenTrades}
+                        <!-- Open Trades -->
+                        <div class="card">
+                            <div class="p-4 border-b border-light-border dark:border-dark-border">
+                                <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Open Positions</h2>
+                            </div>
+                            <TradeTable 
+                                trades={openTrades}
+                                type="open"
+                                on:view={handleView}
+                                on:edit={handleEdit}
+                                on:delete={e => handleDelete(e.detail)}
+                                on:favorite={e => handleFavorite(e.detail)}
+                                on:disable={e => handleDisable(e.detail)}
+                            />
+                        </div>
+                    {/if}
 
-                <!-- Closed Trades -->
-                <div class="card">
-                    <div class="p-4 border-b border-light-border dark:border-dark-border">
-                        <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Trades</h2>
+                    {#if hasClosedTrades}
+                        <!-- Closed Trades -->
+                        <div class="card">
+                            <div class="p-4 border-b border-light-border dark:border-dark-border">
+                                <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Trades</h2>
+                            </div>
+                            <TradeTable 
+                                trades={closedTrades}
+                                type="closed"
+                                on:view={handleView}
+                                on:edit={handleEdit}
+                                on:delete={e => handleDelete(e.detail)}
+                                on:favorite={e => handleFavorite(e.detail)}
+                                on:disable={e => handleDisable(e.detail)}
+                            />
+                        </div>
+                    {/if}
+                {:else}
+                    <div class="card p-8 text-center">
+                        <div class="flex flex-col items-center justify-center space-y-4">
+                            <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">No trades found</h2>
+                            <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
+                                Start tracking your trades by clicking the "New Trade" button above.
+                            </p>
+                        </div>
                     </div>
-                    <TradeTable 
-                        trades={closedTrades}
-                        type="closed"
-                        on:view={handleView}
-                        on:edit={handleEdit}
-                        on:delete={e => handleDelete(e.detail)}
-                        on:favorite={e => handleFavorite(e.detail)}
-                        on:disable={e => handleDisable(e.detail)}
-                    />
-                </div>
+                {/if}
             {:else if activeTab === 'transactions'}
                 <div class="card">
                     <TransactionTable 
