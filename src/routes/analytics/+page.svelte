@@ -4,6 +4,8 @@
     import TradeChart from '$lib/components/dashboard/TradeChart.svelte';
     import Select from '$lib/components/common/Select.svelte';
     import Loading from '$lib/components/common/Loading.svelte';
+    import Button from '$lib/components/common/Button.svelte';
+    import NewAccountModal from '$lib/components/accounts/NewAccountModal.svelte';
     import { api } from '$lib/utils/api';
 
     let loading = false;
@@ -13,6 +15,7 @@
     let closedTrades = [];
     let selectedPeriod = '30';
     let dataLoaded = false;
+    let showAccountModal = false;
 
     const periods = [
         { value: '7', label: 'Last 7 Days' },
@@ -53,6 +56,10 @@
         } finally {
             loading = false;
         }
+    }
+
+    function handleAddAccount() {
+        showAccountModal = true;
     }
 
     // Calculate metrics
@@ -107,11 +114,13 @@
     <!-- Header -->
     <div class="flex justify-between items-center">
         <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">Advanced Analytics</h1>
-        <Select
-            options={periods}
-            bind:value={selectedPeriod}
-            class="w-40"
-        />
+        {#if $accountStore.currentAccount}
+            <Select
+                options={periods}
+                bind:value={selectedPeriod}
+                class="w-40"
+            />
+        {/if}
     </div>
 
     {#if error}
@@ -125,7 +134,7 @@
         </div>
     {/if}
 
-    {#if showLoading}
+    {#if showLoading && $accountStore.currentAccount}
         <Loading message="Loading analytics..." overlay={true} />
     {:else if $accountStore.currentAccount}
         <!-- Key Metrics -->
@@ -268,13 +277,31 @@
             </div>
         </div>
     {:else}
-        <div class="card p-8 text-center">
-            <p class="text-light-text-muted dark:text-dark-text-muted">
-                Create an account to see your analytics
-            </p>
+        <div class="card p-16 text-center space-y-6">
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">Create an account to see your trading statistics</h2>
+                <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
+                    Track your performance, analyze your trades, and improve your trading strategy with our advanced analytics tools.
+                </p>
+                <Button variant="primary" on:click={handleAddAccount}>
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Account
+                </Button>
+            </div>
         </div>
     {/if}
 </div>
+
+<!-- Modals -->
+<NewAccountModal 
+    bind:show={showAccountModal}
+    on:close={() => showAccountModal = false}
+/>
 
 <style>
     .card {
