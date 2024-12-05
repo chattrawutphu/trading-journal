@@ -4,6 +4,7 @@
     import Button from '../common/Button.svelte';
     import TradeTable from '../trades/TradeTable.svelte';
     import TransactionTable from '../transactions/TransactionTable.svelte';
+    import TransactionModal from '../transactions/TransactionModal.svelte';
     
     const dispatch = createEventDispatcher();
     
@@ -13,6 +14,9 @@
     export let date = '';
     export let displayDate = '';
     export let accountId;
+
+    let showTransactionModal = false;
+    let selectedTransaction = null;
 
     function close() {
         show = false;
@@ -33,6 +37,16 @@
             month: 'long',
             day: 'numeric'
         });
+    }
+
+    function handleEditTransaction(event) {
+        selectedTransaction = event.detail;
+        showTransactionModal = true;
+    }
+
+    function handleTransactionSubmit(event) {
+        dispatch('editTransaction', event.detail);
+        showTransactionModal = false;
     }
 
     $: openTrades = trades.filter(trade => trade.status === 'OPEN');
@@ -112,6 +126,8 @@
                     <TransactionTable 
                         {accountId}
                         transactions={transactions}
+                        on:edit={handleEditTransaction}
+                        on:delete
                     />
                 </div>
             {/if}
@@ -125,6 +141,13 @@
     </div>
 </div>
 {/if}
+
+<TransactionModal
+    show={showTransactionModal}
+    transaction={selectedTransaction}
+    on:submit={handleTransactionSubmit}
+    on:close={() => showTransactionModal = false}
+/>
 
 <style>
     .card {

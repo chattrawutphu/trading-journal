@@ -12,18 +12,21 @@
   let type = transaction?.type || 'deposit';
   let amount = transaction?.amount || 0;
   let date = transaction?.date ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+  let note = transaction?.note || '';
 
   $: if (transaction) {
     type = transaction.type;
     amount = transaction.amount;
     date = new Date(transaction.date).toISOString().split('T')[0];
+    note = transaction.note || '';
   }
 
   function handleSubmit() {
     dispatch('submit', {
       type,
       amount: parseFloat(amount),
-      date: new Date(date)
+      date: new Date(date),
+      note
     });
   }
 
@@ -47,7 +50,7 @@
     >
       <!-- Header -->
       <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">
-        <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">
+        <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">
           Edit Transaction
         </h2>
         <button 
@@ -65,7 +68,7 @@
         <form on:submit|preventDefault={handleSubmit}>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium mb-1">Type</label>
+              <label class="block text-sm font-medium mb-1 text-light-text dark:text-dark-text">Type</label>
               <div class="flex gap-4">
                 <label class="flex items-center">
                   <input
@@ -74,7 +77,7 @@
                     value="deposit"
                     class="form-radio text-theme-500"
                   />
-                  <span class="ml-2">Deposit</span>
+                  <span class="ml-2 text-light-text dark:text-dark-text">Deposit</span>
                 </label>
                 <label class="flex items-center">
                   <input
@@ -83,7 +86,7 @@
                     value="withdrawal"
                     class="form-radio text-theme-500"
                   />
-                  <span class="ml-2">Withdrawal</span>
+                  <span class="ml-2 text-light-text dark:text-dark-text">Withdrawal</span>
                 </label>
               </div>
             </div>
@@ -99,6 +102,12 @@
               label="Date"
               type="date"
               bind:value={date}
+            />
+            <Input
+              label="Note"
+              type="text"
+              bind:value={note}
+              placeholder="Add a note..."
             />
           </div>
         </form>

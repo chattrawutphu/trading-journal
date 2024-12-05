@@ -1,7 +1,8 @@
-<!-- src/lib/components/layout/Navbar.svelte -->
 <script>
     import { auth } from '$lib/stores/authStore';
     import { accountStore } from '$lib/stores/accountStore';
+    import { subscriptionStore } from '$lib/stores/subscriptionStore';
+    import { SUBSCRIPTION_FEATURES } from '$lib/config/subscription';
     import { goto } from '$app/navigation';
     import AccountManager from '../accounts/AccountManager.svelte';
     import ThemeToggle from '../common/ThemeToggle.svelte';
@@ -33,6 +34,8 @@
             maximumFractionDigits: 2
         }).format(balance || 0);
     }
+
+    $: subscriptionBadge = SUBSCRIPTION_FEATURES[$subscriptionStore?.type];
 </script>
 
 <svelte:window on:click={handleClickOutside}/>
@@ -80,6 +83,11 @@
                             on:click|stopPropagation={() => showUserMenu = !showUserMenu}
                         >
                             <span>{$auth?.user?.name || 'User'}</span>
+                            {#if subscriptionBadge}
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full {subscriptionBadge.badge.bgColor} {subscriptionBadge.badge.textColor}">
+                                    {subscriptionBadge.badge.text}
+                                </span>
+                            {/if}
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
@@ -92,6 +100,12 @@
                                     on:click={() => goto('/profile')}
                                 >
                                     Profile Settings
+                                </button>
+                                <button
+                                    class="block w-full text-left px-4 py-2 text-sm text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"
+                                    on:click={() => goto('/subscription')}
+                                >
+                                    Subscription
                                 </button>
                                 <button
                                     class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"

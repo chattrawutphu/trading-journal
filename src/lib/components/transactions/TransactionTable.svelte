@@ -7,6 +7,7 @@
   const dispatch = createEventDispatcher();
   export let accountId;
   export let transactions = null; // Allow direct passing of transactions
+  export let readOnly = false; // Add readOnly prop for DayTradesModal
 
   let sortField = 'date';
   let sortDirection = 'desc';
@@ -112,7 +113,15 @@
               <span class="text-xs">{getSortIcon('date')}</span>
             </button>
           </th>
-          <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Actions</th>
+          <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+            <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('note')}>
+              Note
+              <span class="text-xs">{getSortIcon('note')}</span>
+            </button>
+          </th>
+          {#if !readOnly}
+            <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Actions</th>
+          {/if}
         </tr>
       </thead>
       <tbody class="divide-y divide-light-border dark:divide-dark-border">
@@ -129,28 +138,33 @@
             <td class="py-2 px-4 text-light-text-muted dark:text-dark-text">
               {formatDate(transaction.date)}
             </td>
-            <td class="py-2 px-4">
-              <div class="flex justify-end gap-2">
-                <button 
-                  class="icon-button text-theme-500 hover:text-theme-600"
-                  on:click={() => handleEdit(transaction)}
-                  title="Edit transaction"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                </button>
-                <button 
-                  class="icon-button text-red-500 hover:text-red-600"
-                  on:click={() => handleDelete(transaction._id)}
-                  title="Delete transaction"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                  </svg>
-                </button>
-              </div>
+            <td class="py-2 px-4 text-light-text-muted dark:text-dark-text">
+              {transaction.note || ''}
             </td>
+            {#if !readOnly}
+              <td class="py-2 px-4">
+                <div class="flex justify-end gap-2">
+                  <button 
+                    class="icon-button text-theme-500 hover:text-theme-600"
+                    on:click={() => handleEdit(transaction)}
+                    title="Edit transaction"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </button>
+                  <button 
+                    class="icon-button text-red-500 hover:text-red-600"
+                    on:click={() => handleDelete(transaction._id)}
+                    title="Delete transaction"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            {/if}
           </tr>
         {/each}
       </tbody>
