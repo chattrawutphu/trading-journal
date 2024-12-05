@@ -3,16 +3,10 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 async function fetchWithAuth(endpoint, options = {}) {
   try {
-    const auth = localStorage.getItem('auth');
     let headers = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
-
-    if (auth) {
-      const { token } = JSON.parse(auth);
-      headers['Authorization'] = `Bearer ${token}`;
-    }
 
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
@@ -21,17 +15,14 @@ async function fetchWithAuth(endpoint, options = {}) {
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('Resource not found');
-      }
       const error = await response.json();
-      throw new Error(error.error || `HTTP error! status: ${response.status}`);
+      throw new Error(error.error || 'An unexpected error occurred');
     }
 
     return response.json();
   } catch (error) {
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      throw new Error('Unable to connect to server. Please make sure the server is running.');
+      throw new Error('Unable to connect to server. Please check your internet connection.');
     }
     throw error;
   }

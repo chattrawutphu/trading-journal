@@ -3,6 +3,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import connectDB from './config/database.js';
@@ -13,6 +14,7 @@ import tradeOptionRoutes from './routes/tradeOptionRoutes.js';
 import userSettingsRoutes from './routes/userSettingsRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
+import MongoStore from 'connect-mongo';  // เพิ่มบรรทัดนี้
 
 // Get the directory path for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -38,13 +40,22 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Add auth token to request if present in cookies
-app.use((req, res, next) => {
-  if (req.cookies.auth) {
-    req.headers.authorization = `Bearer ${req.cookies.auth}`;
+// Session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({  // เพิ่ม store configuration
+    mongoUrl: process.env.MONGODB_URI,
+    ttl: 24 * 60 * 60 // Session จะหมดอายุใน 1 วัน
+  }),
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    sameSite: 'lax'  // แก้ไขเป็น 'lax' เพื่อให้ทำงานกับ cross-origin requests
   }
-  next();
-});
+}));
 
 // Health check route
 app.get('/health', (req, res) => {

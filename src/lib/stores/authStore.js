@@ -6,8 +6,7 @@ function createAuthStore() {
     const { subscribe, set, update } = writable({
         isAuthenticated: false,
         user: null,
-        token: null,
-        loading: false,
+        loading: true,  // เริ่มต้นด้วย loading true
         error: null
     });
 
@@ -22,19 +21,9 @@ function createAuthStore() {
                 const authData = {
                     isAuthenticated: true,
                     user: response.user,
-                    token: response.token,
                     loading: false,
                     error: null
                 };
-
-                // Store in localStorage
-                localStorage.setItem('auth', JSON.stringify({
-                    user: response.user,
-                    token: response.token
-                }));
-
-                // Set cookie for server-side auth
-                document.cookie = `auth=${response.token}; path=/; max-age=86400; samesite=strict`;
 
                 set(authData);
                 return response;
@@ -44,8 +33,7 @@ function createAuthStore() {
                     loading: false, 
                     error: error.message,
                     isAuthenticated: false,
-                    user: null,
-                    token: null
+                    user: null
                 }));
                 throw error;
             }
@@ -86,41 +74,36 @@ function createAuthStore() {
                 throw error;
             }
         },
-        logout: () => {
-            // Clear localStorage
-            localStorage.removeItem('auth');
-
-            // Clear cookie
-            document.cookie = 'auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-
-            // Reset store
-            set({
-                isAuthenticated: false,
-                user: null,
-                token: null,
-                loading: false,
-                error: null
-            });
-        },
-        initialize: () => {
+        logout: async () => {
             try {
-                const storedAuth = localStorage.getItem('auth');
-                if (storedAuth) {
-                    const { user, token } = JSON.parse(storedAuth);
-                    if (user && token) {
-                        set({
-                            isAuthenticated: true,
-                            user,
-                            token,
-                            loading: false,
-                            error: null
-                        });
-                        return true;
-                    }
+                await api.logout();
+                set({
+                    isAuthenticated: false,
+                    user: null,
+                    loading: false,
+                    error: null
+                });
+            } catch (error) {
+                console.error('Failed to logout:', error);
+            }
+        },
+        initialize: async () => {
+            try {
+                const response = await api.getProfile();
+                if (response) {
+                    set({
+                        isAuthenticated: true,
+                        user: response,
+                        loading: false,
+                        error: null
+                    });
+                    return true;
                 }
+                set({ isAuthenticated: false, user: null, loading: false, error: null });
                 return false;
             } catch (error) {
                 console.error('Failed to initialize auth:', error);
+                set({ isAuthenticated: false, user: null, loading: false, error: null });
                 return false;
             }
         },

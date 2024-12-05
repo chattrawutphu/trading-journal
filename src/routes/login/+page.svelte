@@ -9,15 +9,35 @@
     let error = '';
     let loading = false;
 
+    const validateEmail = (email) => {
+        return String(email)
+            .toLowerCase()
+            .match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+    };
+
     async function handleSubmit() {
         loading = true;
         error = '';
 
         try {
+            if (!email || !password) {
+                throw new Error('Please fill in all fields');
+            }
+
+            if (!validateEmail(email)) {
+                throw new Error('Please enter a valid email address');
+            }
+
+            if (password.length < 6) {
+                throw new Error('Password must be at least 6 characters');
+            }
+
             await auth.login(email, password);
             goto('/dashboard');
         } catch (err) {
             error = err.message || 'Login failed. Please try again.';
+            // Clear password on error
+            password = '';
         } finally {
             loading = false;
         }
@@ -70,8 +90,14 @@
             <!-- Login Form -->
             <form class="space-y-6" on:submit|preventDefault={handleSubmit}>
                 {#if error}
-                    <div class="bg-red-500 bg-opacity-10 text-red-500 p-3 rounded-lg text-sm">
-                        {error}
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                        <span class="block sm:inline">{error}</span>
+                        <button 
+                            class="absolute top-0 bottom-0 right-0 px-4 py-3"
+                            on:click={() => error = ''}
+                        >
+                            <span class="text-xl">&times;</span>
+                        </button>
                     </div>
                 {/if}
 
@@ -84,7 +110,7 @@
                         type="email"
                         bind:value={email}
                         required
-                        class="input w-full"
+                        class="input w-full {error && !email ? 'border-red-500' : ''}"
                         placeholder="Enter your email"
                     />
                 </div>
@@ -98,7 +124,7 @@
                         type="password"
                         bind:value={password}
                         required
-                        class="input w-full"
+                        class="input w-full {error && !password ? 'border-red-500' : ''}"
                         placeholder="Enter your password"
                     />
                 </div>

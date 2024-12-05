@@ -9,11 +9,11 @@
     import Navbar from '$lib/components/layout/Navbar.svelte';
     import '../app.css';
 
+    const publicRoutes = ['/', '/login', '/register', '/forgot-password'];
+
     let sidebarCollapsed = false;
     let isLoading = true;
-
-    // List of routes that don't require authentication
-    const publicRoutes = ['/', '/login', '/register'];
+    let initialized = false;
 
     function handleLogout() {
         auth.logout();
@@ -26,25 +26,22 @@
 
     onMount(async () => {
         try {
-            // Check if we're on a public route
-            const isPublicRoute = publicRoutes.includes($page.url.pathname);
-
-            // Try to initialize auth state from stored data
-            const initialized = auth.initialize();
-
-            // If we're not on a public route and not authenticated, redirect to login
-            if (!isPublicRoute && !initialized) {
+            initialized = true;
+            const success = await auth.initialize();
+            
+            // ถ้าไม่ได้อยู่ใน public routes และยังไม่ได้ login ให้ redirect ไปหน้า login
+            if (!success && !publicRoutes.includes($page.url.pathname)) {
                 goto('/login');
             }
+            // ถ้า login แล้วแต่อยู่ที่หน้า login ให้ไปที่ dashboard
+            else if (success && publicRoutes.includes($page.url.pathname) && $page.url.pathname !== '/') {
+                goto('/dashboard');
+            }
         } catch (error) {
-            console.error('Auth initialization error:', error);
-            // Clear any invalid auth data
-            auth.logout();
+            console.error('Failed to initialize auth:', error);
             if (!publicRoutes.includes($page.url.pathname)) {
                 goto('/login');
             }
-        } finally {
-            isLoading = false;
         }
     });
 
@@ -81,35 +78,27 @@
     }
 }} />
 
-{#if isLoading}
-    <div class="min-h-screen bg-dark-bg dark:bg-dark-bg flex items-center justify-center">
-        <div class="spinner"></div>
-    </div>
-{:else if $auth?.isAuthenticated && !isPublicRoute}
-    <div class="flex h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200">
-        <!-- Sidebar -->
-        <CollapsibleSidebar 
-            bind:collapsed={sidebarCollapsed}
-            on:collapse={handleSidebarCollapse}
-            on:logout={handleLogout}
-        />
-
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Top Navigation -->
-            <Navbar />
-
-            <!-- Page Content -->
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-light-bg dark:bg-dark-bg">
-                <slot />
-            </main>
-        </div>
-    </div>
-{:else}
-    <!-- Public pages (landing, login, register) -->
-    <main class="bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text min-h-screen transition-colors duration-200">
+{#if initialized}
+    {#if isPublicRoute}
         <slot />
-    </main>
+    {:else}
+        <div class="flex h-screen">
+            <CollapsibleSidebar 
+                collapsed={sidebarCollapsed} 
+                on:collapse={handleSidebarCollapse} 
+            />
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <Navbar {sidebarCollapsed} on:logout={handleLogout} />
+                <main class="flex-1 overflow-x-hidden overflow-y-auto">
+                    <slot />
+                </main>
+            </div>
+        </div>
+    {/if}
+{:else}
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+    </div>
 {/if}
 
 <style>

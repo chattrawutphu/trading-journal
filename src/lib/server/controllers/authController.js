@@ -20,16 +20,12 @@ export const register = async (req, res) => {
     });
 
     if (user) {
-      const token = jwt.sign({ id: user._id }, JWT_SECRET, {
-        expiresIn: '30d',
-      });
-
+      req.session.userId = user._id;
       res.status(201).json({
         _id: user._id,
         name: user.name,
         email: user.email,
         strategies: user.strategies,
-        token,
       });
     } else {
       res.status(400);
@@ -45,33 +41,58 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please provide email and password'
+      });
+    }
+
     const user = await User.findOne({ email });
 
-    if (user && (await user.matchPassword(password))) {
-      const token = jwt.sign({ id: user._id }, JWT_SECRET, {
-        expiresIn: '30d',
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password'
       });
+    }
 
-      res.json({
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password'
+      });
+    }
+
+    req.session.userId = user._id;
+    res.json({
+      success: true,
+      user: {
         _id: user._id,
         name: user.name,
         email: user.email,
         strategies: user.strategies,
-        token,
-      });
-    } else {
-      res.status(401);
-      throw new Error('Invalid email or password');
-    }
+      }
+    });
   } catch (error) {
-    res.status(401);
-    throw error;
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
   }
 };
 
 export const logout = async (req, res) => {
   try {
-    res.json({ message: 'Logged out successfully' });
+    req.session.destroy((err) => {
+      if (err) {
+        res.status(500);
+        throw new Error('Failed to logout');
+      }
+      res.json({ message: 'Logged out successfully' });
+    });
   } catch (error) {
     res.status(400);
     throw error;
@@ -80,7 +101,15 @@ export const logout = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    // ตรวจสอบ session
+    if (!req.session.userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'No active session'
+      });
+    }
+
+    const user = await User.findById(req.session.userId).select('-password');
     if (user) {
       res.json({
         _id: user._id,
@@ -89,12 +118,17 @@ export const getProfile = async (req, res) => {
         strategies: user.strategies
       });
     } else {
-      res.status(404);
-      throw new Error('User not found');
+      res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
     }
   } catch (error) {
-    res.status(404);
-    throw error;
+    console.error('Get profile error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get profile'
+    });
   }
 };
 
@@ -111,16 +145,11 @@ export const updateProfile = async (req, res) => {
 
       const updatedUser = await user.save();
 
-      const token = jwt.sign({ id: updatedUser._id }, JWT_SECRET, {
-        expiresIn: '30d',
-      });
-
       res.json({
         _id: updatedUser._id,
         name: updatedUser.name,
         email: updatedUser.email,
         strategies: updatedUser.strategies,
-        token,
       });
     } else {
       res.status(404);
