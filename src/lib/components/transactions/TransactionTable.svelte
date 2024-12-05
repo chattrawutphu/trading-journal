@@ -1,39 +1,23 @@
 <script>
-  import { onMount, onDestroy, createEventDispatcher } from 'svelte';
+  import { createEventDispatcher } from 'svelte';
   import { transactionStore } from '$lib/stores/transactionStore';
   import { formatCurrency } from '$lib/utils/formatters';
   import Loading from '../common/Loading.svelte';
 
   const dispatch = createEventDispatcher();
   export let accountId;
-  let unsubscribe;
-  let initialLoad = true;
-  let dataLoaded = false;
+  export let transactions = null; // Allow direct passing of transactions
 
   let sortField = 'date';
   let sortDirection = 'desc';
+  let loading = false;
+  let error = null;
 
-  onMount(async () => {
-    try {
-      if (accountId) {
-        await transactionStore.fetchTransactions(accountId);
-        dataLoaded = true;
-      }
-    } finally {
-      initialLoad = false;
-    }
-    unsubscribe = transactionStore.subscribe(() => {});
-  });
-
-  onDestroy(() => {
-    if (unsubscribe) {
-      unsubscribe();
-    }
-    transactionStore.reset();
-  });
-
-  $: ({ transactions, loading, error } = $transactionStore);
-  $: showLoading = loading || initialLoad || !dataLoaded;
+  // If transactions not provided, load them from store
+  $: storeTransactions = $transactionStore.transactions;
+  $: displayTransactions = transactions || storeTransactions;
+  $: loading = transactions === null && $transactionStore.loading;
+  $: error = transactions === null && $transactionStore.error;
 
   function formatDate(dateStr) {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -61,7 +45,7 @@
     }
   }
 
-  $: sortedTransactions = [...(transactions || [])].sort((a, b) => {
+  $: sortedTransactions = [...(displayTransactions || [])].sort((a, b) => {
     let aValue = a[sortField];
     let bValue = b[sortField];
 
@@ -86,10 +70,10 @@
   async function handleDelete(transactionId) {
     if (confirm('Are you sure you want to delete this transaction?')) {
       try {
-        dataLoaded = false;
         await transactionStore.deleteTransaction(transactionId);
-        await transactionStore.fetchTransactions(accountId);
-        dataLoaded = true;
+        if (!transactions) { // Only refetch if using store data
+          await transactionStore.fetchTransactions(accountId);
+        }
       } catch (err) {
         console.error('Error deleting transaction:', err);
       }
@@ -98,11 +82,11 @@
 </script>
 
 <div class="overflow-x-auto">
-  {#if showLoading}
+  {#if loading}
     <Loading />
   {:else if error}
     <div class="text-red-500">{error}</div>
-  {:else if !transactions || transactions.length === 0}
+  {:else if !displayTransactions || displayTransactions.length === 0}
     <div class="text-center text-light-text-muted dark:text-dark-text-muted py-8">
       No transactions found
     </div>

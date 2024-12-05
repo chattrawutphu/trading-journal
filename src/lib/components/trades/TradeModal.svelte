@@ -145,14 +145,14 @@
         try {
             if (formData.entryDate) {
                 const entryDate = new Date(formData.entryDate);
-                entryDate.setHours(0, 0, 0, 0); // Set to start of day
+                entryDate.setHours(12, 0, 0, 0); // Set to start of day
                 if (!isNaN(entryDate.getTime())) {
                     formData.entryDate = entryDate.toISOString();
                 }
             }
             if (formData.exitDate) {
                 const exitDate = new Date(formData.exitDate);
-                exitDate.setHours(0, 0, 0, 0); // Set to start of day
+                exitDate.setHours(12, 0, 0, 0); // Set to start of day
                 if (!isNaN(exitDate.getTime())) {
                     formData.exitDate = exitDate.toISOString();
                 }

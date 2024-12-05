@@ -3,13 +3,16 @@
     import { fade, fly } from 'svelte/transition';
     import Button from '../common/Button.svelte';
     import TradeTable from '../trades/TradeTable.svelte';
+    import TransactionTable from '../transactions/TransactionTable.svelte';
     
     const dispatch = createEventDispatcher();
     
     export let show = false;
     export let trades = [];
+    export let transactions = [];
     export let date = '';
     export let displayDate = '';
+    export let accountId;
 
     function close() {
         show = false;
@@ -103,9 +106,19 @@
                 </div>
             {/if}
 
-            {#if trades.length === 0}
+            {#if transactions?.length > 0}
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">Transactions</h3>
+                    <TransactionTable 
+                        {accountId}
+                        transactions={transactions}
+                    />
+                </div>
+            {/if}
+
+            {#if trades.length === 0 && transactions?.length === 0}
                 <div class="text-center py-8 text-light-text-muted dark:text-dark-text-muted">
-                    No trades found for this day
+                    No trades or transactions found for this day
                 </div>
             {/if}
         </div>

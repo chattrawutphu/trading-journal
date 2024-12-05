@@ -167,9 +167,6 @@
                         }}
                     >
                         <span>{account.name}</span>
-                        <span class="ml-2 text-light-text-muted dark:text-dark-text-muted">
-                            ${account.balance?.toLocaleString() || '0'}
-                        </span>
                     </button>
                     <div class="hidden group-hover:flex items-center ml-2 space-x-1">
                         <button

@@ -287,7 +287,7 @@
             <!-- Open Trades -->
             <div class="card">
                 <div class="p-4 border-b border-light-border dark:border-dark-border">
-                    <h2 class="text-xl font-semibold">Open Positions</h2>
+                    <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Open Positions</h2>
                 </div>
                 <TradeTable 
                     trades={openTrades}
@@ -303,7 +303,7 @@
             <!-- Closed Trades -->
             <div class="card">
                 <div class="p-4 border-b border-light-border dark:border-dark-border">
-                    <h2 class="text-xl font-semibold">Closed Trades</h2>
+                    <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Trades</h2>
                 </div>
                 <TradeTable 
                     trades={closedTrades}

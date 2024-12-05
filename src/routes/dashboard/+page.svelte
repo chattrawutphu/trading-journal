@@ -1,6 +1,7 @@
 <script>
     import { onMount } from 'svelte';
     import { accountStore } from '$lib/stores/accountStore';
+    import { transactionStore } from '$lib/stores/transactionStore';
     import TradingStats from '$lib/components/dashboard/TradingStats.svelte';
     import TradeChart from '$lib/components/dashboard/TradeChart.svelte';
     import TradeCalendar from '$lib/components/dashboard/TradeCalendar.svelte';
@@ -25,6 +26,7 @@
     let selectedDate = '';
     let selectedDisplayDate = '';
     let selectedDayTrades = [];
+    let selectedDayTransactions = [];
     let newTradeDate = '';
     let initialLoad = true;
   
@@ -32,7 +34,10 @@
         try {
             const account = await accountStore.loadAccounts();
             if (account) {
-                await loadTrades();
+                await Promise.all([
+                    loadTrades(),
+                    transactionStore.fetchTransactions($accountStore.currentAccount._id)
+                ]);
             }
         } catch (err) {
             error = err.message;
@@ -62,6 +67,7 @@
         selectedDate = event.detail.date;
         selectedDisplayDate = event.detail.displayDate;
         selectedDayTrades = event.detail.trades;
+        selectedDayTransactions = event.detail.transactions;
         showDayModal = true;
     }
 
@@ -145,6 +151,7 @@
         selectedDate = '';
         selectedDisplayDate = '';
         selectedDayTrades = [];
+        selectedDayTransactions = [];
     }
 
     function closeNewTradeModal() {
@@ -257,7 +264,8 @@
             <!-- Calendar -->
             <div class="flex-1">
                 <TradeCalendar 
-                    trades={[...openTrades, ...closedTrades]} 
+                    trades={[...openTrades, ...closedTrades]}
+                    accountId={$accountStore.currentAccount._id}
                     on:dayClick={handleDayClick}
                     on:newTrade={handleNewTradeFromCalendar}
                 />
@@ -278,8 +286,10 @@
 <DayTradesModal
     bind:show={showDayModal}
     trades={selectedDayTrades}
+    transactions={selectedDayTransactions}
     date={selectedDate}
     displayDate={selectedDisplayDate}
+    accountId={$accountStore.currentAccount?._id}
     on:view={handleView}
     on:edit={handleEdit}
     on:delete={handleDelete}
