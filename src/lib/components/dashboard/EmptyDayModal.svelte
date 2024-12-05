@@ -9,17 +9,18 @@
     export let show = false;
     export let date = '';
 
-    // Get current date-time in ISO format for max attribute
-    const maxDate = new Date().toISOString().slice(0, 16);
+    // Get current date in YYYY-MM-DD format for max attribute
+    const maxDate = new Date().toISOString().slice(0, 10);
 
     function close() {
         show = false;
     }
 
     function handleNewTrade() {
-        // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
-        const formattedDate = new Date(date).toISOString().slice(0, 16);
-        dispatch('newTrade', formattedDate);
+        // Format date for date input (YYYY-MM-DD)
+        const formattedDate = new Date(date);
+        formattedDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+        dispatch('newTrade', formattedDate.toISOString());
         close();
     }
 </script>
@@ -62,7 +63,7 @@
             </div>
             <div class="px-8 py-6 hidden">
                 <Input
-                    type="datetime-local"
+                    type="date"
                     label="Entry Date"
                     bind:value={date}
                     required

@@ -32,13 +32,13 @@
         { value: "neutral", label: "😐 Neutral" },
     ];
 
-    function getCurrentDateTime() {
+    function getCurrentDate() {
         const now = new Date();
-        return now.toISOString().slice(0, 16);
+        return now.toISOString().slice(0, 10);
     }
 
     let form = {
-        entryDate: entryDate || getCurrentDateTime(),
+        entryDate: entryDate || getCurrentDate(),
         exitDate: "",
         symbol: "",
         status: "OPEN",
@@ -79,17 +79,17 @@
         form = {
             ...trade,
             entryDate: trade.entryDate
-                ? new Date(trade.entryDate).toISOString().slice(0, 16)
-                : getCurrentDateTime(),
+                ? new Date(trade.entryDate).toISOString().slice(0, 10)
+                : getCurrentDate(),
             exitDate: trade.exitDate
-                ? new Date(trade.exitDate).toISOString().slice(0, 16)
+                ? new Date(trade.exitDate).toISOString().slice(0, 10)
                 : "",
             leverage: trade.leverage || leverageStore.getLeverage(trade.symbol),
         };
         previousSymbol = trade.symbol;
     } else {
         form.account = accountId;
-        form.entryDate = entryDate || getCurrentDateTime();
+        form.entryDate = entryDate || getCurrentDate();
     }
 
     $: if (entryDate && !trade) {
@@ -97,7 +97,7 @@
     }
 
     $: if (form.status === "CLOSED" && !form.exitDate) {
-        form.exitDate = getCurrentDateTime();
+        form.exitDate = getCurrentDate();
     }
 
     function calculatePnL() {
@@ -142,12 +142,14 @@
         try {
             if (formData.entryDate) {
                 const entryDate = new Date(formData.entryDate);
+                entryDate.setHours(12, 0, 0, 0); // Set to noon
                 if (!isNaN(entryDate.getTime())) {
                     formData.entryDate = entryDate.toISOString();
                 }
             }
             if (formData.exitDate) {
                 const exitDate = new Date(formData.exitDate);
+                exitDate.setHours(12, 0, 0, 0); // Set to noon
                 if (!isNaN(exitDate.getTime())) {
                     formData.exitDate = exitDate.toISOString();
                 }
@@ -168,7 +170,7 @@
         dispatch("close");
         form = {
             account: accountId,
-            entryDate: entryDate || getCurrentDateTime(),
+            entryDate: entryDate || getCurrentDate(),
             exitDate: "",
             symbol: "",
             status: "OPEN",
@@ -264,10 +266,10 @@
 
             <!-- Scrollable Content -->
             <div class="px-8 py-6 max-h-[calc(100vh-16rem)] overflow-y-auto">
-                <form on:submit|preventDefault={handleSubmit}>
+                <form on:submit|preventDefault={handleSubmit} class="space-y-3">
                     <!-- Basic Info Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 pt-0 pb-8 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
                     >
                         <h3
                             class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"
@@ -333,7 +335,7 @@
 
                     <!-- Trade Details Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 pt-0 pb-8 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
                     >
                         <h3
                             class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"
@@ -346,9 +348,9 @@
                             <div class="space-y-4">
                                 <Input
                                     label="Entry Date"
-                                    type="datetime-local"
+                                    type="date"
                                     bind:value={form.entryDate}
-                                    max={new Date().toISOString().slice(0, 16)}
+                                    max={new Date().toISOString().slice(0, 10)}
                                     required
                                     error={touched.entryDate &&
                                         errors.entryDate}
@@ -357,11 +359,11 @@
                                 {#if form.status === "CLOSED"}
                                     <Input
                                         label="Exit Date"
-                                        type="datetime-local"
+                                        type="date"
                                         bind:value={form.exitDate}
                                         max={new Date()
                                             .toISOString()
-                                            .slice(0, 16)}
+                                            .slice(0, 10)}
                                         required
                                         error={touched.exitDate &&
                                             errors.exitDate}
@@ -465,7 +467,7 @@
 
                     <!-- Analysis Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 pt-0 pb-8 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
                     >
                         <h3
                             class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"
@@ -540,7 +542,7 @@
 
                     <!-- Additional Info Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 pt-0 pb-8 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
                     >
                         <h3
                             class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"

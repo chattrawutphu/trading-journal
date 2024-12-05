@@ -16,11 +16,20 @@
     }
 
     function handleNewTrade() {
-        // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
+        // Format date for date input (YYYY-MM-DD)
         const formattedDate = new Date(date);
-        formattedDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
-        dispatch('newTrade', formattedDate.toISOString().slice(0, 16));
+        formattedDate.setHours(0, 0, 0, 0); // Set to start of day
+        dispatch('newTrade', formattedDate.toISOString().slice(0, 10));
         close();
+    }
+
+    function formatDisplayDate(date) {
+        return new Date(date).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
     }
 
     $: openTrades = trades.filter(trade => trade.status === 'OPEN');
@@ -42,12 +51,7 @@
         <!-- Header -->
         <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
             <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">
-                {displayDate || new Date(date).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                })}
+                {displayDate || formatDisplayDate(date)}
             </h2>
             <div class="flex items-center gap-4">
                 <Button variant="primary" on:click={handleNewTrade}>
