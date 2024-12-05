@@ -7,13 +7,20 @@
   const dispatch = createEventDispatcher();
   export let accountId;
   let unsubscribe;
+  let initialLoad = true;
+  let dataLoaded = false;
 
   let sortField = 'date';
   let sortDirection = 'desc';
 
-  onMount(() => {
-    if (accountId) {
-      transactionStore.fetchTransactions(accountId);
+  onMount(async () => {
+    try {
+      if (accountId) {
+        await transactionStore.fetchTransactions(accountId);
+        dataLoaded = true;
+      }
+    } finally {
+      initialLoad = false;
     }
     unsubscribe = transactionStore.subscribe(() => {});
   });
@@ -25,11 +32,8 @@
     transactionStore.reset();
   });
 
-  $: if (accountId) {
-    transactionStore.fetchTransactions(accountId);
-  }
-
   $: ({ transactions, loading, error } = $transactionStore);
+  $: showLoading = loading || initialLoad || !dataLoaded;
 
   function formatDate(dateStr) {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -82,8 +86,10 @@
   async function handleDelete(transactionId) {
     if (confirm('Are you sure you want to delete this transaction?')) {
       try {
+        dataLoaded = false;
         await transactionStore.deleteTransaction(transactionId);
         await transactionStore.fetchTransactions(accountId);
+        dataLoaded = true;
       } catch (err) {
         console.error('Error deleting transaction:', err);
       }
@@ -92,7 +98,7 @@
 </script>
 
 <div class="overflow-x-auto">
-  {#if loading}
+  {#if showLoading}
     <Loading />
   {:else if error}
     <div class="text-red-500">{error}</div>

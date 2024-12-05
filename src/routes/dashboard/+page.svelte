@@ -26,28 +26,47 @@
     let selectedDisplayDate = '';
     let selectedDayTrades = [];
     let newTradeDate = '';
+    let initialLoad = true;
+    let dataLoaded = false;
+    let statsLoaded = false;
   
-    $: if ($accountStore.currentAccount) {
-      loadTrades();
-    }
-  
-    onMount(() => {
-      accountStore.loadAccounts();
+    onMount(async () => {
+        try {
+            const account = await accountStore.loadAccounts();
+            if (account) {
+                await loadTrades();
+            }
+        } catch (err) {
+            error = err.message;
+        } finally {
+            initialLoad = false;
+        }
     });
   
     async function loadTrades() {
-      try {
-        loading = true;
-        error = '';
+        if (!$accountStore.currentAccount) return;
         
-        const response = await api.getTrades($accountStore.currentAccount._id);
-        openTrades = response.filter(trade => trade.status === 'OPEN');
-        closedTrades = response.filter(trade => trade.status === 'CLOSED');
-      } catch (err) {
-        error = err.message;
-      } finally {
-        loading = false;
-      }
+        try {
+            loading = true;
+            dataLoaded = false;
+            error = '';
+            
+            const response = await api.getTrades($accountStore.currentAccount._id);
+            openTrades = response.filter(trade => trade.status === 'OPEN');
+            closedTrades = response.filter(trade => trade.status === 'CLOSED');
+            dataLoaded = true;
+        } catch (err) {
+            error = err.message;
+        } finally {
+            loading = false;
+        }
+    }
+
+    function handleStatsLoaded(event) {
+        statsLoaded = event.detail.loaded;
+        if (!event.detail.loaded && event.detail.error) {
+            error = event.detail.error;
+        }
     }
 
     function handleDayClick(event) {
@@ -152,6 +171,7 @@
     $: winRate = closedTrades.length > 0 
         ? Math.round((closedTrades.filter(t => t.pnl > 0).length / closedTrades.length) * 100)
         : 0;
+    $: showLoading = loading || initialLoad || !dataLoaded || !statsLoaded;
 </script>
   
 <div class="space-y-4 p-8">
@@ -177,11 +197,11 @@
         </Button>
     </div>
 
-    {#if loading}
+    {#if showLoading}
         <Loading message="Loading data..." overlay={true} />
     {:else if $accountStore.currentAccount}
         <!-- Stats -->
-        <TradingStats />
+        <TradingStats on:statsLoaded={handleStatsLoaded} />
 
         <!-- Calendar Section -->
         <div class="flex gap-4 h-[500px]">

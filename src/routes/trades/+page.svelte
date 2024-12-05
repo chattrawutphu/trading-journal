@@ -15,6 +15,7 @@
     import { api } from '$lib/utils/api';
 
     let loading = false;
+    let initialLoad = true;
     let error = '';
     let trades = [];
     let showEditModal = false;
@@ -26,13 +27,11 @@
     let activeTab = 'trades';
     let transactionAmount = 0;
     let transactionDate = new Date().toISOString().split('T')[0];
+    let dataLoaded = false;
 
     $: openTrades = trades.filter(t => t.status === 'OPEN');
     $: closedTrades = trades.filter(t => t.status === 'CLOSED');
-
-    $: if ($accountStore.currentAccount) {
-        loadTrades();
-    }
+    $: showLoading = loading || initialLoad || !dataLoaded;
 
     $: if ($page.url.searchParams.get('newTrade') === 'true') {
         showEditModal = true;
@@ -42,17 +41,30 @@
         window.history.replaceState({}, '', url);
     }
 
-    onMount(() => {
-        accountStore.loadAccounts();
+    onMount(async () => {
+        try {
+            const account = await accountStore.loadAccounts();
+            if (account) {
+                await loadTrades();
+            }
+        } catch (err) {
+            error = err.message;
+        } finally {
+            initialLoad = false;
+        }
     });
 
     async function loadTrades() {
+        if (!$accountStore.currentAccount) return;
+        
         try {
             loading = true;
+            dataLoaded = false;
             error = '';
             
             const response = await api.getTrades($accountStore.currentAccount._id);
             trades = response;
+            dataLoaded = true;
         } catch (err) {
             error = err.message;
         } finally {
@@ -265,7 +277,7 @@
         </nav>
     </div>
 
-    {#if loading}
+    {#if showLoading}
         <Loading message="Loading..." overlay={true} />
     {:else if $accountStore.currentAccount}
         {#if activeTab === 'trades'}

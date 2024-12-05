@@ -27,8 +27,11 @@ function createAccountStore() {
           ...state,
           accounts,
           loading: false,
-          currentAccount
+          currentAccount,
+          initialLoadComplete: true // Add flag to track initial load
         }));
+
+        return currentAccount; // Return the current account for components to use
       } catch (error) {
         console.error('Error loading accounts:', error);
         update(state => ({ 
@@ -49,6 +52,7 @@ function createAccountStore() {
           loading: false,
           error: null
         }));
+        return account; // Return the account for components to use
       } catch (error) {
         console.error('Error setting current account:', error);
         update(state => ({

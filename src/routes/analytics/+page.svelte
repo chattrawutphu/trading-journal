@@ -1,4 +1,3 @@
-<!-- src/routes/analytics/+page.svelte -->
 <script>
     import { onMount } from 'svelte';
     import { accountStore } from '$lib/stores/accountStore';
@@ -8,10 +7,12 @@
     import { api } from '$lib/utils/api';
 
     let loading = false;
+    let initialLoad = true;
     let error = '';
     let openTrades = [];
     let closedTrades = [];
     let selectedPeriod = '30';
+    let dataLoaded = false;
 
     const periods = [
         { value: '7', label: 'Last 7 Days' },
@@ -22,21 +23,31 @@
         { value: 'all', label: 'All Time' }
     ];
 
-    $: if ($accountStore.currentAccount) {
-        loadTrades();
-    }
-
-    onMount(() => {
-        accountStore.loadAccounts();
+    onMount(async () => {
+        try {
+            const account = await accountStore.loadAccounts();
+            if (account) {
+                await loadTrades();
+            }
+        } catch (err) {
+            error = err.message;
+        } finally {
+            initialLoad = false;
+        }
     });
 
     async function loadTrades() {
+        if (!$accountStore.currentAccount) return;
+        
         try {
             loading = true;
+            dataLoaded = false;
             error = '';
+            
             const response = await api.getTrades($accountStore.currentAccount._id);
             openTrades = response.filter(trade => trade.status === 'OPEN');
             closedTrades = response.filter(trade => trade.status === 'CLOSED');
+            dataLoaded = true;
         } catch (err) {
             error = err.message;
         } finally {
@@ -88,6 +99,8 @@
             return hour >= 18 || hour < 6;
         }).length
     };
+
+    $: showLoading = loading || initialLoad || !dataLoaded;
 </script>
 
 <div class="space-y-8 p-8">
@@ -112,9 +125,9 @@
         </div>
     {/if}
 
-    {#if loading}
+    {#if showLoading}
         <Loading message="Loading analytics..." overlay={true} />
-    {:else}
+    {:else if $accountStore.currentAccount}
         <!-- Key Metrics -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="card p-6">
@@ -175,13 +188,13 @@
                     <div class="flex justify-between items-center">
                         <span class="text-light-text-muted dark:text-dark-text-muted">Average Win</span>
                         <span class="text-green-500 font-medium">
-                            ${closedTrades.filter(t => t.pnl > 0).reduce((sum, t) => sum + t.pnl, 0) / winningTrades || 0}
+                            ${(closedTrades.filter(t => t.pnl > 0).reduce((sum, t) => sum + t.pnl, 0) / winningTrades || 0).toFixed(2)}
                         </span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-light-text-muted dark:text-dark-text-muted">Average Loss</span>
                         <span class="text-red-500 font-medium">
-                            ${Math.abs(closedTrades.filter(t => t.pnl < 0).reduce((sum, t) => sum + t.pnl, 0) / (totalTrades - winningTrades) || 0)}
+                            ${(Math.abs(closedTrades.filter(t => t.pnl < 0).reduce((sum, t) => sum + t.pnl, 0) / (totalTrades - winningTrades)) || 0).toFixed(2)}
                         </span>
                     </div>
                     <div class="flex justify-between items-center">
@@ -253,6 +266,12 @@
                     Coming Soon
                 </div>
             </div>
+        </div>
+    {:else}
+        <div class="card p-8 text-center">
+            <p class="text-light-text-muted dark:text-dark-text-muted">
+                Create an account to see your analytics
+            </p>
         </div>
     {/if}
 </div>
