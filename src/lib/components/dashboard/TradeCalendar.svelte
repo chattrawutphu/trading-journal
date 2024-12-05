@@ -45,7 +45,7 @@
     function isFutureDate(day) {
         const date = new Date(selectedYear, selectedMonth, day);
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        today.setHours(12, 0, 0, 0);
         return date > today;
     }
 
@@ -53,7 +53,7 @@
         // Set time to noon to avoid timezone issues
         const d = new Date(date);
         d.setHours(12, 0, 0, 0);
-        return d.toISOString().slice(0, 16);
+        return d.toISOString().slice(0, 10); // Only return YYYY-MM-DD part
     }
 
     $: dailyTrades = trades.reduce((acc, trade) => {

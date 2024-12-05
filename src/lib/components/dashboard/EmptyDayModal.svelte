@@ -20,7 +20,7 @@
         // Format date for date input (YYYY-MM-DD)
         const formattedDate = new Date(date);
         formattedDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
-        dispatch('newTrade', formattedDate.toISOString());
+        dispatch('newTrade', formattedDate.toISOString().slice(0, 10));
         close();
     }
 </script>

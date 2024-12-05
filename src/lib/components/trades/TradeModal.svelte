@@ -34,11 +34,12 @@
 
     function getCurrentDate() {
         const now = new Date();
+        now.setHours(12, 0, 0, 0);
         return now.toISOString().slice(0, 10);
     }
 
     let form = {
-        entryDate: entryDate || getCurrentDate(),
+        entryDate: "",
         exitDate: "",
         symbol: "",
         status: "OPEN",
@@ -89,9 +90,11 @@
         previousSymbol = trade.symbol;
     } else {
         form.account = accountId;
+        // If entryDate is provided (from calendar), use it. Otherwise use current date
         form.entryDate = entryDate || getCurrentDate();
     }
 
+    // Watch for entryDate prop changes
     $: if (entryDate && !trade) {
         form.entryDate = entryDate;
     }
@@ -170,7 +173,7 @@
         dispatch("close");
         form = {
             account: accountId,
-            entryDate: entryDate || getCurrentDate(),
+            entryDate: entryDate || getCurrentDate(), // Keep using entryDate from calendar if provided
             exitDate: "",
             symbol: "",
             status: "OPEN",

@@ -36,7 +36,7 @@ function getDateRange(period) {
     case 'yesterday':
       startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
       endDate = new Date(startDate);
-      endDate.setHours(23, 59, 59, 999);
+      endDate.setHours(12, 0, 0, 0);
       break;
 
     case 'week':
