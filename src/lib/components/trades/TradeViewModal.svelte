@@ -72,7 +72,7 @@
         <div class="px-8 py-6 max-h-[calc(100vh-16rem)] overflow-y-auto">
             <div class="space-y-6">
                 <!-- Trade Details -->
-                <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6">
+                <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 pt-0 pb-8">
                     <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Trade Details</h3>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -115,7 +115,7 @@
                 </div>
 
                 <!-- Trade Settings -->
-                <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6">
+                <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 pt-0 pb-8">
                     <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Settings</h3>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -138,7 +138,7 @@
                 </div>
 
                 <!-- Trade Analysis -->
-                <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6">
+                <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 pt-0 pb-8">
                     <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Analysis</h3>
                     <div class="space-y-4">
                         {#if trade.entryReason}

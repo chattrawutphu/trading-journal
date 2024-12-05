@@ -1,6 +1,7 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import { theme } from '$lib/stores/themeStore';
+    import { calendarStore } from '$lib/stores/calendarStore';
     import Select from '../common/Select.svelte';
     import EmptyDayModal from './EmptyDayModal.svelte';
     
@@ -8,8 +9,6 @@
     
     export let trades = [];
 
-    let selectedMonth = new Date().getMonth();
-    let selectedYear = new Date().getFullYear();
     let showEmptyDayModal = false;
     let selectedDate = '';
 
@@ -20,6 +19,15 @@
 
     const currentYear = new Date().getFullYear();
     const years = Array.from({length: 6}, (_, i) => currentYear - 5 + i);
+
+    let selectedMonth = $calendarStore.month;
+    let selectedYear = $calendarStore.year;
+
+    $: {
+        if (selectedMonth !== $calendarStore.month || selectedYear !== $calendarStore.year) {
+            calendarStore.setDate(selectedMonth, selectedYear);
+        }
+    }
 
     $: daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
     $: firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();

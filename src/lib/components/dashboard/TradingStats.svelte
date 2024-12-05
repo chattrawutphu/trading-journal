@@ -12,9 +12,22 @@
     let showConfig = false;
     let isHovering = false;
 
+    // Watch for account changes or trade updates
     $: if ($accountStore.currentAccount) {
         loadStats();
     }
+
+    // Subscribe to trade updates
+    let unsubscribe;
+    onMount(() => {
+        // Create a custom event for trade updates
+        const tradeUpdateEvent = new CustomEvent('tradeupdate');
+        window.addEventListener('tradeupdate', loadStats);
+
+        return () => {
+            window.removeEventListener('tradeupdate', loadStats);
+        };
+    });
 
     async function loadStats() {
         try {

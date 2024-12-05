@@ -264,10 +264,10 @@
 
             <!-- Scrollable Content -->
             <div class="px-8 py-6 max-h-[calc(100vh-16rem)] overflow-y-auto">
-                <form on:submit|preventDefault={handleSubmit} class="space-y-3">
+                <form on:submit|preventDefault={handleSubmit}>
                     <!-- Basic Info Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 pt-0 pb-8 space-y-3"
                     >
                         <h3
                             class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"
@@ -333,7 +333,7 @@
 
                     <!-- Trade Details Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 pt-0 pb-8 space-y-3"
                     >
                         <h3
                             class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"
@@ -465,7 +465,7 @@
 
                     <!-- Analysis Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 pt-0 pb-8 space-y-3"
                     >
                         <h3
                             class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"
@@ -540,7 +540,7 @@
 
                     <!-- Additional Info Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 pt-0 pb-8 space-y-3"
                     >
                         <h3
                             class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"

@@ -26,6 +26,8 @@
         availablePeriods = Object.values(PERIOD_OPTIONS).filter(
             period => !$tradingStatsStore.selectedPeriods.includes(period.id)
         );
+        // Trigger stats refresh
+        window.dispatchEvent(new CustomEvent('tradeupdate'));
     }
 
     function removePeriod(periodId) {
@@ -33,6 +35,8 @@
         availablePeriods = Object.values(PERIOD_OPTIONS).filter(
             period => !$tradingStatsStore.selectedPeriods.includes(period.id)
         );
+        // Trigger stats refresh
+        window.dispatchEvent(new CustomEvent('tradeupdate'));
     }
 
     function resetConfig() {
@@ -40,6 +44,8 @@
         availablePeriods = Object.values(PERIOD_OPTIONS).filter(
             period => !$tradingStatsStore.selectedPeriods.includes(period.id)
         );
+        // Trigger stats refresh
+        window.dispatchEvent(new CustomEvent('tradeupdate'));
     }
 
     function handleDragStart(event, periodId) {
@@ -67,6 +73,8 @@
             newPeriods.splice(draggedIndex, 1);
             newPeriods.splice(targetIndex, 0, draggedPeriod);
             tradingStatsStore.reorderPeriods(newPeriods);
+            // Trigger stats refresh
+            window.dispatchEvent(new CustomEvent('tradeupdate'));
         }
 
         handleDragEnd(event);
@@ -94,7 +102,7 @@
         transition:fade={{ duration: 200 }}
     >
         <div 
-            class="card w-full max-w-5xl mx-auto relative"
+            class="card w-full max-w-5xl mx-auto relative max-h-[calc(100vh-2rem)]"
             on:click|stopPropagation
             in:fly={{ y: 20, duration: 300, delay: 150 }}
             out:fly={{ y: 20, duration: 200 }}
@@ -113,7 +121,7 @@
             </div>
 
             <!-- Content -->
-            <div class="px-8 py-6">
+            <div class="px-8 py-6 overflow-y-auto max-h-[calc(100vh-16rem)]">
                 <div class="flex gap-8">
                     <!-- Selected Periods -->
                     <div class="flex-1">
@@ -142,14 +150,16 @@
                                         </svg>
                                         <span>{period.label}</span>
                                     </div>
-                                    <button 
-                                        class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
-                                        on:click={() => removePeriod(period.id)}
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
+                                    {#if $tradingStatsStore.selectedPeriods.length > 1}
+                                        <button 
+                                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
+                                            on:click={() => removePeriod(period.id)}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    {/if}
                                 </div>
                             {/each}
                         </div>

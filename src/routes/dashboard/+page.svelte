@@ -83,6 +83,10 @@
 
             await api.deleteTrade(event.detail);
             await loadTrades();
+            // Refresh account data to update balance
+            await accountStore.setCurrentAccount($accountStore.currentAccount._id);
+            // Dispatch trade update event for stats
+            window.dispatchEvent(new CustomEvent('tradeupdate'));
             showDayModal = false;
         } catch (err) {
             error = err.message;
@@ -103,6 +107,10 @@
             }
             
             await loadTrades();
+            // Refresh account data to update balance
+            await accountStore.setCurrentAccount($accountStore.currentAccount._id);
+            // Dispatch trade update event for stats
+            window.dispatchEvent(new CustomEvent('tradeupdate'));
             showEditModal = false;
             showNewTradeModal = false;
             selectedTrade = null;

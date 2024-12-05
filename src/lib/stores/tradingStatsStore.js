@@ -125,10 +125,15 @@ function createTradingStatsStore() {
         },
 
         removePeriod: (periodId) => {
-            update(state => ({
-                ...state,
-                selectedPeriods: state.selectedPeriods.filter(id => id !== periodId)
-            }));
+            update(state => {
+                // Don't allow removing if it's the last period
+                if (state.selectedPeriods.length <= 1) return state;
+                
+                return {
+                    ...state,
+                    selectedPeriods: state.selectedPeriods.filter(id => id !== periodId)
+                };
+            });
         },
 
         reorderPeriods: (periods) => {
