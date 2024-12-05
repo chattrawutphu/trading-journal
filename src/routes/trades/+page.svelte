@@ -9,7 +9,6 @@
     import TradeViewModal from '$lib/components/trades/TradeViewModal.svelte';
     import TradeFilters from '$lib/components/trades/TradeFilters.svelte';
     import TransactionTable from '$lib/components/transactions/TransactionTable.svelte';
-    import TransactionModal from '$lib/components/transactions/TransactionModal.svelte';
     import Loading from '$lib/components/common/Loading.svelte';
     import Button from '$lib/components/common/Button.svelte';
     import Input from '$lib/components/common/Input.svelte';
@@ -23,6 +22,7 @@
     let showDepositModal = false;
     let showWithdrawModal = false;
     let selectedTrade = null;
+    let selectedTransaction = null;
     let activeTab = 'trades';
     let transactionAmount = 0;
     let transactionDate = new Date().toISOString().split('T')[0];
@@ -133,6 +133,19 @@
     function handleEdit(event) {
         selectedTrade = event.detail;
         showEditModal = true;
+    }
+
+    function handleEditTransaction(event) {
+        selectedTransaction = event.detail;
+        if (selectedTransaction.type === 'deposit') {
+            transactionAmount = selectedTransaction.amount;
+            transactionDate = new Date(selectedTransaction.date).toISOString().split('T')[0];
+            showDepositModal = true;
+        } else {
+            transactionAmount = selectedTransaction.amount;
+            transactionDate = new Date(selectedTransaction.date).toISOString().split('T')[0];
+            showWithdrawModal = true;
+        }
     }
 
     async function handleDelete(tradeId) {
@@ -292,7 +305,10 @@
             </div>
         {:else if activeTab === 'transactions'}
             <div class="card">
-                <TransactionTable accountId={$accountStore.currentAccount._id} />
+                <TransactionTable 
+                    accountId={$accountStore.currentAccount._id}
+                    on:edit={handleEditTransaction}
+                />
             </div>
         {/if}
     {:else}
@@ -323,6 +339,7 @@
         class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
         on:click={() => {
             showDepositModal = false;
+            selectedTransaction = null;
             transactionAmount = 0;
             transactionDate = new Date().toISOString().split('T')[0];
         }}
@@ -341,6 +358,7 @@
                     class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
                     on:click={() => {
                         showDepositModal = false;
+                        selectedTransaction = null;
                         transactionAmount = 0;
                         transactionDate = new Date().toISOString().split('T')[0];
                     }}
@@ -377,6 +395,7 @@
                     variant="secondary" 
                     on:click={() => {
                         showDepositModal = false;
+                        selectedTransaction = null;
                         transactionAmount = 0;
                         transactionDate = new Date().toISOString().split('T')[0];
                     }}
@@ -397,6 +416,7 @@
         class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
         on:click={() => {
             showWithdrawModal = false;
+            selectedTransaction = null;
             transactionAmount = 0;
             transactionDate = new Date().toISOString().split('T')[0];
         }}
@@ -415,6 +435,7 @@
                     class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
                     on:click={() => {
                         showWithdrawModal = false;
+                        selectedTransaction = null;
                         transactionAmount = 0;
                         transactionDate = new Date().toISOString().split('T')[0];
                     }}
@@ -451,6 +472,7 @@
                     variant="secondary" 
                     on:click={() => {
                         showWithdrawModal = false;
+                        selectedTransaction = null;
                         transactionAmount = 0;
                         transactionDate = new Date().toISOString().split('T')[0];
                     }}
