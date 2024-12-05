@@ -22,7 +22,12 @@
         }
 
         try {
-            await auth.register(name, email, password);
+            const userData = {
+                name,
+                email,
+                password
+            };
+            await auth.register(userData);
             goto('/dashboard');
         } catch (err) {
             error = err.message || 'Registration failed. Please try again.';

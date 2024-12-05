@@ -1,6 +1,7 @@
 // server/controllers/authController.js
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { SUBSCRIPTION_TYPES } from '../../config/subscription.js';
 
 export const register = async (req, res) => {
   try {
@@ -12,12 +13,19 @@ export const register = async (req, res) => {
       throw new Error('User already exists');
     }
 
-    const user = await User.create({
+    const userData = {
       email,
       password,
       name,
-      strategies: [] // Initialize empty strategies array
-    });
+      role: 'user',
+      strategies: [],
+      subscription: {
+        type: SUBSCRIPTION_TYPES.BASIC,
+        status: 'active'
+      }
+    };
+
+    const user = await User.create(userData);
 
     if (user) {
       req.session.userId = user._id;
@@ -25,6 +33,8 @@ export const register = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
+        subscription: user.subscription,
         strategies: user.strategies,
       });
     } else {
@@ -32,8 +42,11 @@ export const register = async (req, res) => {
       throw new Error('Invalid user data');
     }
   } catch (error) {
-    res.status(400);
-    throw error;
+    console.error('Register error:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
   }
 };
 
@@ -72,6 +85,8 @@ export const login = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
+        subscription: user.subscription,
         strategies: user.strategies,
       }
     });
@@ -101,7 +116,6 @@ export const logout = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
-    // ตรวจสอบ session
     if (!req.session.userId) {
       return res.status(401).json({
         success: false,
@@ -115,6 +129,8 @@ export const getProfile = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
+        subscription: user.subscription,
         strategies: user.strategies
       });
     } else {
@@ -149,6 +165,8 @@ export const updateProfile = async (req, res) => {
         _id: updatedUser._id,
         name: updatedUser.name,
         email: updatedUser.email,
+        role: updatedUser.role,
+        subscription: updatedUser.subscription,
         strategies: updatedUser.strategies,
       });
     } else {
@@ -164,7 +182,7 @@ export const updateProfile = async (req, res) => {
 export const verifyToken = async (req, res) => {
   try {
     const { token } = req.body;
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select('-password');
 
     if (user) {
@@ -172,6 +190,8 @@ export const verifyToken = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
+        subscription: user.subscription,
         strategies: user.strategies,
         token,
       });

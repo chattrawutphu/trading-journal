@@ -1,6 +1,7 @@
 // server/models/User.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { SUBSCRIPTION_TYPES } from '../../config/subscription.js';
 
 const userSchema = new mongoose.Schema({
     email: {
@@ -15,6 +16,29 @@ const userSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true
+    },
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
+    },
+    subscription: {
+        type: {
+            type: String,
+            enum: Object.values(SUBSCRIPTION_TYPES),
+            default: SUBSCRIPTION_TYPES.BASIC
+        },
+        startDate: {
+            type: Date
+        },
+        endDate: {
+            type: Date
+        },
+        status: {
+            type: String,
+            enum: ['active', 'expired', 'cancelled'],
+            default: 'active'
+        }
     },
     strategies: {
         type: [String],
