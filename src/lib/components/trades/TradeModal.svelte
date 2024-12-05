@@ -81,7 +81,7 @@
             ...trade,
             entryDate: trade.entryDate
                 ? new Date(trade.entryDate).toISOString().slice(0, 10)
-                : getCurrentDate(),
+                : "",
             exitDate: trade.exitDate
                 ? new Date(trade.exitDate).toISOString().slice(0, 10)
                 : "",
