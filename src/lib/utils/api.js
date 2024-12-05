@@ -138,6 +138,31 @@ export const api = {
     });
   },
 
+  // User Strategies endpoints
+  async getUserStrategies() {
+    return fetchWithAuth('/user/strategies');
+  },
+
+  async updateUserStrategies(strategies) {
+    return fetchWithAuth('/user/strategies', {
+      method: 'PUT',
+      body: JSON.stringify({ strategies }),
+    });
+  },
+
+  async addUserStrategy(strategy) {
+    return fetchWithAuth('/user/strategies', {
+      method: 'POST',
+      body: JSON.stringify({ strategy }),
+    });
+  },
+
+  async removeUserStrategy(strategy) {
+    return fetchWithAuth(`/user/strategies/${encodeURIComponent(strategy)}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Trade endpoints
   async getTrades(accountId, filters = {}) {
     const queryString = new URLSearchParams(filters).toString();
@@ -176,37 +201,6 @@ export const api = {
 
   async toggleDisabled(tradeId) {
     return fetchWithAuth(`/trades/${tradeId}/disable`, {
-      method: 'POST',
-    });
-  },
-
-  // Trade Options endpoints
-  async getTradeOptions(type) {
-    return fetchWithAuth(`/trade-options?type=${type}`);
-  },
-
-  async createTradeOption(optionData) {
-    return fetchWithAuth('/trade-options', {
-      method: 'POST',
-      body: JSON.stringify(optionData),
-    });
-  },
-
-  async updateTradeOption(optionId, optionData) {
-    return fetchWithAuth(`/trade-options/${optionId}`, {
-      method: 'PUT',
-      body: JSON.stringify(optionData),
-    });
-  },
-
-  async deleteTradeOption(optionId) {
-    return fetchWithAuth(`/trade-options/${optionId}`, {
-      method: 'DELETE',
-    });
-  },
-
-  async incrementTradeOptionUsage(optionId) {
-    return fetchWithAuth(`/trade-options/${optionId}/increment`, {
       method: 'POST',
     });
   },

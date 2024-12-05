@@ -4,8 +4,8 @@
     import { createEventDispatcher } from 'svelte';
     import { clickOutside } from '$lib/utils/clickOutside';
     import { fade } from 'svelte/transition';
-    import { tradeOptionStore } from '$lib/stores/tradeOptionStore';
     import { accountSymbolStore } from '$lib/stores/accountSymbolStore';
+    import { userStrategyStore } from '$lib/stores/userStrategyStore';
     import Button from '../common/Button.svelte';
 
     const dispatch = createEventDispatcher();
@@ -29,9 +29,9 @@
             loading = $accountSymbolStore.loading;
             error = $accountSymbolStore.error;
         } else {
-            options = $tradeOptionStore.strategies;
-            loading = $tradeOptionStore.loading;
-            error = $tradeOptionStore.error;
+            options = $userStrategyStore.strategies.map(strategy => ({ value: strategy }));
+            loading = $userStrategyStore.loading;
+            error = $userStrategyStore.error;
         }
     }
 
@@ -47,7 +47,7 @@
         if (type === 'SYMBOL' && accountId) {
             accountSymbolStore.loadSymbols(accountId);
         } else if (type === 'STRATEGY') {
-            tradeOptionStore.loadOptions();
+            userStrategyStore.loadStrategies();
         }
     });
 
@@ -56,13 +56,6 @@
         searchTerm = option.value;
         isOpen = false;
         dispatch('change', { value: option.value });
-        if (type === 'STRATEGY') {
-            try {
-                await tradeOptionStore.incrementUsage(option._id);
-            } catch (err) {
-                console.error('Failed to increment usage:', err);
-            }
-        }
     }
 
     async function handleCreate() {
@@ -75,11 +68,11 @@
                 isOpen = false;
                 dispatch('change', { value });
             } else if (type === 'STRATEGY') {
-                const newOption = await tradeOptionStore.createOption(type, searchTerm.trim());
-                value = newOption.value;
-                searchTerm = newOption.value;
+                await userStrategyStore.addStrategy(searchTerm.trim());
+                value = searchTerm.trim();
+                searchTerm = value;
                 isOpen = false;
-                dispatch('change', { value: newOption.value });
+                dispatch('change', { value });
             }
         } catch (err) {
             console.error('Failed to create option:', err);
@@ -99,9 +92,11 @@
                     value = searchTerm.trim();
                 }
             } else if (type === 'STRATEGY') {
-                const updatedOption = await tradeOptionStore.updateOption(option._id, searchTerm.trim());
+                const strategies = $userStrategyStore.strategies.filter(s => s !== option.value);
+                strategies.push(searchTerm.trim());
+                await userStrategyStore.updateStrategies(strategies);
                 if (value === option.value) {
-                    value = updatedOption.value;
+                    value = searchTerm.trim();
                 }
             }
             searchTerm = value;
@@ -120,7 +115,7 @@
                 if (options.length <= 1) return;
                 await accountSymbolStore.removeSymbol(accountId, option.value);
             } else if (type === 'STRATEGY') {
-                await tradeOptionStore.deleteOption(option._id);
+                await userStrategyStore.removeStrategy(option.value);
             }
             if (value === option.value) {
                 value = '';
@@ -258,17 +253,15 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                                 </svg>
                                             </button>
-                                            {#if type !== 'SYMBOL' || options.length > 1}
-                                                <button
-                                                    type="button"
-                                                    class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-red-500"
-                                                    on:click={(e) => handleDelete(option, e)}
-                                                >
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                    </svg>
-                                                </button>
-                                            {/if}
+                                            <button
+                                                type="button"
+                                                class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-red-500"
+                                                on:click={(e) => handleDelete(option, e)}
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
                                         </div>
                                     </div>
                                 {/if}
