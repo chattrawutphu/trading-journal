@@ -365,7 +365,7 @@
             <div class="px-8 py-6">
                 <form on:submit|preventDefault={handleUpdateBalance}>
                     <Input
-                        label="New Balance"
+                        label="Initial Balance"
                         type="number"
                         bind:value={updatingBalance.balance}
                         min="0"
