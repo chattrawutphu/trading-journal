@@ -50,6 +50,7 @@ export const createAccount = async (req, res) => {
     const account = await Account.create({
       ...req.body,
       user: req.user._id,
+      symbols: [] // Initialize empty symbols array
     });
     res.status(201).json(account);
   } catch (error) {
@@ -120,6 +121,102 @@ export const deleteAccount = async (req, res) => {
 
     await account.deleteOne();
     res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    res.status(400);
+    throw error;
+  }
+};
+
+// New functions for managing symbols
+export const getSymbols = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const account = await Account.findOne({
+      _id: id,
+      user: req.user._id,
+    });
+
+    if (!account) {
+      res.status(404);
+      throw new Error('Account not found');
+    }
+
+    res.json(account.symbols);
+  } catch (error) {
+    res.status(400);
+    throw error;
+  }
+};
+
+export const updateSymbols = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { symbols } = req.body;
+
+    const account = await Account.findOne({
+      _id: id,
+      user: req.user._id,
+    });
+
+    if (!account) {
+      res.status(404);
+      throw new Error('Account not found');
+    }
+
+    account.symbols = symbols;
+    const updatedAccount = await account.save();
+    res.json(updatedAccount.symbols);
+  } catch (error) {
+    res.status(400);
+    throw error;
+  }
+};
+
+export const addSymbol = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { symbol } = req.body;
+
+    const account = await Account.findOne({
+      _id: id,
+      user: req.user._id,
+    });
+
+    if (!account) {
+      res.status(404);
+      throw new Error('Account not found');
+    }
+
+    if (!account.symbols.includes(symbol)) {
+      account.symbols.push(symbol);
+      await account.save();
+    }
+
+    res.json(account.symbols);
+  } catch (error) {
+    res.status(400);
+    throw error;
+  }
+};
+
+export const removeSymbol = async (req, res) => {
+  try {
+    const { id, symbol } = req.params;
+
+    const account = await Account.findOne({
+      _id: id,
+      user: req.user._id,
+    });
+
+    if (!account) {
+      res.status(404);
+      throw new Error('Account not found');
+    }
+
+    account.symbols = account.symbols.filter(s => s !== symbol);
+    await account.save();
+
+    res.json(account.symbols);
   } catch (error) {
     res.status(400);
     throw error;

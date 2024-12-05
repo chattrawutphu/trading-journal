@@ -5,6 +5,7 @@
     import { clickOutside } from '$lib/utils/clickOutside';
     import { fade } from 'svelte/transition';
     import { tradeOptionStore } from '$lib/stores/tradeOptionStore';
+    import { accountSymbolStore } from '$lib/stores/accountSymbolStore';
     import Button from '../common/Button.svelte';
 
     const dispatch = createEventDispatcher();
@@ -13,6 +14,7 @@
     export let value = '';
     export let placeholder = 'Select an option';
     export let required = false;
+    export let accountId = null;
 
     let isOpen = false;
     let searchTerm = '';
@@ -23,24 +25,30 @@
 
     $: {
         if (type === 'SYMBOL') {
-            options = $tradeOptionStore.symbols;
+            options = accountId ? $accountSymbolStore.symbols.map(symbol => ({ value: symbol })) : [];
+            loading = $accountSymbolStore.loading;
+            error = $accountSymbolStore.error;
         } else {
             options = $tradeOptionStore.strategies;
+            loading = $tradeOptionStore.loading;
+            error = $tradeOptionStore.error;
         }
-        loading = $tradeOptionStore.loading;
-        error = $tradeOptionStore.error;
     }
 
     $: filteredOptions = options
         .filter(opt => opt.value.toLowerCase().includes(searchTerm.toLowerCase()))
-        .sort((a, b) => b.usageCount - a.usageCount);
+        .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
 
     $: if (value && !options.some(opt => opt.value === value)) {
         searchTerm = value;
     }
 
     onMount(() => {
-        tradeOptionStore.loadOptions();
+        if (type === 'SYMBOL' && accountId) {
+            accountSymbolStore.loadSymbols(accountId);
+        } else if (type === 'STRATEGY') {
+            tradeOptionStore.loadOptions();
+        }
     });
 
     async function handleSelect(option) {
@@ -48,21 +56,31 @@
         searchTerm = option.value;
         isOpen = false;
         dispatch('change', { value: option.value });
-        try {
-            await tradeOptionStore.incrementUsage(option._id);
-        } catch (err) {
-            console.error('Failed to increment usage:', err);
+        if (type === 'STRATEGY') {
+            try {
+                await tradeOptionStore.incrementUsage(option._id);
+            } catch (err) {
+                console.error('Failed to increment usage:', err);
+            }
         }
     }
 
     async function handleCreate() {
         if (!searchTerm.trim()) return;
         try {
-            const newOption = await tradeOptionStore.createOption(type, searchTerm.trim());
-            value = newOption.value;
-            searchTerm = newOption.value;
-            isOpen = false;
-            dispatch('change', { value: newOption.value });
+            if (type === 'SYMBOL' && accountId) {
+                await accountSymbolStore.addSymbol(accountId, searchTerm.trim());
+                value = searchTerm.trim();
+                searchTerm = value;
+                isOpen = false;
+                dispatch('change', { value });
+            } else if (type === 'STRATEGY') {
+                const newOption = await tradeOptionStore.createOption(type, searchTerm.trim());
+                value = newOption.value;
+                searchTerm = newOption.value;
+                isOpen = false;
+                dispatch('change', { value: newOption.value });
+            }
         } catch (err) {
             console.error('Failed to create option:', err);
         }
@@ -74,9 +92,17 @@
             return;
         }
         try {
-            const updatedOption = await tradeOptionStore.updateOption(option._id, searchTerm.trim());
-            if (value === option.value) {
-                value = updatedOption.value;
+            if (type === 'SYMBOL' && accountId) {
+                await accountSymbolStore.removeSymbol(accountId, option.value);
+                await accountSymbolStore.addSymbol(accountId, searchTerm.trim());
+                if (value === option.value) {
+                    value = searchTerm.trim();
+                }
+            } else if (type === 'STRATEGY') {
+                const updatedOption = await tradeOptionStore.updateOption(option._id, searchTerm.trim());
+                if (value === option.value) {
+                    value = updatedOption.value;
+                }
             }
             searchTerm = value;
             editingOption = null;
@@ -89,7 +115,13 @@
         event.stopPropagation();
         if (!confirm(`Are you sure you want to delete this ${type.toLowerCase()}?`)) return;
         try {
-            await tradeOptionStore.deleteOption(option._id);
+            if (type === 'SYMBOL' && accountId) {
+                // Don't allow deleting if it's the last symbol
+                if (options.length <= 1) return;
+                await accountSymbolStore.removeSymbol(accountId, option.value);
+            } else if (type === 'STRATEGY') {
+                await tradeOptionStore.deleteOption(option._id);
+            }
             if (value === option.value) {
                 value = '';
                 searchTerm = '';
@@ -180,7 +212,7 @@
                     <div class="max-h-[200px] overflow-y-auto">
                         {#each filteredOptions as option}
                             <div class="group relative hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200">
-                                {#if editingOption?._id === option._id}
+                                {#if editingOption?.value === option.value}
                                     <div class="flex items-center p-2">
                                         <input
                                             type="text"
@@ -226,15 +258,17 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                                 </svg>
                                             </button>
-                                            <button
-                                                type="button"
-                                                class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-red-500"
-                                                on:click={(e) => handleDelete(option, e)}
-                                            >
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                </svg>
-                                            </button>
+                                            {#if type !== 'SYMBOL' || options.length > 1}
+                                                <button
+                                                    type="button"
+                                                    class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-red-500"
+                                                    on:click={(e) => handleDelete(option, e)}
+                                                >
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                    </svg>
+                                                </button>
+                                            {/if}
                                         </div>
                                     </div>
                                 {/if}

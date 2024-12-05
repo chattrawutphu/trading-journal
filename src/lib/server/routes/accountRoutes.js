@@ -7,7 +7,11 @@ import {
   createAccount,
   updateAccount,
   updateBalance,
-  deleteAccount
+  deleteAccount,
+  getSymbols,
+  updateSymbols,
+  addSymbol,
+  removeSymbol
 } from '../controllers/accountController.js';
 
 const router = express.Router();
@@ -25,5 +29,14 @@ router.route('/:id')
 
 router.route('/:id/balance')
   .put(updateBalance);
+
+// New symbol management routes
+router.route('/:id/symbols')
+  .get(getSymbols)
+  .put(updateSymbols)
+  .post(addSymbol);
+
+router.route('/:id/symbols/:symbol')
+  .delete(removeSymbol);
 
 export default router;

@@ -113,6 +113,31 @@ export const api = {
     });
   },
 
+  // Account Symbols endpoints
+  async getAccountSymbols(accountId) {
+    return fetchWithAuth(`/accounts/${accountId}/symbols`);
+  },
+
+  async updateAccountSymbols(accountId, symbols) {
+    return fetchWithAuth(`/accounts/${accountId}/symbols`, {
+      method: 'PUT',
+      body: JSON.stringify({ symbols }),
+    });
+  },
+
+  async addAccountSymbol(accountId, symbol) {
+    return fetchWithAuth(`/accounts/${accountId}/symbols`, {
+      method: 'POST',
+      body: JSON.stringify({ symbol }),
+    });
+  },
+
+  async removeAccountSymbol(accountId, symbol) {
+    return fetchWithAuth(`/accounts/${accountId}/symbols/${symbol}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Trade endpoints
   async getTrades(accountId, filters = {}) {
     const queryString = new URLSearchParams(filters).toString();
