@@ -216,4 +216,16 @@ export const api = {
       body: JSON.stringify({ section, data }),
     });
   },
+
+  // Transaction endpoints
+  async getTransactions(accountId) {
+    return fetchWithAuth(`/transactions/${accountId}`);
+  },
+
+  async createTransaction(transactionData) {
+    return fetchWithAuth('/transactions', {
+      method: 'POST',
+      body: JSON.stringify(transactionData),
+    });
+  },
 };

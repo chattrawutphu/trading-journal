@@ -12,6 +12,7 @@ import tradeRoutes from './routes/tradeRoutes.js';
 import tradeOptionRoutes from './routes/tradeOptionRoutes.js';
 import userSettingsRoutes from './routes/userSettingsRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
 
 // Get the directory path for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -57,6 +58,7 @@ app.use('/api/trades', tradeRoutes);
 app.use('/api/trade-options', tradeOptionRoutes);
 app.use('/api/settings', userSettingsRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 // 404 handler
 app.use((req, res) => {

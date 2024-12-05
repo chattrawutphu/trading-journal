@@ -2,6 +2,7 @@
     import { createEventDispatcher } from 'svelte';
     import { fade, fly } from 'svelte/transition';
     import { accountStore } from '$lib/stores/accountStore';
+    import { transactionStore } from '$lib/stores/transactionStore';
     import Button from '../common/Button.svelte';
     import Input from '../common/Input.svelte';
     import Loading from '../common/Loading.svelte';
@@ -10,11 +11,12 @@
   
     let showNewAccountModal = false;
     let showEditAccountModal = false;
-    let showBalanceModal = false;
+    let showDepositModal = false;
+    let showWithdrawModal = false;
     let newAccountName = '';
     let newAccountBalance = 0;
     let editingAccount = null;
-    let updatingBalance = null;
+    let transactionAmount = 0;
     let error = '';
   
     async function handleCreateAccount() {
@@ -50,13 +52,32 @@
       }
     }
 
-    async function handleUpdateBalance() {
-      if (updatingBalance) {
+    async function handleDeposit() {
+      if (editingAccount && transactionAmount > 0) {
         try {
           error = '';
-          await accountStore.updateBalance(updatingBalance._id, parseFloat(updatingBalance.balance) || 0);
-          showBalanceModal = false;
-          updatingBalance = null;
+          await transactionStore.createTransaction(editingAccount._id, 'deposit', transactionAmount);
+          await accountStore.setCurrentAccount(editingAccount._id);
+          await accountStore.loadAccounts();
+          showDepositModal = false;
+          editingAccount = null;
+          transactionAmount = 0;
+        } catch (err) {
+          error = err.message;
+        }
+      }
+    }
+
+    async function handleWithdraw() {
+      if (editingAccount && transactionAmount > 0) {
+        try {
+          error = '';
+          await transactionStore.createTransaction(editingAccount._id, 'withdrawal', transactionAmount);
+          await accountStore.setCurrentAccount(editingAccount._id);
+          await accountStore.loadAccounts();
+          showWithdrawModal = false;
+          editingAccount = null;
+          transactionAmount = 0;
         } catch (err) {
           error = err.message;
         }
@@ -79,9 +100,16 @@
       showEditAccountModal = true;
     }
 
-    function startUpdateBalance(account) {
-      updatingBalance = { ...account };
-      showBalanceModal = true;
+    function startDeposit(account) {
+      editingAccount = { ...account };
+      transactionAmount = 0;
+      showDepositModal = true;
+    }
+
+    function startWithdraw(account) {
+      editingAccount = { ...account };
+      transactionAmount = 0;
+      showWithdrawModal = true;
     }
 </script>
 
@@ -130,12 +158,21 @@
                     </button>
                     <div class="hidden group-hover:flex items-center ml-2 space-x-1">
                         <button
-                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
-                            on:click|stopPropagation={() => startUpdateBalance(account)}
-                            title="Update Balance"
+                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-green-500 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
+                            on:click|stopPropagation={() => startDeposit(account)}
+                            title="Deposit"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </button>
+                        <button
+                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
+                            on:click|stopPropagation={() => startWithdraw(account)}
+                            title="Withdraw"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
                             </svg>
                         </button>
                         <button
@@ -298,14 +335,6 @@
                         required
                         placeholder="e.g., Binance Spot"
                     />
-                    <Input
-                        label="Balance"
-                        type="number"
-                        bind:value={editingAccount.balance}
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                    />
                 </form>
             </div>
 
@@ -329,13 +358,14 @@
     </div>
 {/if}
 
-<!-- Update Balance Modal -->
-{#if showBalanceModal && updatingBalance}
+<!-- Deposit Modal -->
+{#if showDepositModal && editingAccount}
     <div 
         class="fixed inset-0 bg-black/50  z-[100] flex items-center justify-center p-4 "
         on:click={() => {
-            showBalanceModal = false;
-            updatingBalance = null;
+            showDepositModal = false;
+            editingAccount = null;
+            transactionAmount = 0;
         }}
         transition:fade={{ duration: 200 }}
     >
@@ -347,12 +377,13 @@
         >
             <!-- Header -->
             <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl  bg-opacity-90 dark:bg-opacity-90 z-10">
-                <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">Update Balance</h2>
+                <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">Deposit</h2>
                 <button 
                     class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
                     on:click={() => {
-                        showBalanceModal = false;
-                        updatingBalance = null;
+                        showDepositModal = false;
+                        editingAccount = null;
+                        transactionAmount = 0;
                     }}
                 >
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,12 +393,12 @@
             </div>
 
             <!-- Content -->
-            <div class="px-8 py-6">
-                <form on:submit|preventDefault={handleUpdateBalance}>
+            <div class="px-8 py-6 space-y-4">
+                <form on:submit|preventDefault={handleDeposit}>
                     <Input
-                        label="Initial Balance"
+                        label="Amount"
                         type="number"
-                        bind:value={updatingBalance.balance}
+                        bind:value={transactionAmount}
                         min="0"
                         step="0.01"
                         placeholder="0.00"
@@ -381,14 +412,84 @@
                     type="button" 
                     variant="secondary" 
                     on:click={() => {
-                        showBalanceModal = false;
-                        updatingBalance = null;
+                        showDepositModal = false;
+                        editingAccount = null;
+                        transactionAmount = 0;
                     }}
                 >
                     Cancel
                 </Button>
-                <Button type="submit" variant="primary" on:click={handleUpdateBalance}>
-                    Update Balance
+                <Button type="submit" variant="primary" on:click={handleDeposit}>
+                    Deposit
+                </Button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+<!-- Withdraw Modal -->
+{#if showWithdrawModal && editingAccount}
+    <div 
+        class="fixed inset-0 bg-black/50  z-[100] flex items-center justify-center p-4 "
+        on:click={() => {
+            showWithdrawModal = false;
+            editingAccount = null;
+            transactionAmount = 0;
+        }}
+        transition:fade={{ duration: 200 }}
+    >
+        <div 
+            class="card w-full max-w-md mx-auto relative transform  ease-out"
+            on:click|stopPropagation
+            in:fly={{ y: 20, duration: 300, delay: 150 }}
+            out:fly={{ y: 20, duration: 200 }}
+        >
+            <!-- Header -->
+            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl  bg-opacity-90 dark:bg-opacity-90 z-10">
+                <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">Withdraw</h2>
+                <button 
+                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
+                    on:click={() => {
+                        showWithdrawModal = false;
+                        editingAccount = null;
+                        transactionAmount = 0;
+                    }}
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="px-8 py-6 space-y-4">
+                <form on:submit|preventDefault={handleWithdraw}>
+                    <Input
+                        label="Amount"
+                        type="number"
+                        bind:value={transactionAmount}
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                    />
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl  bg-opacity-90 dark:bg-opacity-90 z-10">
+                <Button 
+                    type="button" 
+                    variant="secondary" 
+                    on:click={() => {
+                        showWithdrawModal = false;
+                        editingAccount = null;
+                        transactionAmount = 0;
+                    }}
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" variant="primary" on:click={handleWithdraw}>
+                    Withdraw
                 </Button>
             </div>
         </div>

@@ -6,6 +6,7 @@
     import TradeModal from '$lib/components/trades/TradeModal.svelte';
     import TradeViewModal from '$lib/components/trades/TradeViewModal.svelte';
     import TradeFilters from '$lib/components/trades/TradeFilters.svelte';
+    import TransactionTable from '$lib/components/transactions/TransactionTable.svelte';
     import Loading from '$lib/components/common/Loading.svelte';
     import Button from '$lib/components/common/Button.svelte';
     import { api } from '$lib/utils/api';
@@ -16,6 +17,7 @@
     let showEditModal = false;
     let showViewModal = false;
     let selectedTrade = null;
+    let activeTab = 'trades';
 
     $: openTrades = trades.filter(t => t.status === 'OPEN');
     $: closedTrades = trades.filter(t => t.status === 'CLOSED');
@@ -158,56 +160,82 @@
 
     <!-- Header -->
     <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">Trade History</h1>
-        <Button variant="primary" on:click={() => showEditModal = true}>
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            New Trade
-        </Button>
+        <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">History</h1>
+        {#if activeTab === 'trades'}
+            <Button variant="primary" on:click={() => showEditModal = true}>
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                New Trade
+            </Button>
+        {/if}
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="border-b border-light-border dark:border-dark-border">
+        <nav class="-mb-px flex space-x-8">
+            <button
+                class="py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 {activeTab === 'trades' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
+                on:click={() => activeTab = 'trades'}
+            >
+                Trades
+            </button>
+            <button
+                class="py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 {activeTab === 'transactions' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
+                on:click={() => activeTab = 'transactions'}
+            >
+                Transactions
+            </button>
+        </nav>
     </div>
 
     {#if loading}
-        <Loading message="Loading trades..." overlay={true} />
+        <Loading message="Loading..." overlay={true} />
     {:else if $accountStore.currentAccount}
-        <!-- Filters -->
-        <TradeFilters />
+        {#if activeTab === 'trades'}
+            <!-- Filters -->
+            <TradeFilters />
 
-        <!-- Open Trades -->
-        <div class="card">
-            <div class="p-4 border-b border-light-border dark:border-dark-border">
-                <h2 class="text-xl font-semibold">Open Positions</h2>
+            <!-- Open Trades -->
+            <div class="card">
+                <div class="p-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-xl font-semibold">Open Positions</h2>
+                </div>
+                <TradeTable 
+                    trades={openTrades}
+                    type="open"
+                    on:view={handleView}
+                    on:edit={handleEdit}
+                    on:delete={e => handleDelete(e.detail)}
+                    on:favorite={e => handleFavorite(e.detail)}
+                    on:disable={e => handleDisable(e.detail)}
+                />
             </div>
-            <TradeTable 
-                trades={openTrades}
-                type="open"
-                on:view={handleView}
-                on:edit={handleEdit}
-                on:delete={e => handleDelete(e.detail)}
-                on:favorite={e => handleFavorite(e.detail)}
-                on:disable={e => handleDisable(e.detail)}
-            />
-        </div>
 
-        <!-- Closed Trades -->
-        <div class="card">
-            <div class="p-4 border-b border-light-border dark:border-dark-border">
-                <h2 class="text-xl font-semibold">Closed Trades</h2>
+            <!-- Closed Trades -->
+            <div class="card">
+                <div class="p-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-xl font-semibold">Closed Trades</h2>
+                </div>
+                <TradeTable 
+                    trades={closedTrades}
+                    type="closed"
+                    on:view={handleView}
+                    on:edit={handleEdit}
+                    on:delete={e => handleDelete(e.detail)}
+                    on:favorite={e => handleFavorite(e.detail)}
+                    on:disable={e => handleDisable(e.detail)}
+                />
             </div>
-            <TradeTable 
-                trades={closedTrades}
-                type="closed"
-                on:view={handleView}
-                on:edit={handleEdit}
-                on:delete={e => handleDelete(e.detail)}
-                on:favorite={e => handleFavorite(e.detail)}
-                on:disable={e => handleDisable(e.detail)}
-            />
-        </div>
+        {:else if activeTab === 'transactions'}
+            <div class="card">
+                <TransactionTable accountId={$accountStore.currentAccount._id} />
+            </div>
+        {/if}
     {:else}
         <div class="card p-8 text-center">
             <p class="text-light-text-muted dark:text-dark-text-muted">
-                Create an account to see your trades
+                Create an account to see your history
             </p>
         </div>
     {/if}
