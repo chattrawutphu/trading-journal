@@ -45,14 +45,14 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({  // เพิ่ม store configuration
+  store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
-    ttl: 24 * 60 * 60 // Session จะหมดอายุใน 1 วัน
+    ttl: 7 * 24 * 60 * 60 * 2 // Session จะหมดอายุใน 14 วัน
   }),
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    maxAge: 7 * 24 * 60 * 60 * 1000 * 2, // 14 วัน ในหน่วยมิลลิวินาที
     sameSite: 'lax'  // แก้ไขเป็น 'lax' เพื่อให้ทำงานกับ cross-origin requests
   }
 }));
