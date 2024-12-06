@@ -8,10 +8,10 @@
 
     const dispatch = createEventDispatcher();
     let stats = {};
-    let loading = false;
     let error = '';
     let showConfig = false;
     let isHovering = false;
+    let currentAccountId = null;
 
     onMount(async () => {
         if ($accountStore.currentAccount) {
@@ -29,7 +29,6 @@
         if (!$accountStore.currentAccount) return;
         
         try {
-            loading = true;
             error = '';
 
             // Create a single batch request for all periods
@@ -53,8 +52,14 @@
             });
         } catch (err) {
             error = err.message;
-        } finally {
-            loading = false;
+        }
+    }
+
+    // Watch for account changes
+    $: if ($accountStore.currentAccount?._id !== currentAccountId) {
+        currentAccountId = $accountStore.currentAccount?._id;
+        if (currentAccountId) {
+            loadStats();
         }
     }
 
@@ -78,48 +83,38 @@
     on:mouseenter={() => isHovering = true}
     on:mouseleave={() => isHovering = false}
 >
-    {#if loading}
-        <div class="col-span-5">
-            <div class="card p-4 flex items-center justify-center">
-                <div class="animate-pulse flex space-x-4">
-                    <div class="h-4 w-24 bg-light-border dark:bg-dark-border rounded"></div>
+    {#each $tradingStatsStore.selectedPeriods as period, index}
+        {@const data = stats[period] || { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 }}
+        <div class="card p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted capitalize">
+                    {PERIOD_OPTIONS[period].label}
+                </h3>
+                <div class="w-8 h-8 rounded-full {data.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
+                    <svg class="w-4 h-4 {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[period].icon}/>
+                    </svg>
+                </div>
+            </div>
+            <div class="space-y-2">
+                <div class="flex items-baseline justify-between">
+                    <p class="text-lg {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                        {formatCurrency(data.pnl)}
+                    </p>
+                    {#if data.balanceChange !== 0}
+                        <p class="text-xl font-bold {data.balanceChange > 0 ? 'text-green-500' : 'text-red-500'}">
+                            {formatPercentage(data.balanceChange)}
+                        </p>
+                    {/if}
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                        {data.trades} trade{data.trades !== 1 ? 's' : ''}
+                    </p>
                 </div>
             </div>
         </div>
-    {:else}
-        {#each $tradingStatsStore.selectedPeriods as period, index}
-            {@const data = stats[period] || { pnl: 0, trades: 0, balanceChange: 0, startingBalance: 0 }}
-            <div class="card p-4">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted capitalize">
-                        {PERIOD_OPTIONS[period].label}
-                    </h3>
-                    <div class="w-8 h-8 rounded-full {data.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
-                        <svg class="w-4 h-4 {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[period].icon}/>
-                        </svg>
-                    </div>
-                </div>
-                <div class="space-y-2">
-                    <div class="flex items-baseline justify-between">
-                        <p class="text-lg {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
-                            {formatCurrency(data.pnl)}
-                        </p>
-                        {#if data.balanceChange !== 0}
-                            <p class="text-xl font-bold {data.balanceChange > 0 ? 'text-green-500' : 'text-red-500'}">
-                                {formatPercentage(data.balanceChange)}
-                            </p>
-                        {/if}
-                    </div>
-                    <div class="flex items-baseline justify-between">
-                        <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
-                            {data.trades} trade{data.trades !== 1 ? 's' : ''}
-                        </p>
-                    </div>
-                </div>
-            </div>
-        {/each}
-    {/if}
+    {/each}
 
     {#if isHovering}
         <button

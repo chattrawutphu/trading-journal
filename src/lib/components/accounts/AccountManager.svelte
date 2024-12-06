@@ -23,6 +23,7 @@
     let transactionAmount = 0;
     let transactionDate = new Date().toISOString().split('T')[0];
     let error = '';
+    let switchingAccount = false;
   
     async function handleCreateAccount() {
       if (newAccountName.trim()) {
@@ -135,6 +136,7 @@
     async function handleAccountSwitch(accountId) {
       try {
         error = '';
+        switchingAccount = true;
         
         // Set current account
         await accountStore.setCurrentAccount(accountId);
@@ -160,9 +162,17 @@
         dispatch('close');
       } catch (err) {
         error = err.message;
+      } finally {
+        switchingAccount = false;
       }
     }
 </script>
+
+{#if switchingAccount}
+    <div class="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center">
+        <Loading message="Switching account..." />
+    </div>
+{/if}
 
 <div class="space-y-2">
     <!-- Error Message -->

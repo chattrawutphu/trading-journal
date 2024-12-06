@@ -71,7 +71,6 @@
         currentAccountId = $accountStore.currentAccount?._id;
         if (currentAccountId) {
             loadTrades();
-            transactionStore.fetchTransactions(currentAccountId);
         }
     }
 
@@ -210,7 +209,7 @@
         {/if}
     </div>
 
-    {#if initialLoad}
+    {#if initialLoad || loading}
         <Loading message="Loading data..." overlay={true} />
     {:else if $accountStore.currentAccount}
         <!-- Stats -->
