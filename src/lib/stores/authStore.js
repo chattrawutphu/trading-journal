@@ -1,6 +1,7 @@
 // src/lib/stores/authStore.js
 import { writable } from 'svelte/store';
 import { api } from '$lib/utils/api';
+import { subscriptionStore } from './subscriptionStore';
 
 function createAuthStore() {
     const { subscribe, set, update } = writable({
@@ -9,6 +10,15 @@ function createAuthStore() {
         loading: true,  // เริ่มต้นด้วย loading true
         error: null
     });
+
+    async function initializeSubscription() {
+        try {
+            await subscriptionStore.initializeSubscription();
+            await subscriptionStore.loadInvoices();
+        } catch (error) {
+            console.error('Failed to initialize subscription:', error);
+        }
+    }
 
     return {
         subscribe,
@@ -26,6 +36,10 @@ function createAuthStore() {
                 };
 
                 set(authData);
+
+                // Initialize subscription after successful login
+                await initializeSubscription();
+
                 return response;
             } catch (error) {
                 update(state => ({ 
@@ -61,6 +75,10 @@ function createAuthStore() {
                 document.cookie = `auth=${response.token}; path=/; max-age=86400; samesite=strict`;
 
                 set(authData);
+
+                // Initialize subscription after successful registration
+                await initializeSubscription();
+
                 return response;
             } catch (error) {
                 update(state => ({ 
@@ -87,6 +105,8 @@ function createAuthStore() {
                     loading: false,
                     error: null
                 });
+                // Reset subscription store
+                subscriptionStore.reset();
             } catch (error) {
                 console.error('Failed to logout:', error);
             }
@@ -101,6 +121,10 @@ function createAuthStore() {
                         loading: false,
                         error: null
                     });
+
+                    // Initialize subscription after profile initialization
+                    await initializeSubscription();
+
                     return true;
                 }
                 set({ isAuthenticated: false, user: null, loading: false, error: null });

@@ -5,6 +5,7 @@
     import { auth } from '$lib/stores/authStore';
     import { theme } from '$lib/stores/themeStore';
     import { accountStore } from '$lib/stores/accountStore';
+    import { subscriptionStore } from '$lib/stores/subscriptionStore';
     import { goto } from '$app/navigation';
     import CollapsibleSidebar from '$lib/components/layout/CollapsibleSidebar.svelte';
     import Navbar from '$lib/components/layout/Navbar.svelte';
@@ -31,13 +32,34 @@
         }
     }
 
+    async function checkSubscriptionStatus() {
+        if ($auth.isAuthenticated) {
+            try {
+                const subscription = await subscriptionStore.initializeSubscription();
+                await subscriptionStore.loadInvoices();
+                
+                // If subscription is expired or cancelled, redirect to subscription page
+                if (subscription && (subscription.status === 'expired' || subscription.status === 'cancelled')) {
+                    if ($page.url.pathname !== '/subscription') {
+                        goto('/subscription');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to check subscription status:', error);
+            }
+        }
+    }
+
     onMount(async () => {
         try {
             initialized = true;
             const success = await auth.initialize();
             
             if (success) {
-                await initializeAccount();
+                await Promise.all([
+                    initializeAccount(),
+                    checkSubscriptionStatus()
+                ]);
             }
             
             // ถ้าไม่ได้อยู่ใน public routes และยังไม่ได้ login ให้ redirect ไปหน้า login
@@ -64,7 +86,10 @@
     // Watch for navigation to ensure proper layout and account loading
     $: {
         if ($page.url.pathname && $auth.isAuthenticated && !publicRoutes.includes($page.url.pathname)) {
-            initializeAccount();
+            Promise.all([
+                initializeAccount(),
+                checkSubscriptionStatus()
+            ]);
         }
     }
 
@@ -91,7 +116,11 @@
                 goto('/login');
             }
         } else {
-            auth.initialize();
+            auth.initialize().then(() => {
+                if ($auth.isAuthenticated) {
+                    checkSubscriptionStatus();
+                }
+            });
         }
     }
 }} />
