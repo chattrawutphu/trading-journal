@@ -1,3 +1,4 @@
+
 // server/models/User.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
@@ -28,24 +29,24 @@ const userSchema = new mongoose.Schema({
             enum: Object.values(SUBSCRIPTION_TYPES),
             default: SUBSCRIPTION_TYPES.BASIC
         },
+        startDate: Date,
+        endDate: Date,
         status: {
             type: String,
             enum: ['active', 'cancelled', 'expired'],
             default: 'active'
         },
-        amount: Number
-    },
-    invoices: [{
-        id: String,
-        date: Date,
-        amount: Number,
-        status: {
+        subscriptionId: String,  // Payment provider subscription ID
+        customerId: String,      // Payment provider customer ID
+        cancelAt: Date,          // When subscription will be cancelled
+        lastPayment: Date,
+        nextPayment: Date,
+        paymentMethod: {
             type: String,
-            enum: ['paid', 'pending', 'failed'],
-            default: 'paid'
-        },
-        pdfUrl: String
-    }],
+            brand: String,       // e.g. 'visa', 'mastercard'
+            last4: String        // Last 4 digits of card
+        }
+    },
     strategies: {
         type: [String],
         default: []

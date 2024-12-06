@@ -272,3 +272,215 @@ export const removeStrategy = async (req, res) => {
     throw error;
   }
 };
+
+export const cancelSubscription = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    user.subscription = {
+      type: SUBSCRIPTION_TYPES.BASIC,
+      status: 'cancelled'
+    };
+
+    const updatedUser = await user.save();
+
+    res.json({
+      success: true,
+      subscription: updatedUser.subscription
+    });
+  } catch (error) {
+    console.error('Cancel subscription error:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+export const createSubscription = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    const { type } = req.body;
+    if (!SUBSCRIPTION_TYPES[type]) {
+      res.status(400);
+      throw new Error('Invalid subscription type');
+    }
+
+    user.subscription = {
+      type,
+      status: 'active'
+    };
+
+    const updatedUser = await user.save();
+
+    res.json({
+      success: true,
+      subscription: updatedUser.subscription
+    });
+  } catch (error) {
+    console.error('Create subscription error:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+export const downloadInvoice = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    // Assuming invoices are stored in user document or fetched from another service
+    const invoiceId = req.params.invoiceId;
+    const invoice = user.invoices.find(inv => inv.id === invoiceId);
+
+    if (!invoice) {
+      res.status(404);
+      throw new Error('Invoice not found');
+    }
+
+    // Send the invoice file or data
+    res.json({
+      success: true,
+      invoice
+    });
+  } catch (error) {
+    console.error('Download invoice error:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+export const getInvoices = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    // Assuming invoices are stored in user document or fetched from another service
+    const invoices = user.invoices;
+
+    res.json({
+      success: true,
+      invoices
+    });
+  } catch (error) {
+    console.error('Get invoices error:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+export const getSubscriptionStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    res.json({
+      success: true,
+      subscription: user.subscription
+    });
+  } catch (error) {
+    console.error('Get subscription status error:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+export const processPayment = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    const { planType, paymentMethod } = req.body;
+    if (!SUBSCRIPTION_TYPES[planType]) {
+      res.status(400);
+      throw new Error('Invalid subscription type');
+    }
+
+    // Process payment logic here (e.g., call to payment gateway)
+
+    // Assuming payment is successful, update subscription
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    user.subscription = {
+      type: planType,
+      status: 'active',
+      startDate: new Date(),
+      endDate,
+      paymentMethod
+    };
+
+    const updatedUser = await user.save();
+
+    res.json({
+      success: true,
+      subscription: updatedUser.subscription
+    });
+  } catch (error) {
+    console.error('Process payment error:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+export const reactivateSubscription = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    if (user.subscription.status !== 'cancelled') {
+      res.status(400);
+      throw new Error('Subscription is not cancelled');
+    }
+
+    user.subscription.status = 'active';
+    user.subscription.cancelAt = null;
+
+    const updatedUser = await user.save();
+
+    res.json({
+      success: true,
+      subscription: updatedUser.subscription
+    });
+  } catch (error) {
+    console.error('Reactivate subscription error:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};

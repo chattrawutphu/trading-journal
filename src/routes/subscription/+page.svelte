@@ -2,6 +2,7 @@
     import { SUBSCRIPTION_FEATURES, SUBSCRIPTION_TYPES } from '$lib/config/subscription';
     import { subscriptionStore } from '$lib/stores/subscriptionStore';
     import Button from '$lib/components/common/Button.svelte';
+    import { onMount } from 'svelte';
 
     const plans = [
         {
@@ -50,19 +51,22 @@
         }
     ];
 
-    // Mock subscription data (replace with actual data from API)
-    const subscriptionData = {
-        startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-12-31'),
-        amount: 19.99,
-        billingCycle: 'monthly',
-        status: 'active',
-        invoices: [
-            { id: 'INV-001', date: '2024-01-01', amount: 19.99, status: 'paid' },
-            { id: 'INV-002', date: '2024-02-01', amount: 19.99, status: 'paid' },
-            { id: 'INV-003', date: '2024-03-01', amount: 19.99, status: 'paid' }
-        ]
-    };
+    let subscriptionData = {};
+    let isPaidUser = false;
+    let daysRemaining = 0;
+    let loading = false;
+
+    onMount(async () => {
+        try {
+            subscriptionData = await subscriptionStore.initializeSubscription();
+            isPaidUser = subscriptionData.type === SUBSCRIPTION_TYPES.PRO || subscriptionData.type === SUBSCRIPTION_TYPES.PRO_PLUS;
+            daysRemaining = getDaysRemaining(subscriptionData.endDate);
+            const invoices = await subscriptionStore.loadInvoices();
+            subscriptionData.invoices = invoices;
+        } catch (error) {
+            console.error('Failed to initialize subscription:', error);
+        }
+    });
 
     function getDaysRemaining(endDate) {
         const today = new Date();
@@ -81,40 +85,55 @@
 
     async function handleStripePayment(plan) {
         try {
-            // Mock payment process
+            loading = true;
             subscriptionStore.setLoading(true);
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            // Update subscription type
-            subscriptionStore.setSubscription(plan.type);
-            // Mock success
+            await subscriptionStore.processStripePayment(plan.type);
             alert('Payment successful! Your subscription has been upgraded.');
+            location.reload(); // Reload the page to reflect the updated subscription status
         } catch (error) {
             subscriptionStore.setError(error.message);
         } finally {
+            loading = false;
             subscriptionStore.setLoading(false);
         }
     }
 
     async function handleMetaMaskPayment(plan) {
         try {
-            // Mock payment process
+            loading = true;
             subscriptionStore.setLoading(true);
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            // Update subscription type
-            subscriptionStore.setSubscription(plan.type);
-            // Mock success
+            await subscriptionStore.processMetaMaskPayment(plan.type);
             alert('Payment successful! Your subscription has been upgraded.');
+            location.reload(); // Reload the page to reflect the updated subscription status
         } catch (error) {
             subscriptionStore.setError(error.message);
         } finally {
+            loading = false;
             subscriptionStore.setLoading(false);
         }
     }
 
-    $: isPaidUser = $subscriptionStore.type === SUBSCRIPTION_TYPES.PRO || $subscriptionStore.type === SUBSCRIPTION_TYPES.PRO_PLUS;
-    $: daysRemaining = getDaysRemaining(subscriptionData.endDate);
+    async function handleCancelSubscription() {
+        try {
+            loading = true;
+            await subscriptionStore.cancelSubscription();
+            alert('Subscription cancelled successfully.');
+            location.reload(); // Reload the page to reflect the updated subscription status
+        } catch (error) {
+            console.error('Failed to cancel subscription:', error);
+        } finally {
+            loading = false;
+        }
+    }
+
+    async function handleDownloadInvoice(invoiceId) {
+        try {
+            await subscriptionStore.downloadInvoice(invoiceId);
+            alert('Invoice downloaded successfully.');
+        } catch (error) {
+            console.error('Failed to download invoice:', error);
+        }
+    }
 </script>
 
 <div class="container mx-auto px-4 py-8">
@@ -126,7 +145,7 @@
                     <div>
                         <h1 class="text-3xl font-bold text-light-text dark:text-dark-text mb-2">Your Subscription</h1>
                         <p class="text-light-text-muted dark:text-dark-text-muted">
-                            {$subscriptionStore.type === SUBSCRIPTION_TYPES.PRO ? 'Pro Plan' : 'Pro+ Plan'}
+                            {subscriptionData.type === SUBSCRIPTION_TYPES.PRO ? 'Pro Plan' : 'Pro+ Plan'}
                         </p>
                     </div>
                     <div class="text-right">
@@ -156,7 +175,10 @@
                 </div>
 
                 <div class="flex justify-end">
-                    <button class="text-red-500 hover:text-red-600 font-medium">
+                    <button class="text-red-500 hover:text-red-600 font-medium" on:click={handleCancelSubscription} disabled={loading}>
+                        {#if loading}
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        {/if}
                         Cancel Subscription
                     </button>
                 </div>
@@ -188,7 +210,7 @@
                                         </span>
                                     </td>
                                     <td class="py-3 px-4 text-right">
-                                        <button class="text-theme-500 hover:text-theme-600 font-medium">
+                                        <button class="text-theme-500 hover:text-theme-600 font-medium" on:click={() => handleDownloadInvoice(invoice.id)}>
                                             Download
                                         </button>
                                     </td>
@@ -247,22 +269,21 @@
                             <button 
                                 class="w-full py-3 px-4 bg-theme-500 hover:bg-theme-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
                                 on:click={() => handleStripePayment(plan)}
-                                disabled={$subscriptionStore.loading}
+                                disabled={loading}
                             >
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                </svg>
+                                {#if loading}
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                {/if}
                                 Pay with Stripe
                             </button>
                             <button 
                                 class="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
                                 on:click={() => handleMetaMaskPayment(plan)}
-                                disabled={$subscriptionStore.loading}
+                                disabled={loading}
                             >
-                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                                    <path d="M12 6l-4 4h3v4h2v-4h3z"/>
-                                </svg>
+                                {#if loading}
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                {/if}
                                 Pay with MetaMask
                             </button>
                         {:else}

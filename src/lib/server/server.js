@@ -15,6 +15,7 @@ import userSettingsRoutes from './routes/userSettingsRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import MongoStore from 'connect-mongo';  // เพิ่มบรรทัดนี้
+import subscriptionRoutes from './routes/subscriptionRoutes.js';
 
 // Get the directory path for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -73,6 +74,7 @@ async function startServer() {
     app.use('/api/settings', userSettingsRoutes);
     app.use('/api/user', userRoutes);
     app.use('/api/transactions', transactionRoutes);
+    app.use('/api/subscription', subscriptionRoutes);
 
     // 404 handler
     app.use((req, res) => {
@@ -125,7 +127,7 @@ async function startServer() {
       });
     });
 
-    const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 5001; // Change the port number here
 
     const server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

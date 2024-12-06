@@ -232,4 +232,44 @@ export const api = {
       method: 'DELETE',
     });
   },
+
+  // Subscription endpoints
+  async getSubscriptionStatus() {
+    return fetchWithAuth('/subscription/status');
+  },
+
+  async createSubscription(planType) {
+    return fetchWithAuth('/subscription/create', {
+      method: 'POST',
+      body: JSON.stringify({ planType })
+    });
+  },
+
+  async cancelSubscription() {
+    return fetchWithAuth('/subscription/cancel', {
+      method: 'POST'
+    });
+  },
+
+  async reactivateSubscription() {
+    return fetchWithAuth('/subscription/reactivate', {
+      method: 'POST'
+    });
+  },
+
+  async getInvoices() {
+    return fetchWithAuth('/subscription/invoices');
+  },
+
+  async downloadInvoice(invoiceId) {
+    return fetchWithAuth(`/subscription/invoices/${invoiceId}/download`);
+  },
+
+  // Payment endpoints
+  async processPayment(planType, paymentMethod) {
+    return fetchWithAuth('/subscription/process-payment', {
+      method: 'POST',
+      body: JSON.stringify({ planType, paymentMethod })
+    });
+  },
 };
