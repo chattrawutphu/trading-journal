@@ -148,7 +148,7 @@
     </div>
 {/if}
 
-<style>
+<style lang="postcss">
     :global(body) {
         @apply bg-light-bg dark:bg-dark-bg transition-colors duration-200;
     }

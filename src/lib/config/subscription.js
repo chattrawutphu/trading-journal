@@ -1,32 +1,38 @@
 export const SUBSCRIPTION_TYPES = {
-  BASIC: 'basic',
-  PRO: 'pro',
-  PRO_PLUS: 'pro_plus'
+    BASIC: 'BASIC',
+    PRO: 'PRO',
+    PRO_PLUS: 'PRO_PLUS'
 };
 
 export const SUBSCRIPTION_FEATURES = {
-  [SUBSCRIPTION_TYPES.BASIC]: {
-    name: 'Basic',
-    badge: {
-      text: 'Basic',
-      bgColor: 'bg-gray-500',
-      textColor: 'text-white'
+    basic: {
+        badge: 'Basic',
+        // ...other feature configs
+    },
+    pro: {
+        badge: 'Pro',
+        // ...other feature configs
+    },
+    pro_plus: {
+        badge: 'Pro+',
+        // ...other feature configs
     }
-  },
-  [SUBSCRIPTION_TYPES.PRO]: {
-    name: 'Pro',
-    badge: {
-      text: 'PRO',
-      bgColor: 'bg-blue-500',
-      textColor: 'text-white'
-    }
-  },
-  [SUBSCRIPTION_TYPES.PRO_PLUS]: {
-    name: 'Pro+',
-    badge: {
-      text: 'PRO+',
-      bgColor: 'bg-purple-500',
-      textColor: 'text-white'
-    }
-  }
 };
+
+// Keep only Depay Public Key configuration
+export const DEPAY_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArGGMgVkctJi+CyUQGG2o
+vVOeR3+NBrJVPIrNrMmDT0vBqbrIRUPB2076G1xutRCk9DmRdhsfhgssxqPHmeQw
+VuNEH8Fs6tZxL5p5BGQdgIU6rwo3gKIoNrUQAvZ47pAiXSctMAH/YSk0ukE9Icf5
+2lWnwbDxsVMTNVPo0LfVzbWzHYcuR9T2fU0nRvl3hAoOnHAWIAl0AukD77W/5Xdc
+e6BuEiCNglwaLfPglzp23kDCJVv9ZVeUHtIDPr8W/aTXxQw7P6MxvFlUlFadibHo
+at9Gp+y0ZooXNEeMRVrH70SR4lbZnonVyWywhe/4xq1TRXbRq9YTIi9kr1UC2ZVR
+DQIDAQAB
+-----END PUBLIC KEY-----`;
+
+// Remove DepayFi configuration if not used elsewhere
+// export const DEPAYFI_CONFIG = {
+//     apiKey: process.env.DEPAYFI_API_KEY,
+//     secretKey: process.env.DEPAYFI_SECRET_KEY,
+//     paymentAddress: process.env.DEPAYFI_PAYMENT_ADDRESS
+// };

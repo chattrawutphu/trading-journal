@@ -74,7 +74,7 @@
     {/if}
 </button>
 
-<style>
+<style lang="postcss">
     /* Gradient animation on hover for primary variant */
     button {
         background-size: 200% 200%;

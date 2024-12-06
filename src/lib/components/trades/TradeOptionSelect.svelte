@@ -300,7 +300,7 @@
     {/if}
 </div>
 
-<style>
+<style lang="postcss">
     /* Ensure input background color matches theme */
     :global(.input) {
         background-color: var(--bg-color) !important;

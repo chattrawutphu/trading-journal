@@ -229,7 +229,7 @@
     {/if}
 </div>
 
-<style>
+<style lang="postcss">
     .animate-chart {
         stroke-dasharray: 1000;
         stroke-dashoffset: 1000;

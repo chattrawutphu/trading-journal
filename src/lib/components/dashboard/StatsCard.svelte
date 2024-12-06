@@ -51,7 +51,7 @@
     </div>
 </div>
 
-<style>
+<style lang="postcss">
     .card {
         background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
         backdrop-filter: blur(10px);

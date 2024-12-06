@@ -1,6 +1,48 @@
 import Subscription from '../models/Subscription.js';
 import User from '../models/User.js';
-import { SUBSCRIPTION_TYPES } from '../../config/subscription.js';
+import { SUBSCRIPTION_TYPES, DEPAY_PUBLIC_KEY } from '../../config/subscription.js';
+import Web3 from 'web3';
+import crypto from 'crypto';
+
+// Initialize Web3 with proper error handling and retry mechanism
+function getWeb3Provider() {
+    if (!process.env.WEB3_PROVIDER) {
+        throw new Error('WEB3_PROVIDER environment variable is not set');
+    }
+
+    try {
+        const provider = new Web3.providers.HttpProvider(process.env.WEB3_PROVIDER, {
+            timeout: 10000, // 10 seconds timeout
+            reconnect: {
+                auto: true,
+                delay: 5000, // 5 seconds delay between retries
+                maxAttempts: 5,
+                onTimeout: true
+            }
+        });
+        return new Web3(provider);
+    } catch (error) {
+        console.error('Failed to initialize Web3 provider:', error);
+        throw new Error('Failed to initialize payment processor');
+    }
+}
+
+// Create Web3 instance with lazy initialization
+let web3Instance = null;
+function getWeb3() {
+    if (!web3Instance) {
+        web3Instance = getWeb3Provider();
+    }
+    return web3Instance;
+}
+
+// Helper function to verify signature
+function verifySignature(payload, signature) {
+    const verifier = crypto.createVerify('sha256');
+    verifier.update(payload);
+    verifier.end();
+    return verifier.verify(DEPAY_PUBLIC_KEY, signature, 'base64');
+}
 
 export const getSubscriptionStatus = async (req, res) => {
     try {
@@ -15,6 +57,11 @@ export const createSubscription = async (req, res) => {
     try {
         const { planType, paymentMethod } = req.body;
         
+        // Ensure only Depay is used
+        if (paymentMethod !== 'depay') {
+            throw new Error('Unsupported payment method');
+        }
+
         // Calculate end date (1 month from now)
         const endDate = new Date();
         endDate.setMonth(endDate.getMonth() + 1);
@@ -40,7 +87,7 @@ export const createSubscription = async (req, res) => {
                 amount,
                 currency: 'USD'
             },
-            invoices: [invoice]  // Add invoice to subscription
+            invoices: [invoice]
         });
 
         // Update user's subscription reference and invoices
@@ -50,7 +97,7 @@ export const createSubscription = async (req, res) => {
                 'subscription.status': 'active',
                 'subscription.amount': amount
             },
-            $push: { invoices: invoice }  // Add invoice to user's invoices array
+            $push: { invoices: invoice }
         });
 
         res.status(201).json({
@@ -123,7 +170,7 @@ export const getInvoices = async (req, res) => {
             sub.invoices.forEach(inv => {
                 invoices.push({
                     ...inv.toObject(),
-                    subscriptionStatus   // Include standardized subscription status
+                    subscriptionStatus
                 });
             });
         });
@@ -152,7 +199,7 @@ export const downloadInvoice = async (req, res) => {
             throw new Error('No active subscription found');
         }
 
-        const invoiceId = req.params.id;
+        const invoiceId = req.params.invoiceId;
         const invoice = subscription.invoices.find(inv => inv.id === invoiceId);
 
         if (!invoice) {
@@ -173,64 +220,158 @@ export const downloadInvoice = async (req, res) => {
     }
 };
 
+// ปรับปรุงฟังก์ชันการประมวลผลการชำระเงินด้วย ETH
 export const processPayment = async (req, res) => {
     const { user, body } = req;
-    const { planType, paymentMethod } = body;
+    const { planType, txHash, paymentMethod } = body;
+
+    if (paymentMethod !== 'depay') {
+        return res.status(400).json({ error: 'Unsupported payment method' });
+    }
+
+    if (!txHash) {
+        return res.status(400).json({ error: 'Transaction hash is required' });
+    }
 
     try {
-        // Integrate with payment provider (e.g., Stripe, MetaMask)
-        // For demonstration, we'll mock the payment success
+        // Since Depay uses a fixed link, verify the payment via Depay's callback or webhook
+        // Implement verification logic as per Depay's API documentation
 
-        // Mock payment success
-        const paymentResult = {
-            success: true,
-            type: paymentMethod.type,
-            brand: paymentMethod.brand,
-            last4: paymentMethod.last4
-        };
+        const isValid = await verifyDepayPayment(txHash); // Implement this function accordingly
 
-        if (!paymentResult.success) {
-            return res.status(400).json({ error: 'Payment failed' });
+        if (!isValid) {
+            return res.status(400).json({ error: 'Invalid Depay transaction' });
         }
 
-        // Find existing subscription
+        const price = getPriceForPlan(planType);
+        // สร้างหรืออัปเดตการสมัครสมาชิก
         let subscription = await Subscription.findOne({ userId: user.id });
 
         if (subscription) {
-            // Update existing subscription
             subscription.type = planType;
             subscription.status = 'active';
-            subscription.paymentMethod = {
-                type: paymentResult.type,
-                brand: paymentResult.brand,
-                last4: paymentResult.last4
-            };
             subscription.startDate = new Date();
-            subscription.endDate = new Date();
-            subscription.endDate.setMonth(subscription.endDate.getMonth() + 1); // 1 month duration
-
+            subscription.endDate.setMonth(subscription.endDate.getMonth() + 1);
+            subscription.paymentMethod = {
+                type: 'depay',
+                brand: 'Depay',
+                last4: txHash.slice(-4).toUpperCase()
+            };
+            subscription.price.amount = price;
             await subscription.save();
         } else {
-            // Create new subscription
-            subscription = new Subscription({
+            subscription = await Subscription.create({
                 userId: user.id,
                 type: planType,
                 status: 'active',
-                paymentMethod: {
-                    type: paymentResult.type,
-                    brand: paymentResult.brand,
-                    last4: paymentResult.last4
-                },
                 startDate: new Date(),
-                endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)) // 1 month duration
+                endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+                paymentMethod: {
+                    type: 'depay',
+                    brand: 'Depay',
+                    last4: txHash.slice(-4).toUpperCase()
+                },
+                price: {
+                    amount: price,
+                    currency: 'USD'
+                },
+                invoices: [{
+                    id: `INV-${Date.now()}`,
+                    date: new Date(),
+                    amount: price,
+                    status: 'paid',
+                    pdfUrl: ''
+                }]
             });
-
-            await subscription.save();
         }
 
-        return res.status(200).json({ subscription });
+        res.status(200).json({ success: true, subscription });
     } catch (error) {
-        console.error('Error processing payment:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        console.error('Error processing Depay payment:', error);
+        res.status(500).json({ error: error.message || 'Internal Server Error' });
+    }
+};
+
+// Helper function
+function getPriceForPlan(planType) {
+    const prices = {
+        BASIC: 0,
+        PRO: 0.001,      // Reduced ETH price for testing
+        PRO_PLUS: 0.002  // Reduced ETH price for testing
+    };
+    return prices[planType] || 0;
+}
+
+// Load the public key from configuration
+const PUBLIC_KEY = DEPAY_PUBLIC_KEY;
+
+export const handleDepayWebhook = async (req, res) => {
+    try {
+        const signature = req.headers['x-depay-signature'];
+        const payload = JSON.stringify(req.body);
+
+        // Verify that the signature exists
+        if (!signature) {
+            console.error('Missing signature header.');
+            return res.status(400).json({ error: 'Missing signature.' });
+        }
+
+        // Verify the signature
+        const isValid = verifySignature(payload, signature);
+        if (!isValid) {
+            console.error('Invalid signature.');
+            return res.status(400).json({ error: 'Invalid signature.' });
+        }
+
+        const event = req.body;
+        if (event.type === 'payment.completed') {
+            const { userId, planType, txHash } = event.data;
+
+            // Update the user's subscription based on the payment details
+            let subscription = await Subscription.findOne({ userId });
+            if (subscription) {
+                subscription.type = planType;
+                subscription.status = 'active';
+                subscription.startDate = new Date();
+                subscription.endDate.setMonth(subscription.endDate.getMonth() + 1);
+                subscription.paymentMethod = {
+                    type: 'depay',
+                    brand: 'Depay',
+                    last4: txHash.slice(-4).toUpperCase()
+                };
+                subscription.price.amount = getPriceForPlan(planType);
+                await subscription.save();
+            } else {
+                subscription = await Subscription.create({
+                    userId,
+                    type: planType,
+                    status: 'active',
+                    startDate: new Date(),
+                    endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+                    paymentMethod: {
+                        type: 'depay',
+                        brand: 'Depay',
+                        last4: txHash.slice(-4).toUpperCase()
+                    },
+                    price: {
+                        amount: getPriceForPlan(planType),
+                        currency: 'USD'
+                    },
+                    invoices: [{
+                        id: `INV-${Date.now()}`,
+                        date: new Date(),
+                        amount: getPriceForPlan(planType),
+                        status: 'paid',
+                        pdfUrl: ''
+                    }]
+                });
+            }
+            res.status(200).json({ success: true });
+        } else {
+            res.status(400).json({ error: 'Unhandled event type' });
+        }
+    } catch (error) {
+        console.error('Error handling Depay webhook:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 };

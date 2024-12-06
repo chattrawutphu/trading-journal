@@ -2,7 +2,10 @@
     import { SUBSCRIPTION_FEATURES, SUBSCRIPTION_TYPES } from '$lib/config/subscription';
     import { subscriptionStore } from '$lib/stores/subscriptionStore';
     import Button from '$lib/components/common/Button.svelte';
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
+    import { writable } from 'svelte/store';
+    import Modal from '$lib/components/common/Modal.svelte';
+    // import { initializePayment, handlePayment } from '@depayfi/web3-payments'; // Remove this line
 
     const plans = [
         {
@@ -21,6 +24,7 @@
         {
             name: 'Pro',
             price: '$19.99',
+            ethPrice: '0.0001 ETH',
             period: 'month',
             features: [
                 'Everything in Basic, plus:',
@@ -31,20 +35,19 @@
                 'Priority support'
             ],
             badge: SUBSCRIPTION_FEATURES.pro.badge,
-            popular: true,
             type: SUBSCRIPTION_TYPES.PRO
         },
         {
             name: 'Pro+',
             price: '$49.99',
+            ethPrice: '0.0002 ETH',
             period: 'month',
             features: [
                 'Everything in Pro, plus:',
-                'API access',
-                'Custom indicators',
-                'Team collaboration',
-                'White-label options',
-                'Dedicated support'
+                'Premium analytics',
+                'Dedicated account manager',
+                'Custom integrations',
+                'Early access to new features'
             ],
             badge: SUBSCRIPTION_FEATURES.pro_plus.badge,
             type: SUBSCRIPTION_TYPES.PRO_PLUS
@@ -55,6 +58,11 @@
     let isPaidUser = false;
     let daysRemaining = 0;
     let loading = false;
+    let showModal = false;
+    let transactionHash = '';
+    let paymentError = '';
+    let paymentStatus = '';
+    let selectedPlan = null;
 
     onMount(async () => {
         try {
@@ -62,9 +70,21 @@
             isPaidUser = subscriptionData.type === SUBSCRIPTION_TYPES.PRO || subscriptionData.type === SUBSCRIPTION_TYPES.PRO_PLUS;
             daysRemaining = getDaysRemaining(subscriptionData.endDate);
             const invoices = await subscriptionStore.loadInvoices();
-            subscriptionData.invoices = invoices.invoices || []; // Fix: Access invoices from response
+            subscriptionData.invoices = invoices.invoices || [];
         } catch (error) {
             console.error('Failed to initialize subscription:', error);
+            paymentError = error.message;
+        }
+    });
+
+    onMount(() => {
+        // Optionally, parse query parameters for payment confirmation
+        const urlParams = new URLSearchParams(window.location.search);
+        const txHash = urlParams.get('txHash');
+
+        if (txHash) {
+            // Optionally, verify payment status by calling an API endpoint
+            subscriptionStore.verifyPayment(txHash);
         }
     });
 
@@ -75,13 +95,13 @@
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
 
-    // Update formatDate function to handle actual dates
     function formatDate(date, { relative = true } = {}) {
+        if (!date) return 'N/A';
+        
         const now = new Date();
         const past = new Date(date);
 
         if (!relative) {
-            // Return actual date in desired format
             return past.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -112,7 +132,6 @@
         }
     }
 
-    // Fix: Format currency consistently
     function formatCurrency(amount) {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -124,10 +143,12 @@
     async function handleStripePayment(plan) {
         try {
             loading = true;
+            paymentError = '';
+            paymentStatus = 'Processing Stripe payment...';
             subscriptionStore.setLoading(true);
+            
             const result = await subscriptionStore.processStripePayment(plan.type);
             if (result.success) {
-                // Fix: Update subscription data after successful payment
                 subscriptionData = await subscriptionStore.initializeSubscription();
                 const invoices = await subscriptionStore.loadInvoices();
                 subscriptionData.invoices = invoices.invoices || [];
@@ -136,45 +157,133 @@
                 alert('Payment successful! Your subscription has been upgraded.');
             }
         } catch (error) {
+            console.error('Stripe payment failed:', error);
+            paymentError = error.message;
             subscriptionStore.setError(error.message);
         } finally {
             loading = false;
+            paymentStatus = '';
             subscriptionStore.setLoading(false);
         }
     }
 
     async function handleMetaMaskPayment(plan) {
+        selectedPlan = plan;
+        showModal = true;
+        paymentError = '';
+        paymentStatus = 'Initializing MetaMask...';
+        
         try {
             loading = true;
             subscriptionStore.setLoading(true);
-            const result = await subscriptionStore.processMetaMaskPayment(plan.type);
+
+            if (!$subscriptionStore.walletConnected) {
+                await subscriptionStore.connectWallet();
+            }
+
+            const result = await subscriptionStore.processPayment(plan.type);
+            
+            if (result.txHash) {
+                transactionHash = result.txHash;
+                paymentStatus = 'Transaction submitted. Waiting for confirmation...';
+            }
+
             if (result.success) {
-                // Fix: Update subscription data after successful payment
                 subscriptionData = await subscriptionStore.initializeSubscription();
                 const invoices = await subscriptionStore.loadInvoices();
                 subscriptionData.invoices = invoices.invoices || [];
                 isPaidUser = subscriptionData.type === SUBSCRIPTION_TYPES.PRO || subscriptionData.type === SUBSCRIPTION_TYPES.PRO_PLUS;
                 daysRemaining = getDaysRemaining(subscriptionData.endDate);
                 alert('Payment successful! Your subscription has been upgraded.');
+                showModal = false;
             }
         } catch (error) {
+            console.error('MetaMask payment failed:', error);
+            paymentError = error.message;
             subscriptionStore.setError(error.message);
         } finally {
             loading = false;
+            if (paymentError) {
+                paymentStatus = 'Payment failed';
+                // Keep modal open for a few seconds to show error
+                setTimeout(() => {
+                    showModal = false;
+                    paymentStatus = '';
+                    transactionHash = '';
+                }, 3000);
+            } else {
+                paymentStatus = '';
+            }
             subscriptionStore.setLoading(false);
         }
     }
+
+    async function handleETHPayment(plan) {
+        selectedPlan = plan;
+        showModal = true;
+        paymentError = '';
+        paymentStatus = 'กำลังประมวลผลการชำระเงินด้วย ETH...';
+        
+        try {
+            loading = true;
+            subscriptionStore.setLoading(true);
+
+            if (!$subscriptionStore.walletConnected) {
+                await subscriptionStore.connectWallet();
+            }
+
+            const result = await subscriptionStore.processPayment(plan.type);
+            
+            if (result.txHash) {
+                transactionHash = result.txHash;
+                paymentStatus = 'ธุรกรรมถูกส่งแล้ว รอการยืนยัน...';
+            }
+
+            if (result.success) {
+                subscriptionData = await subscriptionStore.initializeSubscription();
+                const invoices = await subscriptionStore.loadInvoices();
+                subscriptionData.invoices = invoices.invoices || [];
+                isPaidUser = subscriptionData.type === SUBSCRIPTION_TYPES.PRO || subscriptionData.type === SUBSCRIPTION_TYPES.PRO_PLUS;
+                daysRemaining = getDaysRemaining(subscriptionData.endDate);
+                alert('การชำระเงินสำเร็จ! การสมัครสมาชิกของคุณได้รับการอัปเกรด.');
+                showModal = false;
+            }
+        } catch (error) {
+            console.error('การชำระเงินด้วย ETH ล้มเหลว:', error);
+            paymentError = error.message;
+            subscriptionStore.setError(error.message);
+        } finally {
+            loading = false;
+            if (paymentError) {
+                paymentStatus = 'การชำระเงินล้มเหลว';
+                // ปิดโมดัลหลังจากแสดงข้อผิดพลาด
+                setTimeout(() => {
+                    showModal = false;
+                    paymentStatus = '';
+                    transactionHash = '';
+                }, 3000);
+            } else {
+                paymentStatus = '';
+            }
+            subscriptionStore.setLoading(false);
+        }
+    }
+
+    const handleDepayPayment = (planType) => {
+        // Use the store's initiateDepayPayment to redirect
+        subscriptionStore.initiateDepayPayment(planType);
+    };
 
     async function handleCancelSubscription() {
         try {
             loading = true;
             await subscriptionStore.cancelSubscription();
-            // Fix: Update subscription data after cancellation
             subscriptionData = await subscriptionStore.initializeSubscription();
             isPaidUser = false;
             alert('Subscription cancelled successfully.');
         } catch (error) {
             console.error('Failed to cancel subscription:', error);
+            alert('Failed to cancel subscription: ' + error.message);
         } finally {
             loading = false;
         }
@@ -186,7 +295,12 @@
             alert('Invoice downloaded successfully.');
         } catch (error) {
             console.error('Failed to download invoice:', error);
+            alert('Failed to download invoice: ' + error.message);
         }
+    }
+
+    function getBlockExplorerUrl(hash) {
+        return `https://basescan.org/tx/${hash}`;
     }
 </script>
 
@@ -311,6 +425,11 @@
                                 <span class="text-light-text-muted dark:text-dark-text-muted">/{plan.period}</span>
                             {/if}
                         </div>
+                        {#if plan.ethPrice}
+                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted mt-1">
+                                or {plan.ethPrice}
+                            </div>
+                        {/if}
                     </div>
 
                     <!-- Features -->
@@ -328,26 +447,13 @@
                     <!-- Action Buttons -->
                     <div class="space-y-3">
                         {#if !plan.current}
-                            <button 
-                                class="w-full py-3 px-4 bg-theme-500 hover:bg-theme-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
-                                on:click={() => handleStripePayment(plan)}
-                                disabled={loading}
-                            >
-                                {#if loading}
-                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                {/if}
-                                Pay with Stripe
-                            </button>
-                            <button 
-                                class="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
-                                on:click={() => handleMetaMaskPayment(plan)}
-                                disabled={loading}
-                            >
-                                {#if loading}
-                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                {/if}
-                                Pay with MetaMask
-                            </button>
+                            <!-- Remove or comment out other payment method buttons -->
+                            <!--
+                            <Button on:click="{subscriptionStore.processStripePayment(planType)}">Pay with Stripe</Button>
+                            <Button on:click="{subscriptionStore.processETHPayment(planType, txHash)}">Pay with Ethereum</Button>
+                            -->
+                            <!-- Keep only the Depay payment button -->
+                            <Button on:click={() => subscriptionStore.initiateDepayPayment(plan.type)}>Pay with Depay</Button>
                         {:else}
                             <button disabled class="w-full py-3 px-4 bg-green-500 text-white rounded-lg font-medium cursor-default flex items-center justify-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -371,7 +477,7 @@
                 </div>
                 <div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-6">
                     <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-2">What payment methods do you accept?</h3>
-                    <p class="text-light-text-muted dark:text-dark-text-muted">We accept credit cards through Stripe and cryptocurrency payments through MetaMask.</p>
+                    <p class="text-light-text-muted dark:text-dark-text-muted">We accept credit cards through Stripe and cryptocurrency (ETH) payments through MetaMask on the Base network.</p>
                 </div>
                 <div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-6">
                     <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-2">Is there a refund policy?</h3>
@@ -382,7 +488,69 @@
     {/if}
 </div>
 
-<style>
+<!-- Payment Modal -->
+{#if showModal}
+    <Modal>
+        <div class="p-6">
+            <div class="text-center mb-6">
+                <h3 class="text-xl font-semibold text-light-text dark:text-dark-text mb-2">
+                    {selectedPlan?.name} Subscription
+                </h3>
+                <p class="text-light-text-muted dark:text-dark-text-muted">
+                    {paymentStatus || 'Processing payment...'}
+                </p>
+            </div>
+
+            {#if $subscriptionStore.walletConnected}
+                <div class="mb-4 p-4 bg-light-hover dark:bg-dark-hover rounded-lg">
+                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-2">
+                        Connected Wallet: {$subscriptionStore.walletAddress?.slice(0, 6)}...{$subscriptionStore.walletAddress?.slice(-4)}
+                    </p>
+                    {#if $subscriptionStore.walletBalance !== null}
+                        <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                            Balance: {$subscriptionStore.walletBalance.toFixed(6)} ETH
+                        </p>
+                    {/if}
+                </div>
+            {/if}
+
+            {#if paymentError}
+                <div class="mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded-lg">
+                    <p class="font-medium">Error</p>
+                    <p class="text-sm">{paymentError}</p>
+                </div>
+            {/if}
+
+            {#if transactionHash}
+                <div class="mb-4 p-4 bg-light-hover dark:bg-dark-hover rounded-lg">
+                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-2">Transaction Hash:</p>
+                    <a 
+                        href={getBlockExplorerUrl(transactionHash)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-theme-500 hover:text-theme-600 break-all"
+                    >
+                        {transactionHash}
+                    </a>
+                </div>
+            {/if}
+
+            <div class="flex justify-end">
+                <button
+                    class="px-4 py-2 text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text"
+                    on:click={() => {
+                        showModal = false;
+                        selectedPlan = null;
+                    }}
+                >
+                    Close
+                </button>
+            </div>
+        </div>
+    </Modal>
+{/if}
+
+<style lang="postcss">
     .bg-gradient-purple {
         @apply bg-gradient-to-r from-purple-500 to-pink-500;
     }

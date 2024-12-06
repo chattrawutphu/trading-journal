@@ -235,33 +235,58 @@ export const api = {
 
   // Subscription endpoints
   async getSubscriptionStatus() {
-    return fetchWithAuth('/subscription/status');
+    try {
+      return await fetchWithAuth('/subscription/status');
+    } catch (error) {
+      console.error('Failed to get subscription status:', error);
+      throw new Error('Failed to get subscription status. Please try again later.');
+    }
   },
 
-  async processPayment(planType, paymentMethod) {
+  async processDepayPayment(planType, txHash) {
     return fetchWithAuth('/subscription/process-payment', {
       method: 'POST',
-      body: JSON.stringify({ planType, paymentMethod })
+      body: JSON.stringify({ planType, txHash, paymentMethod: 'depay' }),
     });
   },
 
   async cancelSubscription() {
-    return fetchWithAuth('/subscription/cancel', {
-      method: 'POST'
-    });
+    try {
+      return await fetchWithAuth('/subscription/cancel', {
+        method: 'POST'
+      });
+    } catch (error) {
+      console.error('Failed to cancel subscription:', error);
+      throw new Error('Failed to cancel subscription. Please try again later.');
+    }
   },
 
   async reactivateSubscription() {
-    return fetchWithAuth('/subscription/reactivate', {
-      method: 'POST'
-    });
+    try {
+      return await fetchWithAuth('/subscription/reactivate', {
+        method: 'POST'
+      });
+    } catch (error) {
+      console.error('Failed to reactivate subscription:', error);
+      throw new Error('Failed to reactivate subscription. Please try again later.');
+    }
   },
 
   async getInvoices() {
-    return fetchWithAuth('/subscription/invoices');
+    try {
+      return await fetchWithAuth('/subscription/invoices');
+    } catch (error) {
+      console.error('Failed to get invoices:', error);
+      throw new Error('Failed to get invoices. Please try again later.');
+    }
   },
 
   async downloadInvoice(invoiceId) {
-    return fetchWithAuth(`/subscription/invoices/${invoiceId}/download`);
+    try {
+      return await fetchWithAuth(`/subscription/invoices/${invoiceId}/download`);
+    } catch (error) {
+      console.error('Failed to download invoice:', error);
+      throw new Error('Failed to download invoice. Please try again later.');
+    }
   }
 };

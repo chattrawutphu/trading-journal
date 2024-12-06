@@ -25,27 +25,45 @@
             {/if}
         </label>
     {/if}
-    <input
-        class="input {error ? 'error' : ''}"
-        {type}
-        bind:value
-        {placeholder}
-        {required}
-        {disabled}
-        {min}
-        {max}
-        {step}
-        on:input
-        on:change
-        on:focus
-        on:blur
-    />
+    <div class="relative">
+        {#if type === 'text'}
+            <input
+                class="input {error ? 'error' : ''}"
+                type="text"
+                bind:value
+                {placeholder}
+                {...$$restProps}
+                on:input
+                on:change
+            />
+        {:else if type === 'password'}
+            <input
+                class="input {error ? 'error' : ''}"
+                type="password"
+                bind:value
+                {placeholder}
+                {...$$restProps}
+                on:input
+                on:change
+            />
+        {:else if type === 'number'}
+            <input
+                class="input {error ? 'error' : ''}"
+                type="number"
+                bind:value
+                {placeholder}
+                {...$$restProps}
+                on:input
+                on:change
+            />
+        {/if}
+    </div>
     {#if error}
         <p class="text-sm text-red-500">{error}</p>
     {/if}
 </div>
 
-<style>
+<style lang="postcss">
     .input {
         @apply w-full px-3 py-2 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-lg shadow-sm text-light-text dark:text-dark-text placeholder-light-text-muted dark:placeholder-dark-text-muted focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors duration-200;
     }

@@ -6,18 +6,32 @@ import {
   cancelSubscription,
   reactivateSubscription,
   getInvoices,
-  downloadInvoice
+  downloadInvoice,
+  handleDepayWebhook,
+  createSubscription  // Added createSubscription
 } from '../controllers/subscriptionController.js';
 
 const router = express.Router();
 
+// Webhook route should not require authentication
+router.post('/webhooks/depay', handleDepayWebhook);
+
+// Apply protection middleware to all routes below
 router.use(protect);
 
+// Ensure only Depay webhook route is active
+// Remove or comment out other webhook routes if any
+// router.post('/webhooks/stripe', handleStripeWebhook);
+// router.post('/webhooks/ethereum', handleEthereumWebhook);
+
+// Subscription routes
 router.get('/status', getSubscriptionStatus);
-router.post('/process-payment', processPayment);
+router.post('/create', createSubscription);
+router.post('/cancel', cancelSubscription);
 router.post('/cancel', cancelSubscription);
 router.post('/reactivate', reactivateSubscription);
 router.get('/invoices', getInvoices);
-router.get('/invoices/:id/download', downloadInvoice);
+router.get('/invoices/:invoiceId/download', downloadInvoice);
+router.post('/process-payment', processPayment);
 
 export default router;

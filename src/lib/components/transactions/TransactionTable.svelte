@@ -180,7 +180,7 @@
   {/if}
 </div>
 
-<style>
+<style lang="postcss">
   .icon-button {
     @apply p-1 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200;
   }
