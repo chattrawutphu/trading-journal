@@ -8,12 +8,14 @@ function createAuthStore() {
         isAuthenticated: false,
         user: null,
         loading: true,  // เริ่มต้นด้วย loading true
-        error: null
+        error: null,
+        subscriptionType: null // Add subscriptionType to the state
     });
 
     async function initializeSubscription() {
         try {
-            await subscriptionStore.initializeSubscription();
+            const data = await subscriptionStore.initializeSubscription();
+            update(state => ({ ...state, subscriptionType: data.type }));
             await subscriptionStore.loadInvoices();
         } catch (error) {
             console.error('Failed to initialize subscription:', error);
@@ -32,7 +34,8 @@ function createAuthStore() {
                     isAuthenticated: true,
                     user: response.user,
                     loading: false,
-                    error: null
+                    error: null,
+                    subscriptionType: subscriptionStore.type // Set subscriptionType
                 };
 
                 set(authData);
@@ -117,7 +120,8 @@ function createAuthStore() {
                         isAuthenticated: true,
                         user: response,
                         loading: false,
-                        error: null
+                        error: null,
+                        subscriptionType: subscriptionStore.type // Set subscriptionType
                     });
 
                     // Initialize subscription after profile initialization

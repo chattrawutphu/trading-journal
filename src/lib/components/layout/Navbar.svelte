@@ -2,7 +2,7 @@
     import { auth } from '$lib/stores/authStore';
     import { accountStore } from '$lib/stores/accountStore';
     import { subscriptionStore } from '$lib/stores/subscriptionStore';
-    import { SUBSCRIPTION_FEATURES } from '$lib/config/subscription';
+    import { SUBSCRIPTION_FEATURES, SUBSCRIPTION_TYPES } from '$lib/config/subscription';
     import { goto } from '$app/navigation';
     import AccountManager from '../accounts/AccountManager.svelte';
     import ThemeToggle from '../common/ThemeToggle.svelte';
@@ -36,6 +36,24 @@
     }
 
     $: subscriptionBadge = SUBSCRIPTION_FEATURES[$subscriptionStore?.type];
+
+    // Add badge styles mapping
+    const subscriptionBadgeStyles = {
+        [SUBSCRIPTION_TYPES.BASIC]: 'bg-gray-200 text-gray-800',
+        [SUBSCRIPTION_TYPES.PRO]: 'bg-blue-200 text-blue-800',
+        [SUBSCRIPTION_TYPES.PRO_PLUS]: 'bg-purple-200 text-purple-800'
+    };
+
+    // Helper function to get badge style
+    function getSubscriptionBadgeStyle(type) {
+        return subscriptionBadgeStyles[type] || subscriptionBadgeStyles[SUBSCRIPTION_TYPES.BASIC];
+    }
+
+    // Add function to format subscription type
+    function formatSubscriptionType(type) {
+        if (!type) return 'basic';
+        return type.toLowerCase();
+    }
 </script>
 
 <svelte:window on:click={handleClickOutside}/>
@@ -83,11 +101,9 @@
                             on:click|stopPropagation={() => showUserMenu = !showUserMenu}
                         >
                             <span>{$auth?.user?.name || 'User'}</span>
-                            {#if subscriptionBadge}
-                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full {subscriptionBadge.badge.bgColor} {subscriptionBadge.badge.textColor}">
-                                    {subscriptionBadge.badge.text}
-                                </span>
-                            {/if}
+                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full {getSubscriptionBadgeStyle($subscriptionStore?.type)}">
+                                {formatSubscriptionType($subscriptionStore?.type)}
+                            </span>
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
