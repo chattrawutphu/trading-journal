@@ -111,14 +111,21 @@ export const reactivateSubscription = async (req, res) => {
 
 export const getInvoices = async (req, res) => {
     try {
-        const subscription = await Subscription.findActiveByUserId(req.user._id);
-        if (!subscription) {
-            return res.json({ invoices: [] });
-        }
+        // Fetch all subscriptions for the user
+        const subscriptions = await Subscription.find({ userId: req.user._id });
+
+        // Collect all invoices
+        let invoices = [];
+        subscriptions.forEach(sub => {
+            invoices = invoices.concat(sub.invoices);
+        });
+
+        // Sort the invoices by date descending
+        invoices.sort((a, b) => b.date - a.date);
 
         res.json({
             success: true,
-            invoices: subscription.invoices || []
+            invoices
         });
     } catch (error) {
         console.error('Get invoices error:', error);
