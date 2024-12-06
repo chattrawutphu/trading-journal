@@ -174,81 +174,63 @@ export const downloadInvoice = async (req, res) => {
 };
 
 export const processPayment = async (req, res) => {
+    const { user, body } = req;
+    const { planType, paymentMethod } = body;
+
     try {
-        const { planType, paymentMethod } = req.body;
-        if (!Object.values(SUBSCRIPTION_TYPES).includes(planType)) {
-            res.status(400);
-            throw new Error('Invalid subscription type');
-        }
+        // Integrate with payment provider (e.g., Stripe, MetaMask)
+        // For demonstration, we'll mock the payment success
 
-        const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + 1);
-
-        const amount = planType === SUBSCRIPTION_TYPES.PRO ? 19.99 : 49.99;
-
-        // Create invoice with more details
-        const invoice = {
-            id: `INV-${Date.now()}`,
-            date: new Date(),
-            amount,
-            status: 'paid',
-            pdfUrl: `invoice-${Date.now()}.pdf`  // Add dummy PDF URL
+        // Mock payment success
+        const paymentResult = {
+            success: true,
+            type: paymentMethod.type,
+            brand: paymentMethod.brand,
+            last4: paymentMethod.last4
         };
 
-        // Create or update subscription
-        let subscription = await Subscription.findOne({ userId: req.user._id, status: 'active' });
-        
-        if (subscription) {
-            // Update existing subscription
-            subscription = await Subscription.findByIdAndUpdate(
-                subscription._id,
-                {
-                    type: planType,
-                    endDate,
-                    price: {
-                        amount,
-                        currency: 'USD'
-                    },
-                    $push: { invoices: invoice }
-                },
-                { new: true }
-            );
-        } else {
-            // Create new subscription
-            subscription = await Subscription.create({
-                userId: req.user._id,
-                type: planType,
-                startDate: new Date(),
-                endDate,
-                paymentMethod,
-                price: {
-                    amount,
-                    currency: 'USD'
-                },
-                invoices: [invoice]
-            });
+        if (!paymentResult.success) {
+            return res.status(400).json({ error: 'Payment failed' });
         }
 
-        // Update user's subscription and invoices
-        await User.findByIdAndUpdate(req.user._id, {
-            $set: {
-                'subscription.type': planType,
-                'subscription.status': 'active',
-                'subscription.amount': amount
-            },
-            $push: { invoices: invoice }
-        });
+        // Find existing subscription
+        let subscription = await Subscription.findOne({ userId: user.id });
 
-        res.json({
-            success: true,
-            subscription,
-            invoice
-        });
+        if (subscription) {
+            // Update existing subscription
+            subscription.type = planType;
+            subscription.status = 'active';
+            subscription.paymentMethod = {
+                type: paymentResult.type,
+                brand: paymentResult.brand,
+                last4: paymentResult.last4
+            };
+            subscription.startDate = new Date();
+            subscription.endDate = new Date();
+            subscription.endDate.setMonth(subscription.endDate.getMonth() + 1); // 1 month duration
+
+            await subscription.save();
+        } else {
+            // Create new subscription
+            subscription = new Subscription({
+                userId: user.id,
+                type: planType,
+                status: 'active',
+                paymentMethod: {
+                    type: paymentResult.type,
+                    brand: paymentResult.brand,
+                    last4: paymentResult.last4
+                },
+                startDate: new Date(),
+                endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)) // 1 month duration
+            });
+
+            await subscription.save();
+        }
+
+        return res.status(200).json({ subscription });
     } catch (error) {
-        console.error('Process payment error:', error);
-        res.status(400).json({
-            success: false,
-            error: error.message
-        });
+        console.error('Error processing payment:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
     }
 };

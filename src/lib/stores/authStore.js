@@ -60,7 +60,6 @@ function createAuthStore() {
                 const authData = {
                     isAuthenticated: true,
                     user: response.user,
-                    token: response.token,
                     loading: false,
                     error: null
                 };
@@ -86,8 +85,7 @@ function createAuthStore() {
                     loading: false, 
                     error: error.message,
                     isAuthenticated: false,
-                    user: null,
-                    token: null
+                    user: null
                 }));
                 throw error;
             }

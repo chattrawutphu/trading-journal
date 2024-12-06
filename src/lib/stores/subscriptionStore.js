@@ -62,11 +62,8 @@ function createSubscriptionStore() {
         
         const subscriptionData = await api.processPayment(planType, paymentResult);
 
-        update(state => ({
-          ...state,
-          ...subscriptionData.subscription,
-          loading: false
-        }));
+        // Re-initialize subscription to get updated status
+        await this.initializeSubscription();
 
         return subscriptionData;
       } catch (error) {
@@ -92,11 +89,8 @@ function createSubscriptionStore() {
         
         const subscriptionData = await api.processPayment(planType, paymentResult);
 
-        update(state => ({
-          ...state,
-          ...subscriptionData.subscription,
-          loading: false
-        }));
+        // Re-initialize subscription to get updated status
+        await this.initializeSubscription();
 
         return subscriptionData;
       } catch (error) {
@@ -110,6 +104,8 @@ function createSubscriptionStore() {
       try {
         update(state => ({ ...state, loading: true, error: null }));
         const data = await api.cancelSubscription();
+        // Re-initialize to reflect cancellation
+        await this.initializeSubscription();
         update(state => ({
           ...state,
           status: 'cancelled',

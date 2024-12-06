@@ -7,6 +7,9 @@
     import TradeOptionSelect from "./TradeOptionSelect.svelte";
     import { validateTradeForm } from "$lib/utils/validators";
     import { leverageStore } from "$lib/stores/leverageStore";
+    import { subscriptionStore } from '$lib/stores/subscriptionStore';
+    import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
+    import { goto } from '$app/navigation';
 
     const dispatch = createEventDispatcher();
 
@@ -215,6 +218,12 @@
         value: i + 1,
         label: String(i + 1),
     }));
+
+    $: subscriptionType = $subscriptionStore.type || SUBSCRIPTION_TYPES.BASIC;
+
+    function upgradePlan() {
+        goto('/subscription');
+    }
 </script>
 
 {#if show}
@@ -247,24 +256,17 @@
                         </div>
                     {/if}
                 </div>
-                <button
-                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
-                    on:click={close}
-                >
-                    <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="small"
+                        on:click={upgradePlan}
+                        class="text-sm"
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
-                    </svg>
-                </button>
+                        Upgrade Plan
+                    </Button>
+                {/if}
             </div>
 
             <!-- Scrollable Content -->
@@ -474,9 +476,20 @@
                         class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
                     >
                         <h3
-                            class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"
+                            class="text-lg font-semibold text-light-text dark:text-dark-text mb-4 flex justify-between items-center"
                         >
                             Analysis
+                            {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    size="small"
+                                    on:click={upgradePlan}
+                                    class="text-sm"
+                                >
+                                    Upgrade
+                                </Button>
+                            {/if}
                         </h3>
 
                         <!-- Reasons -->
@@ -486,6 +499,7 @@
                                 type="text"
                                 bind:value={form.entryReason}
                                 placeholder="Why did you enter this trade?"
+                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             />
                             {#if form.status === "CLOSED"}
                                 <Input
@@ -493,6 +507,7 @@
                                     type="text"
                                     bind:value={form.exitReason}
                                     placeholder="Why did you exit this trade?"
+                                    disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
                             {/if}
                         </div>
@@ -503,11 +518,13 @@
                                 label="Confidence Level"
                                 options={levelOptions}
                                 bind:value={form.confidenceLevel}
+                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             />
                             <Select
                                 label="Greed Level"
                                 options={levelOptions}
                                 bind:value={form.greedLevel}
+                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             />
                         </div>
 
@@ -520,6 +537,7 @@
                                     type="checkbox"
                                     bind:checked={form.hasStopLoss}
                                     class="checkbox"
+                                    disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
                                 <span
                                     class="text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text transition-colors duration-200"
@@ -534,6 +552,7 @@
                                     type="checkbox"
                                     bind:checked={form.hasTakeProfit}
                                     class="checkbox"
+                                    disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
                                 <span
                                     class="text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text transition-colors duration-200"
@@ -549,9 +568,20 @@
                         class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
                     >
                         <h3
-                            class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"
+                            class="text-lg font-semibold text-light-text dark:text-dark-text mb-4 flex justify-between items-center"
                         >
                             Additional Information
+                            {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    size="small"
+                                    on:click={upgradePlan}
+                                    class="text-sm"
+                                >
+                                    Upgrade
+                                </Button>
+                            {/if}
                         </h3>
 
                         <div class="space-y-3">
@@ -560,6 +590,7 @@
                                 options={emotionOptions}
                                 bind:value={form.emotions}
                                 placeholder="How did you feel during this trade?"
+                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             />
                             <div>
                                 <label
@@ -582,6 +613,7 @@
                                 placeholder="Enter a URL (e.g., TradingView chart, image, etc.)"
                                 error={touched.url && errors.url}
                                 on:input={handleInput("url")}
+                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             />
                         </div>
                     </div>
