@@ -63,35 +63,50 @@ function createSubscriptionStore() {
       }
     },
 
-    // Remove or comment out wallet-related methods since only Depay is used
-    /*
-    // Connect wallet and setup network
-    connectWallet: async () => {
-      // ...existing wallet connection code...
-    },
-
-    // Process ETH or other wallet-based payments
-    processPayment: async (planType) => {
-      // ...existing payment processing code...
-    },
-    
-    processStripePayment: async (planType) => {
-      // ...existing Stripe payment processing code...
-    },
-    */
-
     // Keep only the Depay payment processing method
-    initiateDepayPayment: (planType) => {
-      // Redirect the user to the fixed Depay payment link
-      window.location.href = DEPAY_LINK;
+    initiateDepayPayment: async (planType) => {
+      try {
+        update(state => ({ ...state, loading: true, paymentStatus: 'Redirecting to Depay...' }));
+        
+        const response = await api.createDepayTransaction(planType);
+        const { txHash } = response;
+
+        if (!txHash) {
+          throw new Error('Failed to initiate Depay transaction.');
+        }
+
+        // Redirect the user to Depay's payment page with necessary query parameters
+        const redirectUrl = `${DEPAY_LINK}`;
+        window.location.href = redirectUrl;
+      } catch (error) {
+        console.error('Depay payment initiation failed:', error);
+        update(state => ({ ...state, loading: false, error: error.message }));
+      }
     },
 
-    // ยกเลิกการสมัครสมาชิก
+    // Confirm payment (if needed separately)
+    confirmPayment: async (planType, txHash, signature) => {
+      try {
+        update(state => ({ ...state, loading: true, paymentStatus: 'Confirming payment...' }));
+        const response = await api.confirmPayment(planType, txHash, signature);
+        
+        if (response.success) {
+          await store.initializeSubscription();
+          update(state => ({ ...state, loading: false, paymentStatus: 'Subscription activated.' }));
+          alert('Payment confirmed and subscription activated!');
+        }
+      } catch (error) {
+        console.error('Payment confirmation failed:', error);
+        update(state => ({ ...state, loading: false, error: error.message }));
+      }
+    },
+
+    // Existing cancel and reactivate methods
     cancelSubscription: async () => {
       try {
         update(state => ({ ...state, loading: true, error: null }));
         const data = await api.cancelSubscription();
-        // รีเฟรชข้อมูลการสมัครสมาชิกเพื่อสะท้อนการยกเลิก
+        // Refresh subscription data
         await store.initializeSubscription();
         update(state => ({
           ...state,
@@ -106,7 +121,7 @@ function createSubscriptionStore() {
       }
     },
 
-    reactivateSubscription: async () => { // Add this method if needed
+    reactivateSubscription: async () => {
       try {
         update(state => ({ ...state, loading: true, error: null }));
         const data = await api.reactivateSubscription();

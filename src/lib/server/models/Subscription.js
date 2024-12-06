@@ -34,11 +34,11 @@ const subscriptionSchema = new mongoose.Schema({
     paymentMethod: {
         type: {
             type: String,
-            enum: ['depay'], // Removed other payment methods
+            enum: ['depay'], // Only Depay is used
             required: true
         },
-        brand: String,         // e.g. 'Depay'
-        last4: String          // Last 4 digits/characters or transaction identifier
+        brand: String,         // e.g., 'Depay'
+        last4: String          // Last 4 characters of the transaction hash or identifier
     },
     price: {
         amount: Number,

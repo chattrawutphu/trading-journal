@@ -288,5 +288,21 @@ export const api = {
       console.error('Failed to download invoice:', error);
       throw new Error('Failed to download invoice. Please try again later.');
     }
+  },
+
+  // Payment Confirmation endpoint
+  async confirmPayment(planType, txHash, signature) {
+    return fetchWithAuth('/subscription/confirm-payment', {
+      method: 'POST',
+      body: JSON.stringify({ planType, txHash, signature }),
+    });
+  },
+
+  // Create Depay Transaction
+  async createDepayTransaction(planType) {
+    return fetchWithAuth('/subscription/create-depay-transaction', {
+      method: 'POST',
+      body: JSON.stringify({ planType }),
+    });
   }
 };

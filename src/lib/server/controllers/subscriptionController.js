@@ -4,6 +4,10 @@ import { SUBSCRIPTION_TYPES, DEPAY_PUBLIC_KEY } from '../../config/subscription.
 import Web3 from 'web3';
 import crypto from 'crypto';
 
+// Fix the UUID import to accommodate CommonJS modules
+import pkg from 'uuid';
+const { v4: uuidv4 } = pkg;
+
 // Initialize Web3 with proper error handling and retry mechanism
 function getWeb3Provider() {
     if (!process.env.WEB3_PROVIDER) {
@@ -292,6 +296,80 @@ export const processPayment = async (req, res) => {
     }
 };
 
+export const confirmPayment = async (req, res) => {
+    const { planType, txHash, signature } = req.body;
+
+    // Verify that all required fields are present
+    if (!planType || !txHash || !signature) {
+        return res.status(400).json({ error: 'Missing required fields.' });
+    }
+
+    // Verify the signature
+    const payload = JSON.stringify({ planType, txHash });
+    const isValid = verifySignature(payload, signature);
+    if (!isValid) {
+        console.error('Invalid signature.');
+        return res.status(400).json({ error: 'Invalid signature.' });
+    }
+
+    try {
+        // Verify the Depay payment
+        const isPaymentValid = await verifyDepayPayment(txHash); // Implement this function as per Depay's API
+        if (!isPaymentValid) {
+            return res.status(400).json({ error: 'Invalid Depay transaction.' });
+        }
+
+        // Calculate the subscription price
+        const price = getPriceForPlan(planType);
+
+        // Create or update the user's subscription
+        let subscription = await Subscription.findOne({ userId: req.user._id });
+
+        if (subscription) {
+            subscription.type = planType;
+            subscription.status = 'active';
+            subscription.startDate = new Date();
+            subscription.endDate.setMonth(subscription.endDate.getMonth() + 1);
+            subscription.paymentMethod = {
+                type: 'depay',
+                brand: 'Depay',
+                last4: txHash.slice(-4).toUpperCase()
+            };
+            subscription.price.amount = price;
+            await subscription.save();
+        } else {
+            subscription = await Subscription.create({
+                userId: req.user._id,
+                type: planType,
+                status: 'active',
+                startDate: new Date(),
+                endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+                paymentMethod: {
+                    type: 'depay',
+                    brand: 'Depay',
+                    last4: txHash.slice(-4).toUpperCase()
+                },
+                price: {
+                    amount: price,
+                    currency: 'USD'
+                },
+                invoices: [{
+                    id: `INV-${Date.now()}`,
+                    date: new Date(),
+                    amount: price,
+                    status: 'paid',
+                    pdfUrl: ''
+                }]
+            });
+        }
+
+        res.status(200).json({ success: true, subscription });
+    } catch (error) {
+        console.error('Error confirming payment:', error);
+        res.status(500).json({ error: error.message || 'Internal Server Error' });
+    }
+};
+
 // Helper function
 function getPriceForPlan(planType) {
     const prices = {
@@ -336,7 +414,6 @@ export const handleDepayWebhook = async (req, res) => {
                 subscription.endDate.setMonth(subscription.endDate.getMonth() + 1);
                 subscription.paymentMethod = {
                     type: 'depay',
-                    brand: 'Depay',
                     last4: txHash.slice(-4).toUpperCase()
                 };
                 subscription.price.amount = getPriceForPlan(planType);
@@ -373,5 +450,49 @@ export const handleDepayWebhook = async (req, res) => {
     } catch (error) {
         console.error('Error handling Depay webhook:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+// Create Depay Transaction
+export const createDepayTransaction = async (req, res) => {
+    const { planType } = req.body;
+
+    if (!planType || !Object.values(SUBSCRIPTION_TYPES).includes(planType)) {
+        return res.status(400).json({ error: 'Invalid or missing plan type.' });
+    }
+
+    try {
+        // Generate a unique transaction hash
+        const txHash = uuidv4();
+
+        // Optionally, store the transaction in the database with status 'pending'
+        // You can create a Transaction model or include it within the Subscription model
+        // For simplicity, we'll assume it's stored within the Subscription model
+
+        // Respond with the txHash to the client
+        res.status(200).json({ txHash });
+    } catch (error) {
+        console.error('Error creating Depay transaction:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+// Verify Depay Payment
+export const verifyDepayPayment = async (txHash) => {
+    try {
+        // Implement verification logic with Depay's API
+        // This might involve calling Depay's API endpoint to verify the transaction status
+
+        // Example:
+        // const response = await depayApi.verifyTransaction(txHash);
+        // return response.isValid;
+
+        // Placeholder implementation:
+        // TODO: Replace with actual Depay API verification
+        const isValid = true; // Assume it's valid for now
+        return isValid;
+    } catch (error) {
+        console.error('Error verifying Depay payment:', error);
+        return false;
     }
 };

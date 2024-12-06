@@ -84,7 +84,7 @@
 
         if (txHash) {
             // Optionally, verify payment status by calling an API endpoint
-            subscriptionStore.verifyPayment(txHash);
+            subscriptionStore.confirmPayment(subscriptionData.type, txHash, ''); // Signature can be handled server-side
         }
     });
 
@@ -96,39 +96,14 @@
     }
 
     function formatDate(date, { relative = true } = {}) {
-        if (!date) return 'N/A';
-        
-        const now = new Date();
-        const past = new Date(date);
-
-        if (!relative) {
-            return past.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        }
-
-        const diff = now - past;
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(diff / (1000 * 60));
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const weeks = Math.floor(diff / (1000 * 60 * 60 * 24 * 7));
-        const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30));
-
-        if (months > 0) {
-            return `${months} month${months > 1 ? 's' : ''} ago`;
-        } else if (weeks > 0) {
-            return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
-        } else if (days > 0) {
-            return `${days} day${days > 1 ? 's' : ''} ago`;
-        } else if (hours > 0) {
-            return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-        } else if (minutes > 0) {
-            return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        if (relative) {
+            const today = new Date();
+            const target = new Date(date);
+            const diffTime = target - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays > 0 ? `${diffDays} days remaining` : 'Expired';
         } else {
-            return 'Just now';
+            return new Date(date).toLocaleDateString();
         }
     }
 
@@ -269,10 +244,22 @@
         }
     }
 
-    const handleDepayPayment = (planType) => {
-        // Use the store's initiateDepayPayment to redirect
-        subscriptionStore.initiateDepayPayment(planType);
-    };
+    async function handleDepayPayment(plan) {
+        try {
+            loading = true;
+            paymentError = '';
+            paymentStatus = 'Initializing Depay payment...';
+            subscriptionStore.setLoading(true);
+            
+            await subscriptionStore.initiateDepayPayment(plan.type);
+            // The user will be redirected to Depay, so no further action is needed here
+        } catch (error) {
+            console.error('Depay payment initiation failed:', error);
+            paymentError = error.message;
+            loading = false;
+            subscriptionStore.setLoading(false);
+        }
+    }
 
     async function handleCancelSubscription() {
         try {
@@ -453,7 +440,7 @@
                             <Button on:click="{subscriptionStore.processETHPayment(planType, txHash)}">Pay with Ethereum</Button>
                             -->
                             <!-- Keep only the Depay payment button -->
-                            <Button on:click={() => subscriptionStore.initiateDepayPayment(plan.type)}>Pay with Depay</Button>
+                            <Button on:click={() => handleDepayPayment(plan)}>Pay with Depay</Button>
                         {:else}
                             <button disabled class="w-full py-3 px-4 bg-green-500 text-white rounded-lg font-medium cursor-default flex items-center justify-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
