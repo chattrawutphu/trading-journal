@@ -5,11 +5,7 @@
     import Select from '$lib/components/common/Select.svelte';
     import Loading from '$lib/components/common/Loading.svelte';
     import Button from '$lib/components/common/Button.svelte';
-<<<<<<< HEAD
     import NewAccountModal from '$lib/components/accounts/NewAccountModal.svelte';
-=======
-    import AccountManager from '$lib/components/accounts/AccountManager.svelte';
->>>>>>> 48c7d3cfa9c3e678604e55ce52b1ed9bd21c629a
     import { api } from '$lib/utils/api';
 
     let loading = false;

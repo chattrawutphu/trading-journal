@@ -88,8 +88,16 @@
   {:else if error}
     <div class="text-red-500">{error}</div>
   {:else if !displayTransactions || displayTransactions.length === 0}
-    <div class="text-center text-light-text-muted dark:text-dark-text-muted py-8">
-      No transactions found
+    <div class="card p-8 text-center">
+      <div class="flex flex-col items-center justify-center space-y-4">
+        <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+        <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">No transactions found</h2>
+        <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
+          Start managing your funds by using the "Deposit" or "Withdraw" buttons above.
+        </p>
+      </div>
     </div>
   {:else}
     <table class="w-full">
@@ -175,5 +183,9 @@
 <style>
   .icon-button {
     @apply p-1 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200;
+  }
+
+  .card {
+    @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;
   }
 </style>

@@ -9,11 +9,7 @@
     import TradeViewModal from '$lib/components/trades/TradeViewModal.svelte';
     import TradeFilters from '$lib/components/trades/TradeFilters.svelte';
     import TransactionTable from '$lib/components/transactions/TransactionTable.svelte';
-<<<<<<< HEAD
     import NewAccountModal from '$lib/components/accounts/NewAccountModal.svelte';
-=======
-    import AccountManager from '$lib/components/accounts/AccountManager.svelte';
->>>>>>> 48c7d3cfa9c3e678604e55ce52b1ed9bd21c629a
     import Loading from '$lib/components/common/Loading.svelte';
     import Button from '$lib/components/common/Button.svelte';
     import Input from '$lib/components/common/Input.svelte';
@@ -227,15 +223,9 @@
         selectedTrade = null;
     }
 
-<<<<<<< HEAD
     function handleAddAccount() {
         showAccountModal = true;
     }
-=======
-function handleAddAccount() {
-    showAccountModal = true;
-}
->>>>>>> 48c7d3cfa9c3e678604e55ce52b1ed9bd21c629a
 </script>
 
 <div class="space-y-4 p-8">
@@ -303,7 +293,6 @@ function handleAddAccount() {
             <Loading message="Loading..." overlay={true} />
         {:else}
             {#if activeTab === 'trades'}
-<<<<<<< HEAD
                 {#if hasTrades}
                     <!-- Filters -->
                     <TradeFilters />
@@ -363,49 +352,6 @@ function handleAddAccount() {
                         on:edit={handleEditTransaction}
                     />
                 </div>
-=======
-                <!-- Filters -->
-                <TradeFilters />
-
-                <!-- Open Trades -->
-                <div class="card">
-                    <div class="p-4 border-b border-light-border dark:border-dark-border">
-                        <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Open Positions</h2>
-                    </div>
-                    <TradeTable 
-                        trades={openTrades}
-                        type="open"
-                        on:view={handleView}
-                        on:edit={handleEdit}
-                        on:delete={e => handleDelete(e.detail)}
-                        on:favorite={e => handleFavorite(e.detail)}
-                        on:disable={e => handleDisable(e.detail)}
-                    />
-                </div>
-
-                <!-- Closed Trades -->
-                <div class="card">
-                    <div class="p-4 border-b border-light-border dark:border-dark-border">
-                        <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Trades</h2>
-                    </div>
-                    <TradeTable 
-                        trades={closedTrades}
-                        type="closed"
-                        on:view={handleView}
-                        on:edit={handleEdit}
-                        on:delete={e => handleDelete(e.detail)}
-                        on:favorite={e => handleFavorite(e.detail)}
-                        on:disable={e => handleDisable(e.detail)}
-                    />
-                </div>
-            {:else if activeTab === 'transactions'}
-                <div class="card">
-                    <TransactionTable 
-                        accountId={$accountStore.currentAccount._id}
-                        on:edit={handleEditTransaction}
-                    />
-                </div>
->>>>>>> 48c7d3cfa9c3e678604e55ce52b1ed9bd21c629a
             {/if}
         {/if}
     {:else}
@@ -430,7 +376,6 @@ function handleAddAccount() {
 </div>
 
 <!-- Modals -->
-<<<<<<< HEAD
 <NewAccountModal 
     bind:show={showAccountModal}
     on:close={() => showAccountModal = false}
@@ -450,22 +395,6 @@ function handleAddAccount() {
         trade={selectedTrade}
     />
 
-=======
-{#if $accountStore.currentAccount}
-    <TradeModal
-        bind:show={showEditModal}
-        trade={selectedTrade}
-        accountId={$accountStore.currentAccount?._id}
-        on:submit={handleSubmit}
-        on:close={closeEditModal}
-    />
-
-    <TradeViewModal
-        bind:show={showViewModal}
-        trade={selectedTrade}
-    />
-
->>>>>>> 48c7d3cfa9c3e678604e55ce52b1ed9bd21c629a
     <!-- Deposit Modal -->
     {#if showDepositModal}
         <div 
