@@ -75,12 +75,41 @@
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
 
-    function formatDate(date) {
-        return new Date(date).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+    // Update formatDate function to handle actual dates
+    function formatDate(date, { relative = true } = {}) {
+        const now = new Date();
+        const past = new Date(date);
+
+        if (!relative) {
+            // Return actual date in desired format
+            return past.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        const diff = now - past;
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(diff / (1000 * 60));
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const weeks = Math.floor(diff / (1000 * 60 * 60 * 24 * 7));
+        const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30));
+
+        if (months > 0) {
+            return `${months} month${months > 1 ? 's' : ''} ago`;
+        } else if (weeks > 0) {
+            return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+        } else if (days > 0) {
+            return `${days} day${days > 1 ? 's' : ''} ago`;
+        } else if (hours > 0) {
+            return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        } else if (minutes > 0) {
+            return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        } else {
+            return 'Just now';
+        }
     }
 
     // Fix: Format currency consistently
@@ -183,11 +212,15 @@
                 <div class="grid md:grid-cols-4 gap-6 mb-8">
                     <div class="bg-light-hover dark:bg-dark-hover rounded-lg p-4">
                         <div class="text-light-text-muted dark:text-dark-text-muted text-sm mb-1">Start Date</div>
-                        <div class="text-light-text dark:text-dark-text font-medium">{formatDate(subscriptionData.startDate)}</div>
+                        <div class="text-light-text dark:text-dark-text font-medium">
+                            {formatDate(subscriptionData.startDate, { relative: false })}
+                        </div>
                     </div>
                     <div class="bg-light-hover dark:bg-dark-hover rounded-lg p-4">
                         <div class="text-light-text-muted dark:text-dark-text-muted text-sm mb-1">End Date</div>
-                        <div class="text-light-text dark:text-dark-text font-medium">{formatDate(subscriptionData.endDate)}</div>
+                        <div class="text-light-text dark:text-dark-text font-medium">
+                            {formatDate(subscriptionData.endDate, { relative: false })}
+                        </div>
                     </div>
                     <div class="bg-light-hover dark:bg-dark-hover rounded-lg p-4">
                         <div class="text-light-text-muted dark:text-dark-text-muted text-sm mb-1">Amount</div>
@@ -222,6 +255,7 @@
                                 <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Date</th>
                                 <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Amount</th>
                                 <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Status</th>
+                                <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Subscription Status</th>
                                 <th class="text-right py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Action</th>
                             </tr>
                         </thead>
@@ -236,6 +270,7 @@
                                             {invoice.status}
                                         </span>
                                     </td>
+                                    <td class="py-3 px-4 text-light-text dark:text-dark-text">{invoice.subscriptionStatus}</td>
                                     <td class="py-3 px-4 text-right">
                                         <button class="text-theme-500 hover:text-theme-600 font-medium" on:click={() => handleDownloadInvoice(invoice.id)}>
                                             Download

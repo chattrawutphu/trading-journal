@@ -114,10 +114,18 @@ export const getInvoices = async (req, res) => {
         // Fetch all subscriptions for the user
         const subscriptions = await Subscription.find({ userId: req.user._id });
 
-        // Collect all invoices
+        // Collect all invoices with standardized subscription status
         let invoices = [];
         subscriptions.forEach(sub => {
-            invoices = invoices.concat(sub.invoices);
+            const subscriptionStatus = sub.status === 'active' ? 'Active' :
+                sub.status === 'cancelled' ? 'Cancelled' :
+                sub.status === 'expired' ? 'Expired' : 'Other';
+            sub.invoices.forEach(inv => {
+                invoices.push({
+                    ...inv.toObject(),
+                    subscriptionStatus   // Include standardized subscription status
+                });
+            });
         });
 
         // Sort the invoices by date descending
