@@ -297,78 +297,117 @@ export const processPayment = async (req, res) => {
 };
 
 export const confirmPayment = async (req, res) => {
-    const { planType, txHash, signature } = req.body;
+    // Log ข้อมูลทั้งหมดที่ได้รับจาก DePay
+    console.log('DePay Callback Headers:', req.headers);
+    console.log('DePay Callback Body:', req.body);
+    
+    // DePay จะส่งข้อมูลมาในรูปแบบ:
+    // {
+    //   payment_id: "unique_payment_id",
+    //   status: "completed", 
+    //   amount: "0.1",
+    //   currency: "ETH",
+    //   blockchain: "ethereum",
+    //   sender: "0x123...",
+    //   recipient: "0x456...",
+    //   transaction_hash: "0xabc...",
+    //   signature: "...", // ลายเซ็นจาก DePay
+    //   metadata: {
+    //     planType: "PRO",
+    //     userId: "user_id"
+    //   }
+    // }
 
-    // Verify that all required fields are present
-    if (!planType || !txHash || !signature) {
-        return res.status(400).json({ error: 'Missing required fields.' });
-    }
-
-    // Verify the signature
-    const payload = JSON.stringify({ planType, txHash });
-    const isValid = verifySignature(payload, signature);
-    if (!isValid) {
-        console.error('Invalid signature.');
-        return res.status(400).json({ error: 'Invalid signature.' });
-    }
+    const { 
+        payment_id,
+        status,
+        transaction_hash,
+        signature,
+        metadata
+    } = req.body;
 
     try {
-        // Verify the Depay payment
-        const isPaymentValid = await verifyDepayPayment(txHash); // Implement this function as per Depay's API
-        if (!isPaymentValid) {
-            return res.status(400).json({ error: 'Invalid Depay transaction.' });
+        // 1. ตรวจสอบว่ามีข้อมูลที่จำเป็นครบถ้วน
+        if (!payment_id || !status || !transaction_hash || !signature || !metadata?.planType) {
+            console.error('Missing required fields:', { payment_id, status, transaction_hash, signature, metadata });
+            return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        // Calculate the subscription price
-        const price = getPriceForPlan(planType);
+        // 2. ตรวจสอบลายเซ็นจาก DePay
+        const payload = JSON.stringify({
+            payment_id,
+            status,
+            transaction_hash
+        });
 
-        // Create or update the user's subscription
-        let subscription = await Subscription.findOne({ userId: req.user._id });
+        const isValid = verifySignature(payload, signature);
+        if (!isValid) {
+            console.error('Invalid signature from DePay');
+            return res.status(400).json({ error: 'Invalid signature' });
+        }
 
-        if (subscription) {
-            subscription.type = planType;
-            subscription.status = 'active';
-            subscription.startDate = new Date();
-            subscription.endDate.setMonth(subscription.endDate.getMonth() + 1);
-            subscription.paymentMethod = {
-                type: 'depay',
-                brand: 'Depay',
-                last4: txHash.slice(-4).toUpperCase()
-            };
-            subscription.price.amount = price;
-            await subscription.save();
-        } else {
-            subscription = await Subscription.create({
-                userId: req.user._id,
+        // 3. ตรวจสอบสถานะการชำระเงิน
+        if (status !== 'completed') {
+            console.error('Payment not completed:', status);
+            return res.status(400).json({ error: 'Payment not completed' });
+        }
+
+        // 4. อัพเดทสถานะการสมัครสมาชิก
+        const subscription = await updateSubscription({
+            userId: metadata.userId,
+            planType: metadata.planType,
+            paymentId: payment_id,
+            transactionHash: transaction_hash
+        });
+
+        // 5. ส่งผลลัพธ์กลับ
+        res.status(200).json({
+            success: true,
+            subscription,
+            message: 'Payment confirmed successfully'
+        });
+
+    } catch (error) {
+        console.error('Error confirming payment:', error);
+        res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+};
+
+// Helper function to update subscription
+async function updateSubscription({ userId, planType, paymentId, transactionHash }) {
+    const price = getPriceForPlan(planType);
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    const subscription = await Subscription.findOneAndUpdate(
+        { userId },
+        {
+            $set: {
                 type: planType,
                 status: 'active',
                 startDate: new Date(),
-                endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
-                paymentMethod: {
-                    type: 'depay',
-                    brand: 'Depay',
-                    last4: txHash.slice(-4).toUpperCase()
-                },
-                price: {
-                    amount: price,
-                    currency: 'USD'
-                },
-                invoices: [{
-                    id: `INV-${Date.now()}`,
+                endDate,
+                'paymentMethod.type': 'depay',
+                'paymentMethod.last4': transactionHash.slice(-4),
+                'price.amount': price,
+            },
+            $push: {
+                invoices: {
+                    id: paymentId,
                     date: new Date(),
                     amount: price,
                     status: 'paid',
-                    pdfUrl: ''
-                }]
-            });
+                }
+            }
+        },
+        { 
+            new: true,
+            upsert: true
         }
+    );
 
-        res.status(200).json({ success: true, subscription });
-    } catch (error) {
-        console.error('Error confirming payment:', error);
-        res.status(500).json({ error: error.message || 'Internal Server Error' });
-    }
-};
+    return subscription;
+}
 
 // Helper function
 function getPriceForPlan(planType) {

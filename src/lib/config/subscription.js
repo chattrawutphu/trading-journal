@@ -19,6 +19,104 @@ export const SUBSCRIPTION_FEATURES = {
     }
 };
 
+export const BILLING_PERIODS = {
+    MONTHLY: 'monthly',
+    YEARLY: 'yearly'
+};
+
+export const SUBSCRIPTION_PLANS = {
+    monthly: [
+        {
+            name: 'Basic',
+            price: 'Free',
+            features: [
+                'Basic trading journal features',
+                'Up to 100 trades per month',
+                'Basic analytics',
+                'Single account'
+            ],
+            type: SUBSCRIPTION_TYPES.BASIC
+        },
+        {
+            name: 'Pro',
+            price: '$19.99',
+            period: 'month',
+            features: [
+                'Everything in Basic, plus:',
+                'Unlimited trades',
+                'Advanced analytics',
+                'Multiple accounts',
+                'Export data',
+                'Priority support'
+            ],
+            type: SUBSCRIPTION_TYPES.PRO
+        },
+        {
+            name: 'Pro+',
+            price: '$49.99',
+            period: 'month',
+            features: [
+                'Everything in Pro, plus:',
+                'Premium analytics',
+                'Dedicated account manager',
+                'Custom integrations',
+                'Early access to new features'
+            ],
+            type: SUBSCRIPTION_TYPES.PRO_PLUS
+        }
+    ],
+    yearly: [
+        {
+            name: 'Basic',
+            price: 'Free',
+            features: [
+                'Basic trading journal features',
+                'Up to 100 trades per month',
+                'Basic analytics',
+                'Single account'
+            ],
+            type: SUBSCRIPTION_TYPES.BASIC
+        },
+        {
+            name: 'Pro',
+            price: '$199.99',
+            period: 'year',
+            originalPrice: '$239.88', // 12 x $19.99
+            savings: '17% OFF',
+            features: [
+                'Everything in Basic, plus:',
+                'Unlimited trades',
+                'Advanced analytics',
+                'Multiple accounts',
+                'Export data',
+                'Priority support',
+                '2 months free', // โปรโมชั่นพิเศษ
+                'Early access to new features'
+            ],
+            type: SUBSCRIPTION_TYPES.PRO,
+            isPopular: true
+        },
+        {
+            name: 'Pro+',
+            price: '$499.99',
+            period: 'year',
+            originalPrice: '$599.88', // 12 x $49.99
+            savings: '17% OFF',
+            features: [
+                'Everything in Pro, plus:',
+                'Premium analytics',
+                'Dedicated account manager',
+                'Custom integrations',
+                'Early access to new features',
+                '2 months free', // โปรโมชั่นพิเศษ
+                'Exclusive trading workshops',
+                'Custom strategy development'
+            ],
+            type: SUBSCRIPTION_TYPES.PRO_PLUS
+        }
+    ]
+};
+
 // Keep only Depay Public Key configuration
 export const DEPAY_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArGGMgVkctJi+CyUQGG2o

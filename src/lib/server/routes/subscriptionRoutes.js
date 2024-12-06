@@ -18,6 +18,9 @@ const router = express.Router();
 // Webhook route should not require authentication
 router.post('/webhooks/depay', handleDepayWebhook);
 
+// Don't require authentication for DePay callback
+router.post('/confirm-payment', confirmPayment);
+
 // Apply protection middleware to all routes below
 router.use(protect);
 

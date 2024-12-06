@@ -5,54 +5,16 @@
     import { onMount, onDestroy } from 'svelte';
     import { writable } from 'svelte/store';
     import Modal from '$lib/components/common/Modal.svelte';
-    // import { initializePayment, handlePayment } from '@depayfi/web3-payments'; // Remove this line
+    import { SUBSCRIPTION_PLANS, BILLING_PERIODS } from '$lib/config/subscription';
 
-    const plans = [
-        {
-            name: 'Basic',
-            price: 'Free',
-            features: [
-                'Basic trading journal features',
-                'Up to 100 trades per month',
-                'Basic analytics',
-                'Single account'
-            ],
-            badge: SUBSCRIPTION_FEATURES.basic.badge,
-            current: true,
-            type: SUBSCRIPTION_TYPES.BASIC
-        },
-        {
-            name: 'Pro',
-            price: '$19.99',
-            ethPrice: '0.0001 ETH',
-            period: 'month',
-            features: [
-                'Everything in Basic, plus:',
-                'Unlimited trades',
-                'Advanced analytics',
-                'Multiple accounts',
-                'Export data',
-                'Priority support'
-            ],
-            badge: SUBSCRIPTION_FEATURES.pro.badge,
-            type: SUBSCRIPTION_TYPES.PRO
-        },
-        {
-            name: 'Pro+',
-            price: '$49.99',
-            ethPrice: '0.0002 ETH',
-            period: 'month',
-            features: [
-                'Everything in Pro, plus:',
-                'Premium analytics',
-                'Dedicated account manager',
-                'Custom integrations',
-                'Early access to new features'
-            ],
-            badge: SUBSCRIPTION_FEATURES.pro_plus.badge,
-            type: SUBSCRIPTION_TYPES.PRO_PLUS
-        }
-    ];
+    let selectedBillingPeriod = BILLING_PERIODS.MONTHLY;
+    
+    const plans = SUBSCRIPTION_PLANS;
+
+    // Helper function to handle billing period change
+    function handleBillingPeriodChange(period) {
+        selectedBillingPeriod = period;
+    }
 
     let subscriptionData = {};
     let isPaidUser = false;
@@ -231,7 +193,7 @@
             loading = false;
             if (paymentError) {
                 paymentStatus = 'การชำระเงินล้มเหลว';
-                // ปิดโมดัลหลังจากแสดงข้อผิดพลาด
+                // ปิดโมดัลหลังจา��แสดงข้อผิดพลาด
                 setTimeout(() => {
                     showModal = false;
                     paymentStatus = '';
@@ -387,15 +349,32 @@
     {:else}
         <div class="text-center mb-12">
             <h1 class="text-4xl font-bold text-light-text dark:text-dark-text mb-4">Choose Your Plan</h1>
-            <p class="text-light-text-muted dark:text-dark-text-muted max-w-2xl mx-auto">
+            <p class="text-light-text-muted dark:text-dark-text-muted max-w-2xl mx-auto mb-8">
                 Select the perfect plan for your trading needs. Upgrade anytime to unlock more features and capabilities.
             </p>
+
+            <!-- Billing Period Toggle -->
+            <div class="inline-flex items-center bg-light-card dark:bg-dark-card rounded-lg p-1 mb-8">
+                <button
+                    class="px-6 py-2 rounded-md {selectedBillingPeriod === BILLING_PERIODS.MONTHLY ? 'bg-theme-500 text-white' : 'text-light-text-muted dark:text-dark-text-muted'}"
+                    on:click={() => handleBillingPeriodChange(BILLING_PERIODS.MONTHLY)}
+                >
+                    Monthly
+                </button>
+                <button
+                    class="px-6 py-2 rounded-md {selectedBillingPeriod === BILLING_PERIODS.YEARLY ? 'bg-theme-500 text-white' : 'text-light-text-muted dark:text-dark-text-muted'}"
+                    on:click={() => handleBillingPeriodChange(BILLING_PERIODS.YEARLY)}
+                >
+                    Yearly
+                    <span class="ml-1 text-xs font-medium bg-green-500 text-white px-2 py-0.5 rounded-full">Save 17%</span>
+                </button>
+            </div>
         </div>
 
         <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {#each plans as plan}
+            {#each plans[selectedBillingPeriod] as plan}
                 <div class="relative rounded-2xl bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border p-6 shadow-xl transition-transform duration-300 hover:scale-105">
-                    {#if plan.popular}
+                    {#if plan.isPopular}
                         <div class="absolute -top-4 left-1/2 -translate-x-1/2">
                             <span class="bg-gradient-purple text-white px-4 py-1 rounded-full text-sm font-medium">
                                 Most Popular
@@ -406,17 +385,21 @@
                     <!-- Plan Header -->
                     <div class="text-center mb-6">
                         <h2 class="text-2xl font-bold text-light-text dark:text-dark-text mb-2">{plan.name}</h2>
-                        <div class="flex items-baseline justify-center gap-1">
-                            <span class="text-4xl font-bold text-light-text dark:text-dark-text">{plan.price}</span>
-                            {#if plan.period}
-                                <span class="text-light-text-muted dark:text-dark-text-muted">/{plan.period}</span>
+                        <div class="flex flex-col items-center justify-center gap-1">
+                            {#if plan.originalPrice}
+                                <span class="text-light-text-muted dark:text-dark-text-muted line-through text-sm">
+                                    {plan.originalPrice}
+                                </span>
+                            {/if}
+                            <div class="flex items-baseline justify-center"></div>
+                                <span class="text-4xl font-bold text-light-text dark:text-dark-text">{plan.price}</span>
+                                {#if plan.period}
+                                    <span class="text-light-text-muted dark:text-dark-text-muted">/{plan.period}</span>
+                                {/if}
+                            {#if plan.savings}
+                                <span class="text-green-500 font-medium text-sm mt-1">{plan.savings}</span>
                             {/if}
                         </div>
-                        {#if plan.ethPrice}
-                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted mt-1">
-                                or {plan.ethPrice}
-                            </div>
-                        {/if}
                     </div>
 
                     <!-- Features -->
@@ -431,25 +414,19 @@
                         {/each}
                     </ul>
 
-                    <!-- Action Buttons -->
-                    <div class="space-y-3">
-                        {#if !plan.current}
-                            <!-- Remove or comment out other payment method buttons -->
-                            <!--
-                            <Button on:click="{subscriptionStore.processStripePayment(planType)}">Pay with Stripe</Button>
-                            <Button on:click="{subscriptionStore.processETHPayment(planType, txHash)}">Pay with Ethereum</Button>
-                            -->
-                            <!-- Keep only the Depay payment button -->
-                            <Button on:click={() => handleDepayPayment(plan)}>Pay with Depay</Button>
-                        {:else}
-                            <button disabled class="w-full py-3 px-4 bg-green-500 text-white rounded-lg font-medium cursor-default flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Current Plan
-                            </button>
-                        {/if}
-                    </div>
+                    <!-- Action Button -->
+                    {#if !plan.current}
+                        <Button on:click={() => handleDepayPayment(plan)}>
+                            Get Started
+                        </Button>
+                    {:else}
+                        <button disabled class="w-full py-3 px-4 bg-green-500 text-white rounded-lg font-medium cursor-default flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Current Plan
+                        </button>
+                    {/if}
                 </div>
             {/each}
         </div>
