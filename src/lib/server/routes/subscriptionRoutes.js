@@ -1,7 +1,7 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
 import {
-  getStatus,
+  getSubscriptionStatus,
   processPayment,
   cancelSubscription,
   reactivateSubscription,
@@ -13,7 +13,7 @@ const router = express.Router();
 
 router.use(protect);
 
-router.get('/status', getStatus);
+router.get('/status', getSubscriptionStatus);
 router.post('/process-payment', processPayment);
 router.post('/cancel', cancelSubscription);
 router.post('/reactivate', reactivateSubscription);

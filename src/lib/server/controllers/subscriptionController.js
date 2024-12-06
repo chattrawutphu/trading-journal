@@ -109,24 +109,42 @@ export const reactivateSubscription = async (req, res) => {
     }
 };
 
-export const downloadInvoice = async (req, res) => {
+export const getInvoices = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
-        if (!user) {
-            res.status(404);
-            throw new Error('User not found');
+        const subscription = await Subscription.findActiveByUserId(req.user._id);
+        if (!subscription) {
+            return res.json({ invoices: [] });
         }
 
-        // Assuming invoices are stored in user document or fetched from another service
+        res.json({
+            success: true,
+            invoices: subscription.invoices || []
+        });
+    } catch (error) {
+        console.error('Get invoices error:', error);
+        res.status(400).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
+export const downloadInvoice = async (req, res) => {
+    try {
+        const subscription = await Subscription.findActiveByUserId(req.user._id);
+        if (!subscription) {
+            res.status(404);
+            throw new Error('No active subscription found');
+        }
+
         const invoiceId = req.params.id;
-        const invoice = user.invoices.find(inv => inv.id === invoiceId);
+        const invoice = subscription.invoices.find(inv => inv.id === invoiceId);
 
         if (!invoice) {
             res.status(404);
             throw new Error('Invoice not found');
         }
 
-        // Send the invoice file or data
         res.json({
             success: true,
             invoice
@@ -140,47 +158,8 @@ export const downloadInvoice = async (req, res) => {
     }
 };
 
-export const getInvoices = async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user) {
-            res.status(404);
-            throw new Error('User not found');
-        }
-
-        // Assuming invoices are stored in user document or fetched from another service
-        const invoices = user.invoices;
-
-        res.json({
-            success: true,
-            invoices
-        });
-    } catch (error) {
-        console.error('Get invoices error:', error);
-        res.status(400).json({
-            success: false,
-            error: error.message
-        });
-    }
-};
-
-export const getStatus = async (req, res) => {
-    try {
-        const subscription = await Subscription.findActiveByUserId(req.user._id);
-        res.json(subscription || { type: SUBSCRIPTION_TYPES.BASIC });
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-};
-
 export const processPayment = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
-        if (!user) {
-            res.status(404);
-            throw new Error('User not found');
-        }
-
         const { planType, paymentMethod } = req.body;
         if (!Object.values(SUBSCRIPTION_TYPES).includes(planType)) {
             res.status(400);
@@ -202,7 +181,7 @@ export const processPayment = async (req, res) => {
         };
 
         // Create or update subscription
-        let subscription = await Subscription.findOne({ userId: user._id, status: 'active' });
+        let subscription = await Subscription.findOne({ userId: req.user._id, status: 'active' });
         
         if (subscription) {
             // Update existing subscription
@@ -211,7 +190,10 @@ export const processPayment = async (req, res) => {
                 {
                     type: planType,
                     endDate,
-                    'price.amount': amount,
+                    price: {
+                        amount,
+                        currency: 'USD'
+                    },
                     $push: { invoices: invoice }
                 },
                 { new: true }
@@ -219,7 +201,7 @@ export const processPayment = async (req, res) => {
         } else {
             // Create new subscription
             subscription = await Subscription.create({
-                userId: user._id,
+                userId: req.user._id,
                 type: planType,
                 startDate: new Date(),
                 endDate,
@@ -233,7 +215,7 @@ export const processPayment = async (req, res) => {
         }
 
         // Update user's subscription and invoices
-        await User.findByIdAndUpdate(user._id, {
+        await User.findByIdAndUpdate(req.user._id, {
             $set: {
                 'subscription.type': planType,
                 'subscription.status': 'active',

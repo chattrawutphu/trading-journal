@@ -62,7 +62,7 @@
             isPaidUser = subscriptionData.type === SUBSCRIPTION_TYPES.PRO || subscriptionData.type === SUBSCRIPTION_TYPES.PRO_PLUS;
             daysRemaining = getDaysRemaining(subscriptionData.endDate);
             const invoices = await subscriptionStore.loadInvoices();
-            subscriptionData.invoices = invoices;
+            subscriptionData.invoices = invoices.invoices || []; // Fix: Access invoices from response
         } catch (error) {
             console.error('Failed to initialize subscription:', error);
         }
@@ -83,13 +83,29 @@
         });
     }
 
+    // Fix: Format currency consistently
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2
+        }).format(amount);
+    }
+
     async function handleStripePayment(plan) {
         try {
             loading = true;
             subscriptionStore.setLoading(true);
-            await subscriptionStore.processStripePayment(plan.type);
-            alert('Payment successful! Your subscription has been upgraded.');
-            location.reload(); // Reload the page to reflect the updated subscription status
+            const result = await subscriptionStore.processStripePayment(plan.type);
+            if (result.success) {
+                // Fix: Update subscription data after successful payment
+                subscriptionData = await subscriptionStore.initializeSubscription();
+                const invoices = await subscriptionStore.loadInvoices();
+                subscriptionData.invoices = invoices.invoices || [];
+                isPaidUser = subscriptionData.type === SUBSCRIPTION_TYPES.PRO || subscriptionData.type === SUBSCRIPTION_TYPES.PRO_PLUS;
+                daysRemaining = getDaysRemaining(subscriptionData.endDate);
+                alert('Payment successful! Your subscription has been upgraded.');
+            }
         } catch (error) {
             subscriptionStore.setError(error.message);
         } finally {
@@ -102,9 +118,16 @@
         try {
             loading = true;
             subscriptionStore.setLoading(true);
-            await subscriptionStore.processMetaMaskPayment(plan.type);
-            alert('Payment successful! Your subscription has been upgraded.');
-            location.reload(); // Reload the page to reflect the updated subscription status
+            const result = await subscriptionStore.processMetaMaskPayment(plan.type);
+            if (result.success) {
+                // Fix: Update subscription data after successful payment
+                subscriptionData = await subscriptionStore.initializeSubscription();
+                const invoices = await subscriptionStore.loadInvoices();
+                subscriptionData.invoices = invoices.invoices || [];
+                isPaidUser = subscriptionData.type === SUBSCRIPTION_TYPES.PRO || subscriptionData.type === SUBSCRIPTION_TYPES.PRO_PLUS;
+                daysRemaining = getDaysRemaining(subscriptionData.endDate);
+                alert('Payment successful! Your subscription has been upgraded.');
+            }
         } catch (error) {
             subscriptionStore.setError(error.message);
         } finally {
@@ -117,8 +140,10 @@
         try {
             loading = true;
             await subscriptionStore.cancelSubscription();
+            // Fix: Update subscription data after cancellation
+            subscriptionData = await subscriptionStore.initializeSubscription();
+            isPaidUser = false;
             alert('Subscription cancelled successfully.');
-            location.reload(); // Reload the page to reflect the updated subscription status
         } catch (error) {
             console.error('Failed to cancel subscription:', error);
         } finally {
@@ -166,7 +191,9 @@
                     </div>
                     <div class="bg-light-hover dark:bg-dark-hover rounded-lg p-4">
                         <div class="text-light-text-muted dark:text-dark-text-muted text-sm mb-1">Amount</div>
-                        <div class="text-light-text dark:text-dark-text font-medium">${subscriptionData.amount}/month</div>
+                        <div class="text-light-text dark:text-dark-text font-medium">
+                            {formatCurrency(subscriptionData.price?.amount || 0)}/month
+                        </div>
                     </div>
                     <div class="bg-light-hover dark:bg-dark-hover rounded-lg p-4">
                         <div class="text-light-text-muted dark:text-dark-text-muted text-sm mb-1">Days Remaining</div>
@@ -199,11 +226,11 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-light-border dark:divide-dark-border">
-                            {#each subscriptionData.invoices as invoice}
+                            {#each subscriptionData.invoices || [] as invoice}
                                 <tr class="hover:bg-light-hover dark:hover:bg-dark-hover">
                                     <td class="py-3 px-4 text-light-text dark:text-dark-text">{invoice.id}</td>
                                     <td class="py-3 px-4 text-light-text dark:text-dark-text">{formatDate(invoice.date)}</td>
-                                    <td class="py-3 px-4 text-light-text dark:text-dark-text">${invoice.amount}</td>
+                                    <td class="py-3 px-4 text-light-text dark:text-dark-text">{formatCurrency(invoice.amount)}</td>
                                     <td class="py-3 px-4">
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
                                             {invoice.status}

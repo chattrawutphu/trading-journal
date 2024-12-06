@@ -238,10 +238,10 @@ export const api = {
     return fetchWithAuth('/subscription/status');
   },
 
-  async createSubscription(planType) {
-    return fetchWithAuth('/subscription/create', {
+  async processPayment(planType, paymentMethod) {
+    return fetchWithAuth('/subscription/process-payment', {
       method: 'POST',
-      body: JSON.stringify({ planType })
+      body: JSON.stringify({ planType, paymentMethod })
     });
   },
 
@@ -263,13 +263,5 @@ export const api = {
 
   async downloadInvoice(invoiceId) {
     return fetchWithAuth(`/subscription/invoices/${invoiceId}/download`);
-  },
-
-  // Payment endpoints
-  async processPayment(planType, paymentMethod) {
-    return fetchWithAuth('/subscription/process-payment', {
-      method: 'POST',
-      body: JSON.stringify({ planType, paymentMethod })
-    });
-  },
+  }
 };

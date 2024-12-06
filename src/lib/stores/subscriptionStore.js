@@ -12,7 +12,11 @@ function createSubscriptionStore() {
     loading: false,
     error: null,
     invoices: [],
-    paymentMethod: null
+    paymentMethod: null,
+    price: {
+      amount: 0,
+      currency: 'USD'
+    }
   });
 
   return {
@@ -32,7 +36,6 @@ function createSubscriptionStore() {
         update(state => ({
           ...state,
           ...data,
-          amount: data.amount,
           loading: false
         }));
         return data;
@@ -42,66 +45,7 @@ function createSubscriptionStore() {
       }
     },
 
-    // Create new subscription
-    createSubscription: async (planType) => {
-      try {
-        update(state => ({ ...state, loading: true, error: null }));
-        const data = await api.createSubscription(planType);
-        update(state => ({
-          ...state,
-          type: planType,
-          status: 'active',
-          startDate: data.startDate,
-          endDate: data.endDate,
-          loading: false,
-          paymentMethod: data.paymentMethod
-        }));
-        return data;
-      } catch (error) {
-        update(state => ({ ...state, loading: false, error: error.message }));
-        throw error;
-      }
-    },
-
-    // Cancel subscription
-    cancelSubscription: async () => {
-      try {
-        update(state => ({ ...state, loading: true, error: null }));
-        const data = await api.cancelSubscription();
-        update(state => ({
-          ...state,
-          status: 'cancelled',
-          cancelAt: data.cancelAt,
-          loading: false
-        }));
-      } catch (error) {
-        update(state => ({ ...state, loading: false, error: error.message }));
-        throw error;
-      }
-    },
-
-    // Load invoices
-    loadInvoices: async () => {
-      try {
-        const invoices = await api.getInvoices();
-        update(state => ({ ...state, invoices }));
-        return invoices;
-      } catch (error) {
-        update(state => ({ ...state, error: error.message }));
-        throw error;
-      }
-    },
-
-    // Download invoice
-    downloadInvoice: async (invoiceId) => {
-      try {
-        return await api.downloadInvoice(invoiceId);
-      } catch (error) {
-        update(state => ({ ...state, error: error.message }));
-        throw error;
-      }
-    },
-
+    // Process Stripe payment
     processStripePayment: async (planType) => {
       try {
         update(state => ({ ...state, loading: true, error: null }));
@@ -131,6 +75,7 @@ function createSubscriptionStore() {
       }
     },
 
+    // Process MetaMask payment
     processMetaMaskPayment: async (planType) => {
       try {
         update(state => ({ ...state, loading: true, error: null }));
@@ -160,6 +105,46 @@ function createSubscriptionStore() {
       }
     },
 
+    // Cancel subscription
+    cancelSubscription: async () => {
+      try {
+        update(state => ({ ...state, loading: true, error: null }));
+        const data = await api.cancelSubscription();
+        update(state => ({
+          ...state,
+          status: 'cancelled',
+          cancelAt: data.cancelAt,
+          loading: false
+        }));
+        return data;
+      } catch (error) {
+        update(state => ({ ...state, loading: false, error: error.message }));
+        throw error;
+      }
+    },
+
+    // Load invoices
+    loadInvoices: async () => {
+      try {
+        const response = await api.getInvoices();
+        update(state => ({ ...state, invoices: response.invoices || [] }));
+        return response;
+      } catch (error) {
+        update(state => ({ ...state, error: error.message }));
+        throw error;
+      }
+    },
+
+    // Download invoice
+    downloadInvoice: async (invoiceId) => {
+      try {
+        return await api.downloadInvoice(invoiceId);
+      } catch (error) {
+        update(state => ({ ...state, error: error.message }));
+        throw error;
+      }
+    },
+
     reset: () => {
       set({
         type: SUBSCRIPTION_TYPES.BASIC,
@@ -169,7 +154,11 @@ function createSubscriptionStore() {
         loading: false,
         error: null,
         invoices: [],
-        paymentMethod: null
+        paymentMethod: null,
+        price: {
+          amount: 0,
+          currency: 'USD'
+        }
       });
     }
   };
