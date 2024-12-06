@@ -17,10 +17,24 @@ function createAccountStore() {
         update(state => ({ ...state, loading: true, error: null }));
         const accounts = await api.getAccounts();
         
-        // If there are accounts, fetch the first one's details to get actual balance
+        // Get saved account ID
+        const savedAccountId = typeof window !== 'undefined' ? localStorage.getItem('selectedAccountId') : null;
+        
+        // If there are accounts, fetch the saved account or first one's details
         let currentAccount = null;
         if (accounts.length > 0) {
-          currentAccount = await api.getAccount(accounts[0]._id);
+          // Find the saved account in the accounts list
+          const accountToLoad = savedAccountId ? 
+            accounts.find(a => a._id === savedAccountId) : null;
+            
+          // If saved account exists in accounts list, use it, otherwise use first account
+          const targetAccount = accountToLoad || accounts[0];
+          currentAccount = await api.getAccount(targetAccount._id);
+          
+          // Save the current account ID
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('selectedAccountId', currentAccount._id);
+          }
         }
         
         update(state => ({
@@ -28,10 +42,10 @@ function createAccountStore() {
           accounts,
           loading: false,
           currentAccount,
-          initialLoadComplete: true // Add flag to track initial load
+          initialLoadComplete: true
         }));
 
-        return currentAccount; // Return the current account for components to use
+        return currentAccount;
       } catch (error) {
         console.error('Error loading accounts:', error);
         update(state => ({ 
@@ -46,13 +60,19 @@ function createAccountStore() {
       try {
         update(state => ({ ...state, loading: true, error: null }));
         const account = await api.getAccount(accountId);
+        
+        // Save the current account ID
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('selectedAccountId', accountId);
+        }
+        
         update(state => ({
           ...state,
           currentAccount: account,
           loading: false,
           error: null
         }));
-        return account; // Return the account for components to use
+        return account;
       } catch (error) {
         console.error('Error setting current account:', error);
         update(state => ({
@@ -69,6 +89,12 @@ function createAccountStore() {
         const newAccount = await api.createAccount(accountData);
         // Fetch full account details including actual balance
         const accountWithBalance = await api.getAccount(newAccount._id);
+        
+        // Save the current account ID
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('selectedAccountId', accountWithBalance._id);
+        }
+        
         update(state => {
           const updatedAccounts = [...state.accounts, newAccount];
           return {
@@ -151,10 +177,23 @@ function createAccountStore() {
         await api.deleteAccount(accountId);
         update(state => {
           const updatedAccounts = state.accounts.filter(a => a._id !== accountId);
+          const newCurrentAccount = state.currentAccount?._id === accountId ? (updatedAccounts[0] || null) : state.currentAccount;
+          
+          // Update localStorage if current account is deleted
+          if (typeof window !== 'undefined') {
+            if (state.currentAccount?._id === accountId) {
+              if (newCurrentAccount) {
+                localStorage.setItem('selectedAccountId', newCurrentAccount._id);
+              } else {
+                localStorage.removeItem('selectedAccountId');
+              }
+            }
+          }
+
           return {
             ...state,
             accounts: updatedAccounts,
-            currentAccount: state.currentAccount?._id === accountId ? (updatedAccounts[0] || null) : state.currentAccount,
+            currentAccount: newCurrentAccount,
             loading: false
           };
         });

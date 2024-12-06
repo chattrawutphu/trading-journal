@@ -30,6 +30,7 @@
     let transactionAmount = 0;
     let transactionDate = new Date().toISOString().split('T')[0];
     let dataLoaded = false;
+    let currentAccountId = null;
 
     $: openTrades = trades.filter(t => t.status === 'OPEN');
     $: closedTrades = trades.filter(t => t.status === 'CLOSED');
@@ -74,6 +75,14 @@
             error = err.message;
         } finally {
             loading = false;
+        }
+    }
+
+    // Watch for account changes
+    $: if ($accountStore.currentAccount?._id !== currentAccountId) {
+        currentAccountId = $accountStore.currentAccount?._id;
+        if (currentAccountId) {
+            loadTrades();
         }
     }
 

@@ -77,6 +77,10 @@ function createAuthStore() {
         logout: async () => {
             try {
                 await api.logout();
+                // Clear selected account ID from localStorage
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('selectedAccountId');
+                }
                 set({
                     isAuthenticated: false,
                     user: null,

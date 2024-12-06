@@ -16,6 +16,7 @@
     let selectedPeriod = '30';
     let dataLoaded = false;
     let showAccountModal = false;
+    let currentAccountId = null;
 
     const periods = [
         { value: '7', label: 'Last 7 Days' },
@@ -55,6 +56,14 @@
             error = err.message;
         } finally {
             loading = false;
+        }
+    }
+
+    // Watch for account changes
+    $: if ($accountStore.currentAccount?._id !== currentAccountId) {
+        currentAccountId = $accountStore.currentAccount?._id;
+        if (currentAccountId) {
+            loadTrades();
         }
     }
 

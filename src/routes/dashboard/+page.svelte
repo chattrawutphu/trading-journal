@@ -31,6 +31,7 @@
     let selectedDayTransactions = [];
     let newTradeDate = '';
     let initialLoad = true;
+    let currentAccountId = null;
   
     onMount(async () => {
         try {
@@ -62,6 +63,15 @@
             error = err.message;
         } finally {
             loading = false;
+        }
+    }
+
+    // Watch for account changes
+    $: if ($accountStore.currentAccount?._id !== currentAccountId) {
+        currentAccountId = $accountStore.currentAccount?._id;
+        if (currentAccountId) {
+            loadTrades();
+            transactionStore.fetchTransactions(currentAccountId);
         }
     }
 

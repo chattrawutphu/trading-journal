@@ -4,6 +4,7 @@
     import { page } from '$app/stores';
     import { auth } from '$lib/stores/authStore';
     import { theme } from '$lib/stores/themeStore';
+    import { accountStore } from '$lib/stores/accountStore';
     import { goto } from '$app/navigation';
     import CollapsibleSidebar from '$lib/components/layout/CollapsibleSidebar.svelte';
     import Navbar from '$lib/components/layout/Navbar.svelte';
@@ -24,10 +25,20 @@
         sidebarCollapsed = event.detail;
     }
 
+    async function initializeAccount() {
+        if ($auth.isAuthenticated) {
+            await accountStore.loadAccounts();
+        }
+    }
+
     onMount(async () => {
         try {
             initialized = true;
             const success = await auth.initialize();
+            
+            if (success) {
+                await initializeAccount();
+            }
             
             // ถ้าไม่ได้อยู่ใน public routes และยังไม่ได้ login ให้ redirect ไปหน้า login
             if (!success && !publicRoutes.includes($page.url.pathname)) {
@@ -48,6 +59,13 @@
     // Watch for auth state changes
     $: if (!$auth?.isAuthenticated && !publicRoutes.includes($page.url.pathname) && !isLoading) {
         goto('/login');
+    }
+
+    // Watch for navigation to ensure proper layout and account loading
+    $: {
+        if ($page.url.pathname && $auth.isAuthenticated && !publicRoutes.includes($page.url.pathname)) {
+            initializeAccount();
+        }
     }
 
     // Watch for navigation to ensure proper layout

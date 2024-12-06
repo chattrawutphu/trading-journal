@@ -3,6 +3,10 @@
     import { fade, fly } from 'svelte/transition';
     import { accountStore } from '$lib/stores/accountStore';
     import { transactionStore } from '$lib/stores/transactionStore';
+    import { tradingStatsStore } from '$lib/stores/tradingStatsStore';
+    import { accountSymbolStore } from '$lib/stores/accountSymbolStore';
+    import { userStrategyStore } from '$lib/stores/userStrategyStore';
+    import { api } from '$lib/utils/api';
     import Button from '../common/Button.svelte';
     import Input from '../common/Input.svelte';
     import Loading from '../common/Loading.svelte';
@@ -127,6 +131,37 @@
       transactionDate = new Date().toISOString().split('T')[0];
       showWithdrawModal = true;
     }
+
+    async function handleAccountSwitch(accountId) {
+      try {
+        error = '';
+        
+        // Set current account
+        await accountStore.setCurrentAccount(accountId);
+        
+        // Reload all data for the new account
+        await Promise.all([
+          // Load transactions
+          transactionStore.fetchTransactions(accountId),
+          
+          // Load trades
+          api.getTrades(accountId),
+          
+          // Load account symbols
+          accountSymbolStore.loadSymbols(accountId),
+          
+          // Load user strategies
+          userStrategyStore.loadStrategies(accountId)
+        ]);
+        
+        // Trigger trade update event to refresh stats
+        window.dispatchEvent(new CustomEvent('tradeupdate'));
+        
+        dispatch('close');
+      } catch (err) {
+        error = err.message;
+      }
+    }
 </script>
 
 <div class="space-y-2">
@@ -162,10 +197,7 @@
                     <button
                         class="flex-grow text-left text-sm text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 transition-colors duration-200"
                         class:font-bold={$accountStore.currentAccount?._id === account._id}
-                        on:click={() => {
-                            accountStore.setCurrentAccount(account._id);
-                            dispatch('close');
-                        }}
+                        on:click={() => handleAccountSwitch(account._id)}
                     >
                         <span>{account.name}</span>
                     </button>
