@@ -40,4 +40,22 @@ router.post('/process-payment', processPayment);
 router.post('/confirm-payment', confirmPayment);
 router.post('/create-depay-transaction', createDepayTransaction);
 
+router.post('/update-status', protect, async (req, res) => {
+    try {
+        const { status } = req.body;
+        const subscription = await Subscription.findActiveByUserId(req.user._id);
+
+        if (!subscription) {
+            return res.status(404).json({ error: 'No active subscription found' });
+        }
+
+        subscription.status = status;
+        await subscription.save();
+
+        res.json({ success: true, subscription });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 export default router;

@@ -1,5 +1,8 @@
 <script>
     import { createEventDispatcher } from 'svelte';
+    import { onMount } from 'svelte';
+    import { fetch } from 'whatwg-fetch'; // Ensure fetch is available
+
     const dispatch = createEventDispatcher();
 
     export let subscriptionData;
@@ -10,6 +13,36 @@
         console.log('Cancel button clicked'); // เพิ่ม log เพื่อ debug
         dispatch('cancelClick');
     }
+
+    async function checkSubscriptionStatus() {
+        const now = new Date();
+        const endDate = new Date(subscriptionData.endDate);
+
+        if (endDate <= now && subscriptionData.status === 'active') {
+            try {
+                const response = await fetch('/api/subscription/update-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'expired' })
+                });
+
+                if (response.ok) {
+                    subscriptionData.status = 'expired';
+                    dispatch('statusUpdated', { status: 'expired' });
+                } else {
+                    console.error('Failed to update subscription status on server');
+                }
+            } catch (error) {
+                console.error('Error updating subscription status:', error);
+            }
+        }
+    }
+
+    onMount(() => {
+        checkSubscriptionStatus();
+    });
 </script>
 
 <div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-2xl p-8 mb-8">
