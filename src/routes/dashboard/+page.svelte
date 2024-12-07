@@ -210,7 +210,7 @@
     </div>
 
     {#if initialLoad || loading}
-        <Loading message="Loading data..." overlay={true} />
+        <Loading message="Loading..." overlay={true} />
     {:else if $accountStore.currentAccount}
         <!-- Stats -->
         <TradingStats />

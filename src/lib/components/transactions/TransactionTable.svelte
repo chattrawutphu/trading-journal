@@ -84,7 +84,7 @@
 
 <div class="overflow-x-auto">
   {#if loading}
-    <Loading />
+    <Loading message="Loading..." overlay={true} />
   {:else if error}
     <div class="text-red-500">{error}</div>
   {:else if !displayTransactions || displayTransactions.length === 0}

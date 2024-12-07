@@ -84,10 +84,10 @@ function createSubscriptionStore() {
     },
 
     // Confirm payment (if needed separately)
-    confirmPayment: async (planType, txHash, signature) => {
+    confirmPayment: async (txHash) => {
       try {
         update(state => ({ ...state, loading: true, paymentStatus: 'Confirming payment...' }));
-        const response = await api.confirmPayment(planType, txHash, signature);
+        const response = await api.confirmPayment(txHash);
         
         if (response.success) {
           await store.initializeSubscription();
@@ -134,6 +134,16 @@ function createSubscriptionStore() {
         return data;
       } catch (error) {
         update(state => ({ ...state, loading: false, error: error.message }));
+        throw error;
+      }
+    },
+
+    getSubscriptionDetails: async () => {
+      try {
+        const data = await api.getSubscriptionStatus();
+        return data;
+      } catch (error) {
+        console.error('Failed to get subscription details:', error);
         throw error;
       }
     },

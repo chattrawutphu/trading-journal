@@ -144,7 +144,7 @@
     {/if}
 
     {#if showLoading && $accountStore.currentAccount}
-        <Loading message="Loading analytics..." overlay={true} />
+        <Loading message="Loading..." overlay={true} />
     {:else if $accountStore.currentAccount}
         <!-- Key Metrics -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

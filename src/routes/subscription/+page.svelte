@@ -56,14 +56,18 @@
     }
 
     function formatDate(date, { relative = true } = {}) {
+        if (!date) return 'N/A';
+        
+        const formattedDate = new Date(date);
+        if (isNaN(formattedDate)) return 'Invalid date';
+
         if (relative) {
             const today = new Date();
-            const target = new Date(date);
-            const diffTime = target - today;
+            const diffTime = formattedDate - today;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             return diffDays > 0 ? `${diffDays} days remaining` : 'Expired';
         } else {
-            return new Date(date).toLocaleDateString();
+            return formattedDate.toLocaleDateString();
         }
     }
 
@@ -249,6 +253,22 @@
     function getBlockExplorerUrl(hash) {
         return `https://basescan.org/tx/${hash}`;
     }
+
+    // ฟังก์ชันใหม่สำหรับกรองและจัดเรียง invoices
+    function processInvoices(invoices) {
+        if (!Array.isArray(invoices)) return [];
+        
+        // กรอง invoice ที่ซ้ำกันออกโดยใช้ transactionHash
+        const uniqueInvoices = invoices.reduce((acc, curr) => {
+            if (!acc.find(inv => inv.transactionHash === curr.transactionHash)) {
+                acc.push(curr);
+            }
+            return acc;
+        }, []);
+
+        // เรียงตามวันที่จากใหม่ไปเก่า
+        return uniqueInvoices.sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
 </script>
 
 <div class="container mx-auto px-4 py-8">
@@ -321,11 +341,17 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-light-border dark:divide-dark-border">
-                            {#each subscriptionData.invoices || [] as invoice}
+                            {#each processInvoices(subscriptionData.invoices || []) as invoice}
                                 <tr class="hover:bg-light-hover dark:hover:bg-dark-hover">
-                                    <td class="py-3 px-4 text-light-text dark:text-dark-text">{invoice.id}</td>
-                                    <td class="py-3 px-4 text-light-text dark:text-dark-text">{formatDate(invoice.date)}</td>
-                                    <td class="py-3 px-4 text-light-text dark:text-dark-text">{formatCurrency(invoice.amount)}</td>
+                                    <td class="py-3 px-4 text-light-text dark:text-dark-text">
+                                        {invoice.id || invoice.transactionHash?.slice(-8) || 'N/A'}
+                                    </td>
+                                    <td class="py-3 px-4 text-light-text dark:text-dark-text">
+                                        {formatDate(invoice.date, { relative: false })}
+                                    </td>
+                                    <td class="py-3 px-4 text-light-text dark:text-dark-text">
+                                        {formatCurrency(invoice.amount || 0)}
+                                    </td>
                                     <td class="py-3 px-4">
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
                                             {invoice.status}

@@ -390,6 +390,9 @@ async function updateSubscription({ userId, planType, paymentId, transactionHash
         return existingSubscription;
     }
 
+    // สร้าง invoice ID ที่ไม่ซ้ำกัน
+    const invoiceId = `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     const subscription = await Subscription.findOneAndUpdate(
         { userId },
         {
@@ -404,11 +407,11 @@ async function updateSubscription({ userId, planType, paymentId, transactionHash
             },
             $push: {
                 invoices: {
-                    id: paymentId,
+                    id: invoiceId,
                     date: new Date(),
                     amount: price,
                     status: 'paid',
-                    transactionHash, // เพิ่ม transactionHash ในโครงสร้าง invoice
+                    transactionHash,
                 }
             }
         },
@@ -418,15 +421,24 @@ async function updateSubscription({ userId, planType, paymentId, transactionHash
         }
     );
 
+    // อัพเดท User model ด้วย
+    await User.findByIdAndUpdate(userId, {
+        $set: {
+            'subscription.type': planType,
+            'subscription.status': 'active',
+            'subscription.amount': price
+        }
+    });
+
     return subscription;
 }
 
-// Helper function
+// แก้ไขฟังก์ชัน getPriceForPlan
 function getPriceForPlan(planType) {
     const prices = {
         BASIC: 0,
-        PRO: 0.001,      // Reduced ETH price for testing
-        PRO_PLUS: 0.002  // Reduced ETH price for testing
+        PRO: 19.99,      // แก้ราคาให้ตรงกับที่แสดงในหน้าเว็บ
+        PRO_PLUS: 49.99  // แก้ราคาให้ตรงกับที่แสดงในหน้าเว็บ
     };
     return prices[planType] || 0;
 }
