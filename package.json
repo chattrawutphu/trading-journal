@@ -25,6 +25,7 @@
 		"express-session": "^1.17.3",
 		"jsonwebtoken": "^9.0.0",
 		"mongoose": "^7.6.3",
+		"node-cron": "^3.0.3",
 		"web3": "^1.8.2"
 	},
 	"devDependencies": {

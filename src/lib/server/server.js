@@ -16,6 +16,7 @@ import userRoutes from './routes/userRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import MongoStore from 'connect-mongo';  // เพิ่มบรรทัดนี้
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
+import './schedulers/subscriptionScheduler.js';
 
 // Get the directory path for ES modules
 const __filename = fileURLToPath(import.meta.url);
