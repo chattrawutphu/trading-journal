@@ -44,6 +44,7 @@ const userSchema = new mongoose.Schema({
             enum: ['paid', 'pending', 'failed'],
             default: 'paid'
         },
+        transactionHash: String, // เพิ่มฟิลด์ transactionHash
         pdfUrl: String
     }],
     strategies: {

@@ -379,6 +379,17 @@ async function updateSubscription({ userId, planType, paymentId, transactionHash
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + 1);
 
+    // ตรวจสอบว่ามี invoice ที่มี transactionHash นี้อยู่แล้วหรือไม่
+    const existingSubscription = await Subscription.findOne({
+        userId,
+        'invoices.transactionHash': transactionHash
+    });
+
+    if (existingSubscription) {
+        console.log('Transaction already processed:', transactionHash);
+        return existingSubscription;
+    }
+
     const subscription = await Subscription.findOneAndUpdate(
         { userId },
         {
@@ -397,6 +408,7 @@ async function updateSubscription({ userId, planType, paymentId, transactionHash
                     date: new Date(),
                     amount: price,
                     status: 'paid',
+                    transactionHash, // เพิ่ม transactionHash ในโครงสร้าง invoice
                 }
             }
         },

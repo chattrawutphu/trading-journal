@@ -53,8 +53,10 @@ const subscriptionSchema = new mongoose.Schema({
         amount: Number,
         status: {
             type: String,
-            enum: ['paid', 'pending', 'failed']
+            enum: ['paid', 'pending', 'failed'],
+            default: 'paid'
         },
+        transactionHash: String, // เพิ่มฟิลด์ transactionHash
         pdfUrl: String
     }]
 }, {
@@ -65,6 +67,7 @@ const subscriptionSchema = new mongoose.Schema({
 subscriptionSchema.index({ userId: 1 });
 subscriptionSchema.index({ status: 1 });
 subscriptionSchema.index({ endDate: 1 }, { expireAfterSeconds: 0 });
+subscriptionSchema.index({ 'invoices.transactionHash': 1 });
 
 // Methods
 subscriptionSchema.methods.isActive = function() {
