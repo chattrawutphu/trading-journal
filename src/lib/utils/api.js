@@ -299,10 +299,10 @@ export const api = {
   },
 
   // Create Depay Transaction
-  async createDepayTransaction(planType) {
+  async createDepayTransaction(data) {
     return fetchWithAuth('/subscription/create-depay-transaction', {
       method: 'POST',
-      body: JSON.stringify({ planType }),
+      body: JSON.stringify(data)
     });
   }
 };

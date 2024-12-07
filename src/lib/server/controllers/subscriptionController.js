@@ -3,7 +3,9 @@ import User from '../models/User.js';
 import { 
     SUBSCRIPTION_TYPES, 
     DEPAY_PUBLIC_KEY,
-    DEPAY_LINK  // เพิ่ม DEPAY_LINK ในการ import
+    DEPAY_LINK,  // เพิ่ม DEPAY_LINK ในการ import
+    BILLING_PERIODS, 
+    PLAN_PRICES 
 } from '../../config/subscription.js';
 import Web3 from 'web3';
 import crypto from 'crypto';
@@ -63,31 +65,27 @@ export const getSubscriptionStatus = async (req, res) => {
 
 export const createSubscription = async (req, res) => {
     try {
-        const { planType, paymentMethod } = req.body;
+        const { planType, billingPeriod, paymentMethod } = req.body;
         
-        // Ensure only Depay is used
-        if (paymentMethod !== 'depay') {
-            throw new Error('Unsupported payment method');
+        if (!planType || !billingPeriod) {
+            throw new Error('Plan type and billing period are required');
         }
 
-        // Calculate end date (1 month from now)
+        // Calculate amount based on plan type and billing period
+        const amount = PLAN_PRICES[planType][billingPeriod];
+
+        // Calculate end date based on billing period
         const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + 1);
-
-        // Calculate amount based on plan type
-        const amount = planType === SUBSCRIPTION_TYPES.PRO ? 19.99 : 49.99;
-
-        // Create initial invoice
-        const invoice = {
-            id: `INV-${Date.now()}`,
-            date: new Date(),
-            amount,
-            status: 'paid'
-        };
+        if (billingPeriod === BILLING_PERIODS.YEARLY) {
+            endDate.setFullYear(endDate.getFullYear() + 1);
+        } else {
+            endDate.setMonth(endDate.getMonth() + 1);
+        }
 
         const subscription = await Subscription.create({
             userId: req.user._id,
             type: planType,
+            billingPeriod,
             startDate: new Date(),
             endDate,
             paymentMethod,
@@ -95,7 +93,12 @@ export const createSubscription = async (req, res) => {
                 amount,
                 currency: 'USD'
             },
-            invoices: [invoice]
+            invoices: [{
+                id: `INV-${Date.now()}`,
+                date: new Date(),
+                amount,
+                status: 'paid'
+            }]
         });
 
         // Update user's subscription reference and invoices
@@ -316,6 +319,7 @@ export const confirmPayment = async (req, res) => {
         const forwardToUrl = new URL(forward_to);
         const userUUID = forwardToUrl.searchParams.get('secret_id');
         const planType = forwardToUrl.searchParams.get('plan');
+        const billingPeriod = forwardToUrl.searchParams.get('billing'); // เพิ่มการดึง billing period
 
         if (!userUUID) {
             console.error('Missing secret_id in forward_to URL');
@@ -337,7 +341,8 @@ export const confirmPayment = async (req, res) => {
 
         const subscription = await updateSubscription({
             userId: user._id,
-            planType: planType || determinePlanType(payload?.link_id),
+            planType,
+            billingPeriod, // ส่ง billing period ไปด้วย
             paymentId: payload?.link_id || Date.now().toString(),
             transactionHash: transaction_hash
         });
@@ -374,10 +379,16 @@ function determinePlanType(paymentId) {
 }
 
 // Helper function to update subscription
-async function updateSubscription({ userId, planType, paymentId, transactionHash }) {
-    const price = getPriceForPlan(planType);
+async function updateSubscription({ userId, planType, billingPeriod, paymentId, transactionHash }) {
+    const price = PLAN_PRICES[planType][billingPeriod];
     const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 1);
+    
+    // กำหนดวันหมดอายุตาม billing period
+    if (billingPeriod === BILLING_PERIODS.YEARLY) {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+    } else {
+        endDate.setMonth(endDate.getMonth() + 1);
+    }
 
     // ตรวจสอบว่ามี invoice ที่มี transactionHash นี้อยู่แล้วหรือไม่
     const existingSubscription = await Subscription.findOne({
@@ -398,6 +409,7 @@ async function updateSubscription({ userId, planType, paymentId, transactionHash
         {
             $set: {
                 type: planType,
+                billingPeriod, // เพิ่ม billing period
                 status: 'active',
                 startDate: new Date(),
                 endDate,
@@ -518,10 +530,13 @@ export const handleDepayWebhook = async (req, res) => {
 
 // Create Depay Transaction
 export const createDepayTransaction = async (req, res) => {
-    const { planType } = req.body;
+    const { planType, billingPeriod } = req.body;
 
-    if (!planType || !Object.values(SUBSCRIPTION_TYPES).includes(planType)) {
-        return res.status(400).json({ error: 'Invalid or missing plan type.' });
+    console.log('Received create-depay-transaction request:', { planType, billingPeriod }); // Debug log
+
+    if (!planType || !billingPeriod || !Object.values(SUBSCRIPTION_TYPES).includes(planType)) {
+        console.error('Invalid input:', { planType, billingPeriod }); // Debug log
+        return res.status(400).json({ error: 'Invalid or missing plan type or billing period.' });
     }
 
     try {
@@ -540,12 +555,15 @@ export const createDepayTransaction = async (req, res) => {
         }
 
         // สร้างลิงก์ DePay พร้อมกับ secret_id และ plan
-        const depayLink = `${DEPAY_LINK}?secret_id=${userUUID}&plan=${planType}`;
+        const depayLink = `${DEPAY_LINK}?secret_id=${userUUID}&plan=${planType}&billing=${billingPeriod}`;
 
         // Log เพื่อดูค่า
-        console.log('Created DePay link:', depayLink);
-        console.log('User UUID:', userUUID);
-        console.log('Plan Type:', planType);
+        console.log('Created DePay link:', {
+            depayLink,
+            userUUID,
+            planType,
+            billingPeriod
+        });
 
         res.status(200).json({ depayLink });
     } catch (error) {

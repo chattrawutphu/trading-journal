@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { SUBSCRIPTION_TYPES } from '../../config/subscription.js';
+import { SUBSCRIPTION_TYPES, BILLING_PERIODS } from '../../config/subscription.js';
 
 const subscriptionSchema = new mongoose.Schema({
     userId: {
@@ -58,7 +58,13 @@ const subscriptionSchema = new mongoose.Schema({
         },
         transactionHash: String, // เพิ่มฟิลด์ transactionHash
         pdfUrl: String
-    }]
+    }],
+    billingPeriod: {
+        type: String,
+        enum: Object.values(BILLING_PERIODS),
+        required: true,
+        default: BILLING_PERIODS.MONTHLY
+    }
 }, {
     timestamps: true
 });

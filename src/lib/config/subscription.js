@@ -24,6 +24,17 @@ export const BILLING_PERIODS = {
     YEARLY: 'yearly'
 };
 
+export const PLAN_PRICES = {
+    [SUBSCRIPTION_TYPES.PRO]: {
+        [BILLING_PERIODS.MONTHLY]: 19.99,
+        [BILLING_PERIODS.YEARLY]: 199.99
+    },
+    [SUBSCRIPTION_TYPES.PRO_PLUS]: {
+        [BILLING_PERIODS.MONTHLY]: 49.99,
+        [BILLING_PERIODS.YEARLY]: 499.99
+    }
+};
+
 export const SUBSCRIPTION_PLANS = {
     monthly: [
         {

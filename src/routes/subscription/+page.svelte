@@ -223,11 +223,19 @@
             paymentStatus = 'Initializing Depay payment...';
             subscriptionStore.setLoading(true);
             
-            await subscriptionStore.initiateDepayPayment(plan.type);
-            // The user will be redirected to Depay, so no further action is needed here
+            const paymentData = {
+                planType: plan.type,
+                billingPeriod: selectedBillingPeriod,
+                amount: plan.price.replace(/[^0-9.]/g, ''), // ดึงเฉพาะตัวเลขจากราคา
+                currency: 'USD'
+            };
+
+            console.log('Sending payment data:', paymentData); // Debug log
+            await subscriptionStore.initiateDepayPayment(paymentData);
         } catch (error) {
             console.error('Depay payment initiation failed:', error);
             paymentError = error.message;
+        } finally {
             loading = false;
             subscriptionStore.setLoading(false);
         }
@@ -237,7 +245,10 @@
         try {
             loading = true;
             await subscriptionStore.cancelSubscription();
+            // Refresh subscription data to get updated status
             subscriptionData = await subscriptionStore.initializeSubscription();
+            // Update subscription status immediately in the UI
+            subscriptionData.status = 'cancelled';
             isPaidUser = false;
             alert('Subscription cancelled successfully.');
         } catch (error) {

@@ -21,7 +21,7 @@
             </p>
         </div>
         <div class="text-right">
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {subscriptionData.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'}">
                 {subscriptionData.status === 'active' ? 'Active' : 'Cancelled'}
             </span>
         </div>

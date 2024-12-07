@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { SUBSCRIPTION_TYPES, DEPAY_PUBLIC_KEY } from '../config/subscription';
+import { SUBSCRIPTION_TYPES, DEPAY_PUBLIC_KEY, BILLING_PERIODS } from '../config/subscription';
 import { api } from '../utils/api';
 
 const DEPAY_LINK = 'https://link.depay.com/20Fh2IraACfqJyeDQzlizr';
@@ -14,7 +14,8 @@ function createSubscriptionStore() {
     error: null,
     paymentStatus: '',
     transactionHash: null,
-    invoices: []
+    invoices: [],
+    billingPeriod: BILLING_PERIODS.MONTHLY
   });
 
   const store = {
@@ -64,22 +65,24 @@ function createSubscriptionStore() {
     },
 
     // Keep only the Depay payment processing method
-    initiateDepayPayment: async (planType) => {
+    initiateDepayPayment: async (data) => {
       try {
+        console.log('Initiating payment with data:', data); // Debug log
         update(state => ({ ...state, loading: true, paymentStatus: 'Redirecting to Depay...' }));
         
-        const response = await api.createDepayTransaction(planType);
+        const response = await api.createDepayTransaction(data);
         const { depayLink } = response;
 
         if (!depayLink) {
-          throw new Error('Failed to initiate Depay transaction.');
+            throw new Error('Failed to initiate Depay transaction.');
         }
 
-        // Redirect ผู้ใช้ไปยังลิงก์ DePay ที่มี secret_id
+        console.log('Got Depay link:', depayLink); // Debug log
         window.location.href = depayLink;
       } catch (error) {
         console.error('Depay payment initiation failed:', error);
         update(state => ({ ...state, loading: false, error: error.message }));
+        throw error;
       }
     },
 
@@ -171,7 +174,7 @@ function getPriceForPlan(planType) {
   const prices = {
     [SUBSCRIPTION_TYPES.BASIC]: 0,
     [SUBSCRIPTION_TYPES.PRO]: 0.01,      // เปลี่ยนราคาตามต้องการ
-    [SUBSCRIPTION_TYPES.PRO_PLUS]: 0.02  // เปลี่ยนราคาตามต้องการ
+    [SUBSCRIPTION_TYPES.PRO_PLUS]: 0.02  // เปลี่ยนราคาตามต้อ��การ
   };
   return prices[planType];
 }
