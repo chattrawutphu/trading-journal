@@ -82,6 +82,13 @@ export const createSubscription = async (req, res) => {
             endDate.setMonth(endDate.getMonth() + 1);
         }
 
+        const invoice = {
+            id: `INV-${Date.now()}`,
+            date: new Date(),
+            amount,
+            status: 'paid'
+        };
+
         const subscription = await Subscription.create({
             userId: req.user._id,
             type: planType,
@@ -93,23 +100,24 @@ export const createSubscription = async (req, res) => {
                 amount,
                 currency: 'USD'
             },
-            invoices: [{
-                id: `INV-${Date.now()}`,
-                date: new Date(),
-                amount,
-                status: 'paid'
-            }]
+            invoices: [invoice]
         });
 
         // Update user's subscription reference and invoices
-        await User.findByIdAndUpdate(req.user._id, {
+        const userUpdateResult = await User.findByIdAndUpdate(req.user._id, {
             $set: {
                 'subscription.type': planType,
                 'subscription.status': 'active',
-                'subscription.amount': amount
+                'subscription.amount': amount,
+                'subscription.startDate': subscription.startDate, // Add startDate
+                'subscription.endDate': subscription.endDate // Add endDate
             },
             $push: { invoices: invoice }
-        });
+        }, { new: true });
+
+        console.log('Subscription created:', subscription);
+        console.log('Invoice created:', invoice);
+        console.log('User updated:', userUpdateResult);
 
         res.status(201).json({
             success: true,
@@ -117,6 +125,7 @@ export const createSubscription = async (req, res) => {
             invoice
         });
     } catch (error) {
+        console.error('Error creating subscription:', error);
         res.status(400).json({ error: error.message });
     }
 };
@@ -355,6 +364,8 @@ export const confirmPayment = async (req, res) => {
             transactionHash: transaction_hash
         });
 
+        console.log('Updated subscription:', subscription);
+
         res.status(200).json({
             success: true,
             subscription,
@@ -381,6 +392,7 @@ function determinePlanType(paymentId) {
 // Helper function to update subscription
 async function updateSubscription({ userId, planType, billingPeriod, paymentId, transactionHash }) {
     const price = PLAN_PRICES[planType][billingPeriod];
+    const startDate = new Date();
     const endDate = new Date();
     
     // กำหนดวันหมดอายุตาม billing period
@@ -409,9 +421,9 @@ async function updateSubscription({ userId, planType, billingPeriod, paymentId, 
         {
             $set: {
                 type: planType,
-                billingPeriod, // เพิ่ม billing period
+                billingPeriod,
                 status: 'active',
-                startDate: new Date(),
+                startDate,
                 endDate,
                 'paymentMethod.type': 'depay',
                 'paymentMethod.last4': transactionHash.slice(-4),
@@ -433,14 +445,20 @@ async function updateSubscription({ userId, planType, billingPeriod, paymentId, 
         }
     );
 
-    // อัพเดท User model ด้วย
-    await User.findByIdAndUpdate(userId, {
+    // อัพเดท User model ด้วย โดยเพิ่มการตั้งค่า startDate และ endDate อย่างชัดเจน
+    const userUpdateResult = await User.findByIdAndUpdate(userId, {
         $set: {
             'subscription.type': planType,
             'subscription.status': 'active',
-            'subscription.amount': price
-        }
-    });
+            'subscription.amount': price,
+            'subscription.startDate': startDate,
+            'subscription.endDate': endDate
+        },
+        $push: { invoices: { id: invoiceId, date: new Date(), amount: price, status: 'paid', transactionHash } }
+    }, { new: true });
+
+    console.log('Updated subscription with new invoice:', subscription);
+    console.log('User updated:', userUpdateResult);
 
     return subscription;
 }

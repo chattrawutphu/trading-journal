@@ -33,7 +33,16 @@ const userSchema = new mongoose.Schema({
             enum: ['active', 'cancelled', 'expired'],
             default: 'active'
         },
-        amount: Number
+        amount: Number,
+        startDate: {
+            type: Date,
+            default: null
+        },
+        endDate: {
+            type: Date,
+            default: null
+        },
+        cancelAt: Date
     },
     invoices: [{
         id: String,
@@ -44,7 +53,7 @@ const userSchema = new mongoose.Schema({
             enum: ['paid', 'pending', 'failed'],
             default: 'paid'
         },
-        transactionHash: String, // เพิ่มฟิลด์ transactionHash
+        transactionHash: String,
         pdfUrl: String
     }],
     strategies: {
@@ -73,6 +82,13 @@ userSchema.pre('save', async function(next) {
 
 userSchema.methods.matchPassword = async function(enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// เพิ่มเมธอดตรวจสอบสถานะการสมัครสมาชิก
+userSchema.methods.isSubscriptionActive = function() {
+    return this.subscription.status === 'active' && 
+           this.subscription.endDate && 
+           this.subscription.endDate > new Date();
 };
 
 export default mongoose.model('User', userSchema);

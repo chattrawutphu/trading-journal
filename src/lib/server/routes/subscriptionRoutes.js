@@ -8,9 +8,9 @@ import {
   getInvoices,
   downloadInvoice,
   handleDepayWebhook,
-  createSubscription,       // Already imported
-  confirmPayment,           // Added confirmPayment
-  createDepayTransaction    // Added createDepayTransaction
+  createSubscription,
+  confirmPayment,
+  createDepayTransaction
 } from '../controllers/subscriptionController.js';
 
 const router = express.Router();
@@ -37,8 +37,7 @@ router.post('/reactivate', reactivateSubscription);
 router.get('/invoices', getInvoices);
 router.get('/invoices/:invoiceId/download', downloadInvoice);
 router.post('/process-payment', processPayment);
-router.post('/confirm-payment', confirmPayment); // Added confirm-payment route
-router.post('/create-depay-transaction', createDepayTransaction); // Added create-depay-transaction route
+router.post('/confirm-payment', confirmPayment);
+router.post('/create-depay-transaction', createDepayTransaction);
 
-// Ensure only one export default exists
 export default router;
