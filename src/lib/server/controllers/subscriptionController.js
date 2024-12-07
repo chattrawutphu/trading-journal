@@ -103,21 +103,9 @@ export const createSubscription = async (req, res) => {
             invoices: [invoice]
         });
 
-        // Update user's subscription reference and invoices
-        const userUpdateResult = await User.findByIdAndUpdate(req.user._id, {
-            $set: {
-                'subscription.type': planType,
-                'subscription.status': 'active',
-                'subscription.amount': amount,
-                'subscription.startDate': subscription.startDate, // Add startDate
-                'subscription.endDate': subscription.endDate // Add endDate
-            },
-            $push: { invoices: invoice }
-        }, { new: true });
-
-        console.log('Subscription created:', subscription);
-        console.log('Invoice created:', invoice);
-        console.log('User updated:', userUpdateResult);
+        // Remove user update code
+        // Save the subscription
+        await subscription.save();
 
         res.status(201).json({
             success: true,
@@ -176,6 +164,7 @@ export const reactivateSubscription = async (req, res) => {
     }
 };
 
+// Update invoice retrieval to use subscription data
 export const getInvoices = async (req, res) => {
     try {
         // Fetch all subscriptions for the user
@@ -190,7 +179,7 @@ export const getInvoices = async (req, res) => {
             sub.invoices.forEach(inv => {
                 invoices.push({
                     ...inv.toObject(),
-                    subscriptionStatus
+                    subscriptionStatus: inv.subscriptionStatus
                 });
             });
         });

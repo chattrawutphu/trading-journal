@@ -57,7 +57,12 @@ const subscriptionSchema = new mongoose.Schema({
             default: 'paid'
         },
         transactionHash: String, // เพิ่มฟิลด์ transactionHash
-        pdfUrl: String
+        pdfUrl: String,
+        subscriptionStatus: {
+            type: String,
+            enum: ['active', 'cancelled', 'expired'],
+            default: 'active'
+        }
     }],
     billingPeriod: {
         type: String,
@@ -98,6 +103,22 @@ subscriptionSchema.methods.reactivate = function() {
     }
     throw new Error('Can only reactivate cancelled subscriptions');
 };
+
+subscriptionSchema.methods.updateSubscriptionStatus = function() {
+    if (this.endDate <= new Date()) {
+        this.status = 'expired';
+    }
+    // Update subscriptionStatus in invoices
+    this.invoices.forEach(invoice => {
+        invoice.subscriptionStatus = this.status;
+    });
+};
+
+// Pre-save hook to update statuses
+subscriptionSchema.pre('save', function(next) {
+    this.updateSubscriptionStatus();
+    next();
+});
 
 // Statics
 subscriptionSchema.statics.findActiveByUserId = function(userId) {

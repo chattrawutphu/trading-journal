@@ -22,40 +22,6 @@ const userSchema = new mongoose.Schema({
         enum: ['user', 'admin'],
         default: 'user'
     },
-    subscription: {
-        type: {
-            type: String,
-            enum: Object.values(SUBSCRIPTION_TYPES),
-            default: SUBSCRIPTION_TYPES.BASIC
-        },
-        status: {
-            type: String,
-            enum: ['active', 'cancelled', 'expired'],
-            default: 'active'
-        },
-        amount: Number,
-        startDate: {
-            type: Date,
-            default: null
-        },
-        endDate: {
-            type: Date,
-            default: null
-        },
-        cancelAt: Date
-    },
-    invoices: [{
-        id: String,
-        date: Date,
-        amount: Number,
-        status: {
-            type: String,
-            enum: ['paid', 'pending', 'failed'],
-            default: 'paid'
-        },
-        transactionHash: String,
-        pdfUrl: String
-    }],
     strategies: {
         type: [String],
         default: []

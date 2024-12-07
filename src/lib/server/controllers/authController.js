@@ -18,11 +18,7 @@ export const register = async (req, res) => {
       password,
       name,
       role: 'user',
-      strategies: [],
-      subscription: {
-        type: SUBSCRIPTION_TYPES.BASIC,
-        status: 'active'
-      }
+      strategies: []
     };
 
     const user = await User.create(userData);
@@ -34,7 +30,6 @@ export const register = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        subscription: user.subscription,
         strategies: user.strategies,
       });
     } else {
@@ -86,7 +81,6 @@ export const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        subscription: user.subscription,
         strategies: user.strategies,
       }
     });
@@ -130,7 +124,6 @@ export const getProfile = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        subscription: user.subscription,
         strategies: user.strategies
       });
     } else {
@@ -166,7 +159,6 @@ export const updateProfile = async (req, res) => {
         name: updatedUser.name,
         email: updatedUser.email,
         role: updatedUser.role,
-        subscription: updatedUser.subscription,
         strategies: updatedUser.strategies,
       });
     } else {
@@ -191,7 +183,6 @@ export const verifyToken = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        subscription: user.subscription,
         strategies: user.strategies,
         token,
       });
