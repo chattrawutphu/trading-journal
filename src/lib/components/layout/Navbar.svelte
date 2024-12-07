@@ -6,12 +6,15 @@
     import { goto } from '$app/navigation';
     import AccountManager from '../accounts/AccountManager.svelte';
     import ThemeToggle from '../common/ThemeToggle.svelte';
+    import { onMount } from 'svelte';
   
     let showAccountMenu = false;
     let showUserMenu = false;
     let accountMenuRef;
     let userMenuRef;
-  
+    let showSubscriptionWarning = false;
+    let warningDismissed = false;
+
     function handleLogout() {
       auth.logout();
       goto('/login');
@@ -35,6 +38,27 @@
         }).format(balance || 0);
     }
 
+    // Check if subscription is near expiry (within 7 days)
+    function isSubscriptionNearExpiry(endDate) {
+        if (!endDate) return false;
+        const expiryDate = new Date(endDate);
+        const now = new Date();
+        const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        return expiryDate <= sevenDaysFromNow && expiryDate > now;
+    }
+
+    // Dismiss warning and save to localStorage
+    function dismissWarning() {
+        warningDismissed = true;
+        localStorage.setItem('subscriptionWarningDismissed', 'true');
+    }
+
+    // Reset localStorage warning when a new invoice is created
+    function resetWarningDismissal() {
+        localStorage.removeItem('subscriptionWarningDismissed');
+        warningDismissed = false;
+    }
+
     $: subscriptionBadge = SUBSCRIPTION_FEATURES[$subscriptionStore?.type];
 
     // Add badge styles mapping
@@ -54,9 +78,45 @@
         if (!type) return 'basic';
         return type.toLowerCase();
     }
+
+    onMount(() => {
+        // Check localStorage for previous warning dismissal
+        warningDismissed = localStorage.getItem('subscriptionWarningDismissed') === 'true';
+    });
+
+    // Reactive statement to check subscription expiry
+    $: {
+        if ($subscriptionStore?.endDate && 
+            isSubscriptionNearExpiry($subscriptionStore.endDate) && 
+            !warningDismissed) {
+            showSubscriptionWarning = true;
+        } else {
+            showSubscriptionWarning = false;
+        }
+    }
 </script>
 
 <svelte:window on:click={handleClickOutside}/>
+
+{#if showSubscriptionWarning}
+<div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 fixed top-0 left-0 right-0 z-50" role="alert">
+    <div class="flex items-center justify-between">
+        <p>
+            <strong>Subscription Expiring Soon!</strong> 
+            Your subscription will expire in less than 7 days. 
+            <a href="/subscription" class="underline ml-2">Renew Now</a>
+        </p>
+        <button 
+            on:click={dismissWarning}
+            class="text-yellow-700 hover:text-yellow-900 ml-4"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+</div>
+{/if}
   
 <nav class>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
