@@ -11,7 +11,7 @@
         <table class="w-full">
             <thead>
                 <tr class="border-b border-light-border dark:border-dark-border">
-                    <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Invoice</th>
+                    <!-- <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Invoice</th> -->
                     <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Date</th>
                     <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Amount</th>
                     <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Status</th>
@@ -22,9 +22,9 @@
             <tbody class="divide-y divide-light-border dark:divide-dark-border">
                 {#each invoices as invoice}
                     <tr class="hover:bg-light-hover dark:hover:bg-dark-hover">
-                        <td class="py-3 px-4 text-light-text dark:text-dark-text">
+                        <!-- <td class="py-3 px-4 text-light-text dark:text-dark-text">
                             {invoice.id || invoice.transactionHash?.slice(-8) || 'N/A'}
-                        </td>
+                        </td> -->
                         <td class="py-3 px-4 text-light-text dark:text-dark-text">
                             {formatDistanceToNow(new Date(invoice.date), { addSuffix: true })}
                         </td>
