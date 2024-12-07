@@ -6,7 +6,8 @@ import {
     cancelSubscription,
     reactivateSubscription,
     getInvoices,
-    downloadInvoice
+    downloadInvoice,
+    confirmPayment
 } from '$lib/server/controllers/subscriptionController.js';
 
 /** @type {import('./$types').RequestHandler} */
@@ -57,6 +58,8 @@ export async function POST({ request, params, locals }) {
                 return json(await cancelSubscription({ user: locals.user }));
             case 'reactivate':
                 return json(await reactivateSubscription({ user: locals.user }));
+            case 'confirm-payment':
+                return json(await confirmPayment({ body }));
             default:
                 return json({ error: 'Invalid endpoint' }, { status: 404 });
         }

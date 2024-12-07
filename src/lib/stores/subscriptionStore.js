@@ -69,15 +69,14 @@ function createSubscriptionStore() {
         update(state => ({ ...state, loading: true, paymentStatus: 'Redirecting to Depay...' }));
         
         const response = await api.createDepayTransaction(planType);
-        const { txHash } = response;
+        const { depayLink } = response;
 
-        if (!txHash) {
+        if (!depayLink) {
           throw new Error('Failed to initiate Depay transaction.');
         }
 
-        // Redirect the user to Depay's payment page with necessary query parameters
-        const redirectUrl = `${DEPAY_LINK}`;
-        window.location.href = redirectUrl;
+        // Redirect ผู้ใช้ไปยังลิงก์ DePay ที่มี secret_id
+        window.location.href = depayLink;
       } catch (error) {
         console.error('Depay payment initiation failed:', error);
         update(state => ({ ...state, loading: false, error: error.message }));

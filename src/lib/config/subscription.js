@@ -128,6 +128,9 @@ at9Gp+y0ZooXNEeMRVrH70SR4lbZnonVyWywhe/4xq1TRXbRq9YTIi9kr1UC2ZVR
 DQIDAQAB
 -----END PUBLIC KEY-----`;
 
+// ตรวจสอบว่า DEPAY_LINK ถูก export แล้ว
+export const DEPAY_LINK = 'https://link.depay.com/20Fh2IraACfqJyeDQzlizr';
+
 // Remove DepayFi configuration if not used elsewhere
 // export const DEPAYFI_CONFIG = {
 //     apiKey: process.env.DEPAYFI_API_KEY,

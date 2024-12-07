@@ -40,13 +40,11 @@
     });
 
     onMount(() => {
-        // Optionally, parse query parameters for payment confirmation
         const urlParams = new URLSearchParams(window.location.search);
         const txHash = urlParams.get('txHash');
 
         if (txHash) {
-            // Optionally, verify payment status by calling an API endpoint
-            subscriptionStore.confirmPayment(subscriptionData.type, txHash, ''); // Signature can be handled server-side
+            subscriptionStore.confirmPayment(txHash);
         }
     });
 
@@ -193,7 +191,7 @@
             loading = false;
             if (paymentError) {
                 paymentStatus = 'การชำระเงินล้มเหลว';
-                // ปิดโมดัลหลังจา��แสดงข้อผิดพลาด
+                // ปิดโมดัลหลังจากแสดงข้อผิดพลาด
                 setTimeout(() => {
                     showModal = false;
                     paymentStatus = '';

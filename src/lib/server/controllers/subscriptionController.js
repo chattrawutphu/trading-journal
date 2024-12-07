@@ -1,6 +1,10 @@
 import Subscription from '../models/Subscription.js';
 import User from '../models/User.js';
-import { SUBSCRIPTION_TYPES, DEPAY_PUBLIC_KEY } from '../../config/subscription.js';
+import { 
+    SUBSCRIPTION_TYPES, 
+    DEPAY_PUBLIC_KEY,
+    DEPAY_LINK  // เพิ่ม DEPAY_LINK ในการ import
+} from '../../config/subscription.js';
 import Web3 from 'web3';
 import crypto from 'crypto';
 
@@ -297,70 +301,55 @@ export const processPayment = async (req, res) => {
 };
 
 export const confirmPayment = async (req, res) => {
-    // Log ข้อมูลทั้งหมดที่ได้รับจาก DePay
     console.log('DePay Callback Headers:', req.headers);
     console.log('DePay Callback Body:', req.body);
-    
-    // DePay จะส่งข้อมูลมาในรูปแบบ:
-    // {
-    //   payment_id: "unique_payment_id",
-    //   status: "completed", 
-    //   amount: "0.1",
-    //   currency: "ETH",
-    //   blockchain: "ethereum",
-    //   sender: "0x123...",
-    //   recipient: "0x456...",
-    //   transaction_hash: "0xabc...",
-    //   signature: "...", // ลายเซ็นจาก DePay
-    //   metadata: {
-    //     planType: "PRO",
-    //     userId: "user_id"
-    //   }
-    // }
 
-    const { 
-        payment_id,
+    const {
         status,
-        transaction_hash,
-        signature,
-        metadata
+        transaction: transaction_hash,
+        payload,
+        forward_to,
     } = req.body;
 
     try {
-        // 1. ตรวจสอบว่ามีข้อมูลที่จำเป็นครบถ้วน
-        if (!payment_id || !status || !transaction_hash || !signature || !metadata?.planType) {
-            console.error('Missing required fields:', { payment_id, status, transaction_hash, signature, metadata });
-            return res.status(400).json({ error: 'Missing required fields' });
+        // ดึง secret_id จาก forward_to URL แทนที่จะใช้จาก secret_id โดยตรง
+        const forwardToUrl = new URL(forward_to);
+        const userUUID = forwardToUrl.searchParams.get('secret_id');
+        const planType = forwardToUrl.searchParams.get('plan');
+
+        if (!userUUID) {
+            console.error('Missing secret_id in forward_to URL');
+            return res.status(400).json({ error: 'Missing secret_id' });
         }
 
-        // 2. ตรวจสอบลายเซ็นจาก DePay
-        const payload = JSON.stringify({
-            payment_id,
-            status,
-            transaction_hash
-        });
-
-        const isValid = verifySignature(payload, signature);
-        if (!isValid) {
-            console.error('Invalid signature from DePay');
-            return res.status(400).json({ error: 'Invalid signature' });
+        // ค้นหาผู้ใช้โดยใช้ UUID จาก URL parameters
+        const user = await User.findOne({ uuid: userUUID });
+        
+        if (!user) {
+            console.error('User not found for UUID:', userUUID);
+            return res.status(404).json({ error: 'User not found' });
         }
 
-        // 3. ตรวจสอบสถานะการชำระเงิน
-        if (status !== 'completed') {
+        if (status !== 'success') {
             console.error('Payment not completed:', status);
             return res.status(400).json({ error: 'Payment not completed' });
         }
 
-        // 4. อัพเดทสถานะการสมัครสมาชิก
         const subscription = await updateSubscription({
-            userId: metadata.userId,
-            planType: metadata.planType,
-            paymentId: payment_id,
+            userId: user._id,
+            planType: planType || determinePlanType(payload?.link_id),
+            paymentId: payload?.link_id || Date.now().toString(),
             transactionHash: transaction_hash
         });
 
-        // 5. ส่งผลลัพธ์กลับ
+        // Log สำหรับ debug
+        console.log('Payment confirmed for:', {
+            userUUID,
+            planType,
+            userId: user._id,
+            transactionHash: transaction_hash
+        });
+
         res.status(200).json({
             success: true,
             subscription,
@@ -372,6 +361,17 @@ export const confirmPayment = async (req, res) => {
         res.status(500).json({ error: error.message || 'Internal server error' });
     }
 };
+
+// Helper function to determine plan type based on payment link ID
+function determinePlanType(paymentId) {
+    // Implement your logic to determine the plan type based on the payment link ID
+    // For example:
+    if (paymentId === '20Fh2IraACfqJyeDQzlizr') {
+        return SUBSCRIPTION_TYPES.PRO;
+    }
+    // Add more conditions as needed
+    return SUBSCRIPTION_TYPES.BASIC;
+}
 
 // Helper function to update subscription
 async function updateSubscription({ userId, planType, paymentId, transactionHash }) {
@@ -501,18 +501,32 @@ export const createDepayTransaction = async (req, res) => {
     }
 
     try {
-        // Generate a unique transaction hash
-        const txHash = uuidv4();
+        // สร้าง UUID ถ้าผู้ใช้ยังไม่มี
+        const userUUID = req.user.uuid || uuidv4();
+        
+        // บันทึก UUID ลงในผู้ใช้
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            { $set: { uuid: userUUID } },
+            { new: true }
+        );
 
-        // Optionally, store the transaction in the database with status 'pending'
-        // You can create a Transaction model or include it within the Subscription model
-        // For simplicity, we'll assume it's stored within the Subscription model
+        if (!user) {
+            throw new Error('User not found');
+        }
 
-        // Respond with the txHash to the client
-        res.status(200).json({ txHash });
+        // สร้างลิงก์ DePay พร้อมกับ secret_id และ plan
+        const depayLink = `${DEPAY_LINK}?secret_id=${userUUID}&plan=${planType}`;
+
+        // Log เพื่อดูค่า
+        console.log('Created DePay link:', depayLink);
+        console.log('User UUID:', userUUID);
+        console.log('Plan Type:', planType);
+
+        res.status(200).json({ depayLink });
     } catch (error) {
         console.error('Error creating Depay transaction:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: error.message || 'Internal Server Error' });
     }
 };
 
