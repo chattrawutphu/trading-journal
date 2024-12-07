@@ -131,11 +131,12 @@ subscriptionSchema.statics.findActiveByUserId = function(userId) {
 
 subscriptionSchema.statics.updateExpiredSubscriptions = async function() {
     const now = new Date();
-    // Update subscriptions that have expired
-    await this.updateMany(
+    console.log('Updating expired subscriptions...');
+    const result = await this.updateMany(
         { status: 'active', endDate: { $lte: now } },
         { $set: { status: 'expired' } }
     );
+    console.log(`Expired subscriptions updated: ${result.nModified}`);
 };
 
 export default mongoose.model('Subscription', subscriptionSchema);
