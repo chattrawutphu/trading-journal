@@ -1,7 +1,7 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import { onMount } from 'svelte';
-    import { fetch } from 'whatwg-fetch'; // Ensure fetch is available
+    // import { fetch } from 'whatwg-fetch'; // Remove this line
 
     const dispatch = createEventDispatcher();
 
