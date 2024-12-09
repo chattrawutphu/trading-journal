@@ -30,7 +30,7 @@
     let paymentStatus = '';
     let selectedPlan = null;
     let showCancelModal = false;
-    let activeTab = isPaidUser ? 'subscription' : 'plans';
+    let activeTab = '';
     let showUpgradeModal = false;
     let upgradePlan = null;
 
@@ -51,6 +51,7 @@
             console.error('Failed to initialize subscription:', error);
             paymentError = error.message;
         } finally {
+            activeTab = isPaidUser ? 'subscription' : 'plans';
             loading = false;
         }
     });
