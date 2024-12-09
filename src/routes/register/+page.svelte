@@ -3,8 +3,9 @@
     import { auth } from '$lib/stores/authStore';
     import { goto } from '$app/navigation';
     import ThemeToggle from '$lib/components/common/ThemeToggle.svelte';
+    import { generateUsername } from '$lib/utils/validators';
 
-    let name = '';
+    let username = '';
     let email = '';
     let password = '';
     let confirmPassword = '';
@@ -23,7 +24,7 @@
 
         try {
             const userData = {
-                name,
+                username,
                 email,
                 password
             };
@@ -89,16 +90,16 @@
                 {/if}
 
                 <div>
-                    <label for="name" class="block text-sm font-medium text-light-text dark:text-dark-text mb-1">
-                        Full Name
+                    <label for="username" class="block text-sm font-medium text-light-text dark:text-dark-text mb-1">
+                        Username
                     </label>
                     <input
-                        id="name"
+                        id="username"
                         type="text"
-                        bind:value={name}
+                        bind:value={username}
                         required
                         class="input w-full"
-                        placeholder="Enter your full name"
+                        placeholder="Enter your username"
                     />
                 </div>
 

@@ -77,7 +77,7 @@ const subscriptionSchema = new mongoose.Schema({
 // Index for faster queries
 subscriptionSchema.index({ userId: 1 });
 subscriptionSchema.index({ status: 1 });
-subscriptionSchema.index({ endDate: 1 }, { expireAfterSeconds: 0 });
+subscriptionSchema.index({ endDate: 1 });
 subscriptionSchema.index({ 'invoices.transactionHash': 1 });
 
 // Methods

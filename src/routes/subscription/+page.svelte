@@ -30,6 +30,14 @@
     let paymentStatus = '';
     let selectedPlan = null;
     let showCancelModal = false;
+    let activeTab = isPaidUser ? 'subscription' : 'plans';
+    let showUpgradeModal = false;
+    let upgradePlan = null;
+
+    function handleUpgrade(plan) {
+        upgradePlan = plan;
+        showUpgradeModal = true;
+    }
 
     onMount(async () => {
         loading = true;
@@ -301,20 +309,67 @@
     {#if loading}
         <Loading message="Loading..." overlay={true} />
     {:else}
-        {#if isPaidUser}
-            <div class="max-w-4xl mx-auto">
-                <SubscriptionStatus
-                    {subscriptionData}
-                    {daysRemaining}
-                    {loading}
-                    on:cancelClick={handleCancelClick}
-                />
-                <BillingHistory
-                    invoices={processInvoices(subscriptionData.invoices || [])}
-                    {handleDownloadInvoice}
-                />
+        {#if subscriptionData && Object.keys(subscriptionData).length > 0 && isPaidUser}
+            <!-- Tab Navigation -->
+            <div class="border-b border-light-border dark:border-dark-border mb-8">
+                <nav class="-mb-px flex space-x-8">
+                    <button
+                        class="py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 {activeTab === 'plans' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
+                        on:click={() => activeTab = 'plans'}
+                    >
+                        Choose Your Plan
+                    </button>
+                    <button
+                        class="py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 {activeTab === 'subscription' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
+                        on:click={() => activeTab = 'subscription'}
+                        disabled={!isPaidUser}
+                    >
+                        Your Subscription
+                    </button>
+                </nav>
             </div>
-        {:else}
+        {/if}
+
+        {#if activeTab === 'subscription'}
+            {#if isPaidUser}
+                <div class="max-w-4xl mx-auto">
+                    <SubscriptionStatus
+                        {subscriptionData}
+                        {daysRemaining}
+                        {loading}
+                        on:cancelClick={handleCancelClick}
+                    />
+                    <BillingHistory
+                        invoices={processInvoices(subscriptionData.invoices || [])}
+                        {handleDownloadInvoice}
+                    />
+                </div>
+            {:else}
+                <div class="text-center mb-12">
+                    <h1 class="text-4xl font-bold text-light-text dark:text-dark-text mb-4">Choose Your Plan</h1>
+                    <p class="text-light-text-muted dark:text-dark-text-muted max-w-2xl mx-auto mb-8">
+                        Select the perfect plan for your trading needs. Upgrade anytime to unlock more features and capabilities.
+                    </p>
+
+                    <!-- Billing Period Toggle -->
+                    <div class="inline-flex items-center bg-light-card dark:bg-dark-card rounded-lg p-1 mb-8">
+                        <button
+                            class="px-6 py-2 rounded-md {selectedBillingPeriod === BILLING_PERIODS.MONTHLY ? 'bg-theme-500 text-white' : 'text-light-text-muted dark:text-dark-text-muted'}"
+                            on:click={() => handleBillingPeriodChange(BILLING_PERIODS.MONTHLY)}
+                        >
+                            Monthly
+                        </button>
+                        <button
+                            class="px-6 py-2 rounded-md {selectedBillingPeriod === BILLING_PERIODS.YEARLY ? 'bg-theme-500 text-white' : 'text-light-text-muted dark:text-dark-text-muted'}"
+                            on:click={() => handleBillingPeriodChange(BILLING_PERIODS.YEARLY)}
+                        >
+                            Yearly
+                            <span class="ml-1 text-xs font-medium bg-green-500 text-white px-2 py-0.5 rounded-full">Save 17%</span>
+                        </button>
+                    </div>
+                </div>
+            {/if}
+        {:else if activeTab === 'plans'}
             <div class="text-center mb-12">
                 <h1 class="text-4xl font-bold text-light-text dark:text-dark-text mb-4">Choose Your Plan</h1>
                 <p class="text-light-text-muted dark:text-dark-text-muted max-w-2xl mx-auto mb-8">
@@ -383,17 +438,30 @@
                         </ul>
 
                         <!-- Action Button -->
-                        {#if !plan.current}
-                            <Button on:click={() => handleDepayPayment(plan)}>
-                                Get Started
-                            </Button>
-                        {:else}
+                        {#if plan.current}
                             <button disabled class="w-full py-3 px-4 bg-green-500 text-white rounded-lg font-medium cursor-default flex items-center justify-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
                                 Current Plan
                             </button>
+                            <p class="text-green-500 font-medium text-sm mt-1">You are currently on this plan</p>
+                        {:else if isPaidUser && subscriptionData.type === SUBSCRIPTION_TYPES.PRO && plan.type === SUBSCRIPTION_TYPES.PRO_PLUS}
+                            <Button on:click={() => handleUpgrade(plan)}>
+                                Upgrade
+                            </Button>
+                        {:else if isPaidUser && subscriptionData.type === SUBSCRIPTION_TYPES.PRO_PLUS}
+                            <button disabled class="w-full py-3 px-4 bg-green-500 text-white rounded-lg font-medium cursor-default flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Current Plan
+                            </button>
+                            <p class="text-green-500 font-medium text-sm mt-1">You are currently on this plan</p>
+                        {:else if !isPaidUser && plan.type !== SUBSCRIPTION_TYPES.BASIC}
+                            <Button on:click={() => handleDepayPayment(plan)}>
+                                Get Started
+                            </Button>
                         {/if}
                     </div>
                 {/each}
@@ -441,6 +509,29 @@
                 </button>
                 <Button variant="danger" on:click={handleCancelSubscription}>
                     Yes, Cancel Subscription
+                </Button>
+            </div>
+        </div>
+    </Modal>
+{/if}
+
+<!-- Upgrade Modal -->
+{#if showUpgradeModal}
+    <Modal show={showUpgradeModal}>
+        <div class="p-6">
+            <div class="text-center mb-6">
+                <h3 class="text-xl font-semibold text-light-text dark:text-dark-text mb-2">Upgrade to {upgradePlan?.name}</h3>
+                <p class="text-light-text-muted dark:text-dark-text-muted">Upgrading will cancel your current plan and you will be charged the full amount for the new plan.</p>
+            </div>
+            <div class="flex justify-end gap-4">
+                <button
+                    class="px-4 py-2 text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text"
+                    on:click={() => showUpgradeModal = false}
+                >
+                    Cancel
+                </button>
+                <Button variant="primary" on:click={() => handleDepayPayment(upgradePlan)}>
+                    Confirm Upgrade
                 </Button>
             </div>
         </div>
