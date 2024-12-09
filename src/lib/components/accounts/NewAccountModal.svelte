@@ -40,14 +40,9 @@
 {#if show}
     <div 
         class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
-        on:click={handleClose}
-        transition:fade={{ duration: 200 }}
-    >
+        transition:fade={{ duration: 150 }}>
         <div 
             class="card w-full max-w-md mx-auto relative transform ease-out"
-            on:click|stopPropagation
-            in:fly={{ y: 20, duration: 300, delay: 150 }}
-            out:fly={{ y: 20, duration: 200 }}
         >
             <!-- Header -->
             <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">

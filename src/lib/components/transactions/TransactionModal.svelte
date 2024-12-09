@@ -38,16 +38,8 @@
 
 {#if show}
   <div 
-    class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
-    on:click={handleClose}
-    transition:fade={{ duration: 200 }}
-  >
-    <div 
-      class="card w-full max-w-md mx-auto relative transform ease-out"
-      on:click|stopPropagation
-      in:fly={{ y: 20, duration: 300, delay: 150 }}
-      out:fly={{ y: 20, duration: 200 }}
-    >
+    class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"transition:fade={{ duration: 150 }}>
+    <div class="card w-full max-w-md mx-auto relative transform ease-out">
       <!-- Header -->
       <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">
         <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">
@@ -68,10 +60,11 @@
         <form on:submit|preventDefault={handleSubmit}>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium mb-1 text-light-text dark:text-dark-text">Type</label>
-              <div class="flex gap-4">
-                <label class="flex items-center">
+              <h3 id="type-label" class="block text-sm font-medium mb-1 text-light-text dark:text-dark-text">Type</h3>
+              <div class="flex gap-4" role="radiogroup" aria-labelledby="type-label">
+                <label class="flex items-center" for="deposit">
                   <input
+                    id="deposit"
                     type="radio"
                     bind:group={type}
                     value="deposit"
@@ -79,8 +72,9 @@
                   />
                   <span class="ml-2 text-light-text dark:text-dark-text">Deposit</span>
                 </label>
-                <label class="flex items-center">
+                <label class="flex items-center" for="withdrawal">
                   <input
+                    id="withdrawal"
                     type="radio"
                     bind:group={type}
                     value="withdrawal"
