@@ -286,12 +286,10 @@
                                 </label>
                                 <div class="input-wrapper">
                                     <TradeOptionSelect
-                                        id="trade-symbol"
                                         type="SYMBOL"
                                         bind:value={form.symbol}
                                         required
                                         placeholder="Select or add symbol"
-                                        error={touched.symbol && errors.symbol}
                                         on:input={handleInput("symbol")}
                                         {accountId}
                                     />
@@ -326,7 +324,6 @@
                                 </label>
                                 <div class="input-wrapper">
                                     <TradeOptionSelect
-                                        id="trade-strategy"
                                         type="STRATEGY"
                                         bind:value={form.strategy}
                                         placeholder="Select or add strategy"
