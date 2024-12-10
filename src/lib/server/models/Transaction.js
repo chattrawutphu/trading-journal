@@ -17,7 +17,8 @@ const transactionSchema = new mongoose.Schema({
   },
   date: {
     type: Date,
-    default: Date.now
+    default: () => new Date(), // Store date in UTC
+    required: true
   },
   note: {
     type: String,

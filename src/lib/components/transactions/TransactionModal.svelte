@@ -12,15 +12,17 @@
   let type = transaction?.type || 'deposit';
   let amount = transaction?.amount || 0;
   let date = transaction?.date 
-    ? new Date(transaction.date).toISOString().slice(0, 16)
-    : new Date().toISOString().slice(0, 16);
+    ? new Date(transaction.date).toLocaleString('sv').slice(0, 16) // Use user's local time
+    : new Date().toLocaleString('sv').slice(0, 16);
   let note = transaction?.note || '';
 
   $: if (transaction) {
     type = transaction.type;
     amount = transaction.amount;
-    date = new Date(transaction.date).toISOString().slice(0, 16);
+    date = new Date(transaction.date).toLocaleString('sv').slice(0, 16); // Use user's local time
     note = transaction.note || '';
+  } else {
+    date = new Date().toLocaleString('sv').slice(0, 16); // Use user's local time
   }
 
   function handleSubmit() {

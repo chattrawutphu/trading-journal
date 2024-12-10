@@ -27,8 +27,9 @@
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
+      // timeZoneName: 'short' // Remove timezone display
     };
-    return new Date(dateStr).toLocaleString('en-US', options);
+    return new Date(dateStr).toLocaleString(undefined, options); // Use user's locale
   }
 
   function getTypeClass(type) {

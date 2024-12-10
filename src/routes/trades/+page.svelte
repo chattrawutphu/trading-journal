@@ -28,7 +28,7 @@
     let selectedTransaction = null;
     let activeTab = 'trades';
     let transactionAmount = 0;
-    let transactionDate = new Date().toISOString().slice(0, 16); // Format for datetime-local
+    let transactionDate = new Date().toLocaleString('sv').slice(0, 16); // Use user's local time in 'YYYY-MM-DDTHH:MM' format
     let dataLoaded = false;
     let currentAccountId = null;
     let transactionNote = ''; // Add this variable if not already present
@@ -125,7 +125,7 @@
                     $accountStore.currentAccount._id,
                     'deposit',
                     transactionAmount,
-                    new Date(transactionDate),
+                    new Date(transactionDate), // Use user's local time
                     transactionNote // Pass note to createTransaction
                 );
                 await accountStore.setCurrentAccount($accountStore.currentAccount._id);
@@ -149,7 +149,7 @@
                     $accountStore.currentAccount._id,
                     'withdrawal',
                     transactionAmount,
-                    new Date(transactionDate),
+                    new Date(transactionDate), // Use user's local time
                     transactionNote // Pass note to createTransaction
                 );
                 await accountStore.setCurrentAccount($accountStore.currentAccount._id);
@@ -342,7 +342,7 @@
                         <!-- Closed Trades -->
                         <div class="card">
                             <div class="p-4 border-b border-light-border dark:border-dark-border">
-                                <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Trades</h2>
+                                <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Positions</h2>
                             </div>
                             <TradeTable 
                                 trades={closedTrades}

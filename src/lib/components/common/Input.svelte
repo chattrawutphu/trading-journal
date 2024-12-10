@@ -12,7 +12,7 @@
 
     // For datetime-local inputs, set max to current date-time if not provided
     $: if (type === 'datetime-local' && max === undefined) {
-        max = new Date().toISOString().slice(0, 16);
+        max = new Date().toLocaleString('sv').slice(0, 16); // Use user's local time
     }
 </script>
 
@@ -50,6 +50,16 @@
             <input
                 class="input {error ? 'error' : ''}"
                 type="number"
+                bind:value
+                {placeholder}
+                {...$$restProps}
+                on:input
+                on:change
+            />
+        {:else if type === 'datetime-local'}
+            <input
+                class="input {error ? 'error' : ''}"
+                type="datetime-local"
                 bind:value
                 {placeholder}
                 {...$$restProps}

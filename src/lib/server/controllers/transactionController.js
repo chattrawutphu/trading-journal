@@ -10,6 +10,8 @@ export const createTransaction = async (req, res) => {
 
     const { accountId, type, amount, date, note } = body; // Include note
 
+    const transactionDate = date ? new Date(date) : new Date(); // Parse date from user
+
     // Verify user owns the account
     const account = await Account.findById(accountId);
     if (!account) {
@@ -37,7 +39,7 @@ export const createTransaction = async (req, res) => {
       accountId,
       type,
       amount: parseFloat(amount),
-      date: date || new Date(),
+      date: transactionDate, // Use parsed date
       note // Include note
     });
 
@@ -67,6 +69,8 @@ export const updateTransaction = async (req, res) => {
       : req.body;
 
     const { type, amount, date } = body;
+
+    const transactionDate = date ? new Date(date) : new Date(); // Parse date from user
 
     // Find the transaction
     const transaction = await Transaction.findById(transactionId);
@@ -110,7 +114,7 @@ export const updateTransaction = async (req, res) => {
     transaction.type = type;
     transaction.amount = parseFloat(amount);
     if (date) {
-      transaction.date = date;
+      transaction.date = transactionDate; // Use parsed date
     }
 
     await Promise.all([
