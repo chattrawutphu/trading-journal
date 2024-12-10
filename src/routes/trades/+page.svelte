@@ -28,9 +28,10 @@
     let selectedTransaction = null;
     let activeTab = 'trades';
     let transactionAmount = 0;
-    let transactionDate = new Date().toISOString().split('T')[0];
+    let transactionDate = new Date().toISOString().slice(0, 16); // Format for datetime-local
     let dataLoaded = false;
     let currentAccountId = null;
+    let transactionNote = ''; // Add this variable if not already present
 
     $: openTrades = trades.filter(t => t.status === 'OPEN');
     $: closedTrades = trades.filter(t => t.status === 'CLOSED');
@@ -124,7 +125,8 @@
                     $accountStore.currentAccount._id,
                     'deposit',
                     transactionAmount,
-                    new Date(transactionDate)
+                    new Date(transactionDate),
+                    transactionNote // Pass note to createTransaction
                 );
                 await accountStore.setCurrentAccount($accountStore.currentAccount._id);
                 // Fetch updated transactions
@@ -132,6 +134,7 @@
                 showDepositModal = false;
                 transactionAmount = 0;
                 transactionDate = new Date().toISOString().split('T')[0];
+                transactionNote = ''; // Reset note
             } catch (err) {
                 error = err.message;
             }
@@ -146,7 +149,8 @@
                     $accountStore.currentAccount._id,
                     'withdrawal',
                     transactionAmount,
-                    new Date(transactionDate)
+                    new Date(transactionDate),
+                    transactionNote // Pass note to createTransaction
                 );
                 await accountStore.setCurrentAccount($accountStore.currentAccount._id);
                 // Fetch updated transactions
@@ -154,6 +158,7 @@
                 showWithdrawModal = false;
                 transactionAmount = 0;
                 transactionDate = new Date().toISOString().split('T')[0];
+                transactionNote = ''; // Reset note
             } catch (err) {
                 error = err.message;
             }
@@ -434,6 +439,7 @@
                             selectedTransaction = null;
                             transactionAmount = 0;
                             transactionDate = new Date().toISOString().split('T')[0];
+                            transactionNote = ''; // Reset note
                         }}
                     >
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -455,8 +461,14 @@
                         />
                         <Input
                             label="Date"
-                            type="date"
+                            type="datetime-local"
                             bind:value={transactionDate}
+                        />
+                        <Input
+                            label="Note"
+                            type="text"
+                            bind:value={transactionNote}
+                            placeholder="Add a note..."
                         />
                     </form>
                 </div>
@@ -471,6 +483,7 @@
                             selectedTransaction = null;
                             transactionAmount = 0;
                             transactionDate = new Date().toISOString().split('T')[0];
+                            transactionNote = ''; // Reset note
                         }}
                     >
                         Cancel
@@ -502,6 +515,7 @@
                             selectedTransaction = null;
                             transactionAmount = 0;
                             transactionDate = new Date().toISOString().split('T')[0];
+                            transactionNote = ''; // Reset note
                         }}
                     >
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -523,8 +537,14 @@
                         />
                         <Input
                             label="Date"
-                            type="date"
+                            type="datetime-local"
                             bind:value={transactionDate}
+                        />
+                        <Input
+                            label="Note"
+                            type="text"
+                            bind:value={transactionNote}
+                            placeholder="Add a note..."
                         />
                     </form>
                 </div>
@@ -539,6 +559,7 @@
                             selectedTransaction = null;
                             transactionAmount = 0;
                             transactionDate = new Date().toISOString().split('T')[0];
+                            transactionNote = ''; // Reset note
                         }}
                     >
                         Cancel

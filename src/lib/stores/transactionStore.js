@@ -10,13 +10,14 @@ function createTransactionStore() {
 
   return {
     subscribe,
-    createTransaction: async (accountId, type, amount, date = new Date()) => {
+    createTransaction: async (accountId, type, amount, date = new Date(), note = '') => {
       try {
         const response = await api.createTransaction({
           accountId,
           type,
           amount: parseFloat(amount),
-          date: date.toISOString()
+          date: date.toISOString(),
+          note // Include note
         });
         if (!response.success) {
           throw new Error(response.error);

@@ -21,11 +21,14 @@
   $: error = transactions === null && $transactionStore.error;
 
   function formatDate(dateStr) {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const options = { 
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
-    });
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    return new Date(dateStr).toLocaleString('en-US', options);
   }
 
   function getTypeClass(type) {

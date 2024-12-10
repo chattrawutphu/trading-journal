@@ -8,7 +8,7 @@ export const createTransaction = async (req, res) => {
       ? await req.json()
       : req.body;
 
-    const { accountId, type, amount, date } = body;
+    const { accountId, type, amount, date, note } = body; // Include note
 
     // Verify user owns the account
     const account = await Account.findById(accountId);
@@ -37,7 +37,8 @@ export const createTransaction = async (req, res) => {
       accountId,
       type,
       amount: parseFloat(amount),
-      date: date || new Date()
+      date: date || new Date(),
+      note // Include note
     });
 
     await Promise.all([

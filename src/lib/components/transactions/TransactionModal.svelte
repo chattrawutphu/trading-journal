@@ -11,13 +11,15 @@
 
   let type = transaction?.type || 'deposit';
   let amount = transaction?.amount || 0;
-  let date = transaction?.date ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+  let date = transaction?.date 
+    ? new Date(transaction.date).toISOString().slice(0, 16)
+    : new Date().toISOString().slice(0, 16);
   let note = transaction?.note || '';
 
   $: if (transaction) {
     type = transaction.type;
     amount = transaction.amount;
-    date = new Date(transaction.date).toISOString().split('T')[0];
+    date = new Date(transaction.date).toISOString().slice(0, 16);
     note = transaction.note || '';
   }
 
@@ -94,7 +96,7 @@
             />
             <Input
               label="Date"
-              type="date"
+              type="datetime-local"
               bind:value={date}
             />
             <Input
