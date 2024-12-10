@@ -49,7 +49,6 @@ function createTransactionStore() {
       }
     },
     fetchTransactions: async (accountId) => {
-      // Ensure accountId is used correctly
       update(state => ({ ...state, loading: true, error: null }));
       try {
         const response = await api.getTransactions(accountId);

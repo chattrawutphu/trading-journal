@@ -127,6 +127,8 @@
                     new Date(transactionDate)
                 );
                 await accountStore.setCurrentAccount($accountStore.currentAccount._id);
+                // Fetch updated transactions
+                await transactionStore.fetchTransactions(currentAccountId);
                 showDepositModal = false;
                 transactionAmount = 0;
                 transactionDate = new Date().toISOString().split('T')[0];
@@ -147,6 +149,8 @@
                     new Date(transactionDate)
                 );
                 await accountStore.setCurrentAccount($accountStore.currentAccount._id);
+                // Fetch updated transactions
+                await transactionStore.fetchTransactions(currentAccountId);
                 showWithdrawModal = false;
                 transactionAmount = 0;
                 transactionDate = new Date().toISOString().split('T')[0];
