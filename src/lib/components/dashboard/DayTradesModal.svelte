@@ -58,7 +58,8 @@
         // Format date for date input (YYYY-MM-DD)
         const formattedDate = new Date(date);
         formattedDate.setHours(12, 0, 0, 0); // Set to start of day
-        dispatch("newTrade", formattedDate.toISOString().slice(0, 10));
+        const dateStr = formattedDate.toISOString().slice(0, 10);
+        dispatch("newTrade", dateStr);
         close();
     }
 

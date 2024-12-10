@@ -83,8 +83,12 @@
     }
 
     function handleNewTradeFromCalendar(event) {
-        newTradeDate = event.detail;
+        // Format date for date input (YYYY-MM-DD)
+        const date = new Date(event.detail);
+        date.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+        newTradeDate = date.toISOString().slice(0, 10);
         showNewTradeModal = true;
+        showDayModal = false; // Close the day modal when opening new trade modal
     }
 
     function handleView(event) {
@@ -171,6 +175,10 @@
     }
 
     function handleNewTrade() {
+        // When clicking New Trade button, use current date
+        const now = new Date();
+        now.setHours(12, 0, 0, 0);
+        newTradeDate = now.toISOString().slice(0, 10);
         showNewTradeModal = true;
     }
 

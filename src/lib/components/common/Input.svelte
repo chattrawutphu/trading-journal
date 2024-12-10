@@ -32,6 +32,8 @@
                 type="text"
                 bind:value
                 {placeholder}
+                {required}
+                {disabled}
                 {...$$restProps}
                 on:input
                 on:change
@@ -42,6 +44,8 @@
                 type="password"
                 bind:value
                 {placeholder}
+                {required}
+                {disabled}
                 {...$$restProps}
                 on:input
                 on:change
@@ -52,6 +56,11 @@
                 type="number"
                 bind:value
                 {placeholder}
+                {required}
+                {disabled}
+                {min}
+                {max}
+                {step}
                 {...$$restProps}
                 on:input
                 on:change
@@ -62,7 +71,26 @@
                 type="datetime-local"
                 bind:value
                 {placeholder}
-                max={max}
+                {required}
+                {disabled}
+                {min}
+                {max}
+                {step}
+                {...$$restProps}
+                on:input
+                on:change
+            />
+        {:else if type === 'date'}
+            <input
+                class="input {error ? 'error' : ''}"
+                type="date"
+                bind:value
+                {placeholder}
+                {required}
+                {disabled}
+                {min}
+                {max}
+                {step}
                 {...$$restProps}
                 on:input
                 on:change
