@@ -86,6 +86,11 @@
         }
     }
 
+    // Step 1: Fetch transactions when 'transactions' tab is active
+    $: if (activeTab === 'transactions' && currentAccountId) {
+        transactionStore.fetchTransactions(currentAccountId);
+    }
+
     async function handleSubmit(event) {
         try {
             loading = true;
@@ -356,9 +361,11 @@
                 {/if}
             {:else if activeTab === 'transactions'}
                 <div class="card">
+                    <!-- Step 2: Pass accountId to TransactionTable -->
                     <TransactionTable 
-                        accountId={$accountStore.currentAccount._id}
-                        on:edit={handleEditTransaction}
+                        accountId={currentAccountId}
+                        transactions={transactionStore.transactions}
+                        readOnly={false}
                     />
                 </div>
             {/if}
