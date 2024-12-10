@@ -49,6 +49,8 @@
         } else if (type === 'STRATEGY') {
             userStrategyStore.loadStrategies();
         }
+        // Initialize searchTerm with current value
+        searchTerm = value;
     });
 
     async function handleSelect(option) {
@@ -135,28 +137,41 @@
     function handleInput() {
         if (!isOpen) isOpen = true;
         if (!editingOption) {
-            value = searchTerm;
-            dispatch('change', { value: searchTerm });
+            // Only update value and dispatch change when not in editing mode
+            // This prevents interference with typing
+            if (searchTerm.trim() === '') {
+                value = '';
+                dispatch('change', { value: '' });
+            }
         }
     }
 
     function handleClickOutside() {
         isOpen = false;
         editingOption = null;
-        searchTerm = value;
+        // Reset searchTerm to current value if no match found
+        if (!options.some(opt => opt.value.toLowerCase() === searchTerm.toLowerCase())) {
+            searchTerm = value;
+        }
     }
 
     function handleKeydown(event) {
         if (event.key === 'Enter') {
             if (editingOption) {
                 handleUpdate(editingOption);
-            } else if (searchTerm && !filteredOptions.some(opt => opt.value === searchTerm)) {
+            } else if (searchTerm && !filteredOptions.some(opt => opt.value.toLowerCase() === searchTerm.toLowerCase())) {
                 handleCreate();
+            } else if (filteredOptions.length === 1) {
+                handleSelect(filteredOptions[0]);
             }
         } else if (event.key === 'Escape') {
             isOpen = false;
             editingOption = null;
             searchTerm = value;
+        } else if (event.key === 'ArrowDown' && filteredOptions.length > 0) {
+            event.preventDefault();
+            const firstOption = filteredOptions[0];
+            handleSelect(firstOption);
         }
     }
 </script>
@@ -276,14 +291,14 @@
 
                 <!-- Add New Option Button -->
                 <div class="p-4 bg-light-card dark:bg-dark-card border-t border-light-border dark:border-dark-border">
-                    {#if searchTerm.trim() && !filteredOptions.some(opt => opt.value === searchTerm.trim())}
+                    {#if searchTerm.trim() && !filteredOptions.some(opt => opt.value.toLowerCase() === searchTerm.trim().toLowerCase())}
                         <Button 
                             variant="primary"
                             class="w-full"
                             on:click={handleCreate}
                         >
                             <div class="flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 24 24">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                 </svg>
                                 Add "{searchTerm.trim()}"
