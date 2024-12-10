@@ -11,12 +11,16 @@
     let sortDirection = 'desc';
 
     function formatDate(dateStr) {
-        return new Date(dateStr).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    }
+    const options = { 
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+      // timeZoneName: 'short' // Remove timezone display
+    };
+    return new Date(dateStr).toLocaleString(undefined, options); // Use user's locale
+  }
 
     function getStatusClass(status) {
         return status === 'OPEN' ? 'text-yellow-500' : 'text-green-500';

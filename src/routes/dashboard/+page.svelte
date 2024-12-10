@@ -182,6 +182,12 @@
     $: winRate = closedTrades.length > 0 
         ? Math.round((closedTrades.filter(t => t.pnl > 0).length / closedTrades.length) * 100)
         : 0;
+
+    function openDayTradesModal(selectedDate) {
+        selectedDisplayDate = selectedDate;
+        showDayModal = true;
+        transactionStore.fetchTransactions(currentAccountId);
+    }
 </script>
   
 <div class="space-y-4 p-8">

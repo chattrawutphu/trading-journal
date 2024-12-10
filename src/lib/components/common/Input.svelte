@@ -62,6 +62,7 @@
                 type="datetime-local"
                 bind:value
                 {placeholder}
+                max={max}
                 {...$$restProps}
                 on:input
                 on:change

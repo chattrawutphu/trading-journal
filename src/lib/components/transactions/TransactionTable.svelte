@@ -7,7 +7,7 @@
   const dispatch = createEventDispatcher();
   export let accountId;
   export let transactions = null; // Allow direct passing of transactions
-  export let readOnly = false; // Add readOnly prop for DayTradesModal
+  export let readOnly = false; // Add readOnly prop for modals
 
   let sortField = 'date';
   let sortDirection = 'desc';

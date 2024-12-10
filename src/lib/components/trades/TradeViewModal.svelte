@@ -10,12 +10,16 @@
     }
 
     function formatDate(dateStr) {
-        return new Date(dateStr).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
+    const options = { 
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+      // timeZoneName: 'short' // Remove timezone display
+    };
+    return new Date(dateStr).toLocaleString(undefined, options); // Use user's locale
+  }
 
     function getSideClass(side) {
         return side === 'LONG' ? 'text-green-500' : 'text-red-500';
