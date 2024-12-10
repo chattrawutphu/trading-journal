@@ -31,7 +31,16 @@
         error = null;
         try {
             await transactionStore.fetchTransactions(accountId);
-            transactions = transactionStore.transactions;
+            // Filter transactions for the selected date
+            const selectedDate = new Date(date);
+            selectedDate.setHours(0, 0, 0, 0);
+            const nextDay = new Date(selectedDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            
+            transactions = $transactionStore.transactions.filter(t => {
+                const transDate = new Date(t.date);
+                return transDate >= selectedDate && transDate < nextDay;
+            });
         } catch (err) {
             error = err.message;
         } finally {
@@ -60,9 +69,8 @@
             day: "numeric",
             hour: "2-digit",
             minute: "2-digit",
-            // timeZoneName: 'short' // Remove timezone display
         };
-        return new Date(dateStr).toLocaleString(undefined, options); // Use user's locale
+        return new Date(dateStr).toLocaleString(undefined, options);
     }
 
     function handleEditTransaction(event) {
@@ -185,13 +193,18 @@
                 {:else if error}
                     <div class="text-red-500">{error}</div>
                 {:else}
-                    <TransactionTable 
-                        accountId={accountId} 
-                        transactions={transactions} 
-                        readOnly={false}
-                        on:edit={handleEdit}
-                        on:delete={handleDelete}
-                    />
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">
+                            Transactions
+                        </h3>
+                        <TransactionTable 
+                            accountId={accountId} 
+                            transactions={transactions} 
+                            readOnly={false}
+                            on:edit={handleEdit}
+                            on:delete={handleDelete}
+                        />
+                    </div>
                 {/if}
 
                 {#if trades.length === 0 && transactions?.length === 0}
