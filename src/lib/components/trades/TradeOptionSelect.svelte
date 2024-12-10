@@ -19,6 +19,7 @@
     let isOpen = false;
     let searchTerm = '';
     let editingOption = null;
+    let editValue = ''; // New state for edit mode
     let options = [];
     let loading = false;
     let error = '';
@@ -35,11 +36,12 @@
         }
     }
 
-    $: filteredOptions = options
+    $: filteredOptions = !editingOption ? options
         .filter(opt => opt.value.toLowerCase().includes(searchTerm.toLowerCase()))
-        .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
+        .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0))
+        : options;
 
-    $: if (value && !options.some(opt => opt.value === value)) {
+    $: if (value && !options.some(opt => opt.value === value) && !editingOption) {
         searchTerm = value;
     }
 
@@ -49,7 +51,6 @@
         } else if (type === 'STRATEGY') {
             userStrategyStore.loadStrategies();
         }
-        // Initialize searchTerm with current value
         searchTerm = value;
     });
 
@@ -82,27 +83,30 @@
     }
 
     async function handleUpdate(option) {
-        if (!searchTerm.trim() || searchTerm === option.value) {
+        if (!editValue.trim() || editValue === option.value) {
             editingOption = null;
+            editValue = '';
             return;
         }
         try {
             if (type === 'SYMBOL' && accountId) {
                 await accountSymbolStore.removeSymbol(accountId, option.value);
-                await accountSymbolStore.addSymbol(accountId, searchTerm.trim());
+                await accountSymbolStore.addSymbol(accountId, editValue.trim());
                 if (value === option.value) {
-                    value = searchTerm.trim();
+                    value = editValue.trim();
                 }
             } else if (type === 'STRATEGY') {
                 const strategies = $userStrategyStore.strategies.filter(s => s !== option.value);
-                strategies.push(searchTerm.trim());
+                strategies.push(editValue.trim());
                 await userStrategyStore.updateStrategies(strategies);
                 if (value === option.value) {
-                    value = searchTerm.trim();
+                    value = editValue.trim();
                 }
             }
             searchTerm = value;
             editingOption = null;
+            editValue = '';
+            dispatch('change', { value });
         } catch (err) {
             console.error('Failed to update option:', err);
         }
@@ -113,7 +117,6 @@
         if (!confirm(`Are you sure you want to delete this ${type.toLowerCase()}?`)) return;
         try {
             if (type === 'SYMBOL' && accountId) {
-                // Don't allow deleting if it's the last symbol
                 if (options.length <= 1) return;
                 await accountSymbolStore.removeSymbol(accountId, option.value);
             } else if (type === 'STRATEGY') {
@@ -122,6 +125,7 @@
             if (value === option.value) {
                 value = '';
                 searchTerm = '';
+                dispatch('change', { value: '' });
             }
         } catch (err) {
             console.error('Failed to delete option:', err);
@@ -131,14 +135,13 @@
     function startEditing(option, event) {
         event.stopPropagation();
         editingOption = option;
-        searchTerm = option.value;
+        editValue = option.value;
+        if (!isOpen) isOpen = true;
     }
 
     function handleInput() {
         if (!isOpen) isOpen = true;
         if (!editingOption) {
-            // Only update value and dispatch change when not in editing mode
-            // This prevents interference with typing
             if (searchTerm.trim() === '') {
                 value = '';
                 dispatch('change', { value: '' });
@@ -148,15 +151,18 @@
 
     function handleClickOutside() {
         isOpen = false;
-        editingOption = null;
-        // Reset searchTerm to current value if no match found
-        if (!options.some(opt => opt.value.toLowerCase() === searchTerm.toLowerCase())) {
+        if (editingOption) {
+            searchTerm = editingOption.value;
+            editingOption = null;
+            editValue = '';
+        } else if (!options.some(opt => opt.value.toLowerCase() === searchTerm.toLowerCase())) {
             searchTerm = value;
         }
     }
 
     function handleKeydown(event) {
         if (event.key === 'Enter') {
+            event.preventDefault();
             if (editingOption) {
                 handleUpdate(editingOption);
             } else if (searchTerm && !filteredOptions.some(opt => opt.value.toLowerCase() === searchTerm.toLowerCase())) {
@@ -165,10 +171,16 @@
                 handleSelect(filteredOptions[0]);
             }
         } else if (event.key === 'Escape') {
-            isOpen = false;
-            editingOption = null;
-            searchTerm = value;
-        } else if (event.key === 'ArrowDown' && filteredOptions.length > 0) {
+            event.preventDefault();
+            if (editingOption) {
+                searchTerm = editingOption.value;
+                editingOption = null;
+                editValue = '';
+            } else {
+                isOpen = false;
+                searchTerm = value;
+            }
+        } else if (event.key === 'ArrowDown' && filteredOptions.length > 0 && !editingOption) {
             event.preventDefault();
             const firstOption = filteredOptions[0];
             handleSelect(firstOption);
@@ -188,6 +200,7 @@
             on:keydown={handleKeydown}
             {placeholder}
             class="input w-full pr-10 bg-light-bg dark:bg-dark-bg"
+            disabled={editingOption !== null}
         />
         <div class="absolute inset-y-0 right-0 flex items-center pr-3">
             <button
@@ -226,9 +239,10 @@
                                     <div class="flex items-center p-2">
                                         <input
                                             type="text"
-                                            bind:value={searchTerm}
+                                            bind:value={editValue}
                                             on:keydown={handleKeydown}
                                             class="input flex-1 mr-2 bg-light-bg dark:bg-dark-bg"
+                                            autofocus
                                         />
                                         <div class="flex space-x-1">
                                             <Button 
@@ -243,6 +257,7 @@
                                                 size="sm"
                                                 on:click={() => {
                                                     editingOption = null;
+                                                    editValue = '';
                                                     searchTerm = value;
                                                 }}
                                             >
@@ -291,7 +306,7 @@
 
                 <!-- Add New Option Button -->
                 <div class="p-4 bg-light-card dark:bg-dark-card border-t border-light-border dark:border-dark-border">
-                    {#if searchTerm.trim() && !filteredOptions.some(opt => opt.value.toLowerCase() === searchTerm.trim().toLowerCase())}
+                    {#if searchTerm.trim() && !editingOption && !filteredOptions.some(opt => opt.value.toLowerCase() === searchTerm.trim().toLowerCase())}
                         <Button 
                             variant="primary"
                             class="w-full"
