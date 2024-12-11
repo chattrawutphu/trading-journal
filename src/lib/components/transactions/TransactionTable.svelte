@@ -13,11 +13,12 @@
   let sortDirection = 'desc';
   let loading = false;
   let error = null;
+  let transactionCache = {};
 
   // If transactions not provided, load them from store
   $: storeTransactions = $transactionStore.transactions;
   $: displayTransactions = transactions || storeTransactions;
-  $: loading = transactions === null && $transactionStore.loading;
+  $: loading = transactions === null && $transactionStore.loading && !transactionCache[accountId];
   $: error = transactions === null && $transactionStore.error;
 
   function formatDate(dateStr) {
@@ -78,6 +79,7 @@
         await transactionStore.deleteTransaction(transactionId);
         if (!transactions) { // Only refetch if using store data
           await transactionStore.fetchTransactions(accountId);
+          transactionCache[accountId] = $transactionStore.transactions;
         }
       } catch (err) {
         console.error('Error deleting transaction:', err);
@@ -87,7 +89,7 @@
 </script>
 
 <div class="overflow-x-auto">
-  {#if loading}
+  {#if !transactionCache[accountId] && loading}
     <Loading message="Loading..." overlay={true} />
   {:else if error}
     <div class="text-red-500">{error}</div>

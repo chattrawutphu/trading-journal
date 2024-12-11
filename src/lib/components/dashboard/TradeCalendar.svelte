@@ -105,9 +105,11 @@
         return acc;
     }, {});
 
+    let transactionCache = {};
+
     // Process transactions into dailyTrades
     $: {
-        const transactions = $transactionStore.transactions;
+        const transactions = transactionCache[accountId] || $transactionStore.transactions;
         if (transactions) {
             transactions.forEach((transaction) => {
                 const transDate = normalizeDate(transaction.date);

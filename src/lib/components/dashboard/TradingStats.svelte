@@ -12,6 +12,7 @@
     let showConfig = false;
     let isHovering = false;
     let currentAccountId = null;
+    let statsCache = {};
 
     onMount(async () => {
         if ($accountStore.currentAccount) {
@@ -28,17 +29,18 @@
     async function loadStats() {
         if (!$accountStore.currentAccount) return;
         
+        const accountId = $accountStore.currentAccount._id;
+        if (statsCache[accountId]) {
+            stats = statsCache[accountId];
+            return;
+        }
+
         try {
             error = '';
 
             // Create a single batch request for all periods
-            const accountId = $accountStore.currentAccount._id;
             const requests = $tradingStatsStore.selectedPeriods.map(period => 
-                api.getStats(accountId, period)
-                    .catch(err => {
-                        console.error(`Error loading stats for ${period}:`, err);
-                        return null; // Return null for failed requests
-                    })
+                api.getStats(accountId, period).catch(err => null)
             );
 
             // Wait for all requests to complete
@@ -50,6 +52,8 @@
                     stats[period] = results[i];
                 }
             });
+
+            statsCache[accountId] = stats;
         } catch (err) {
             error = err.message;
         }

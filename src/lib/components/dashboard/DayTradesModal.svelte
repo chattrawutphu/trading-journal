@@ -21,24 +21,36 @@
     let selectedTransaction = null;
     let loading = false;
     let error = null;
+    let transactionCache = {};
 
     $: if (show && accountId) {
         loadTransactions();
     }
 
     async function loadTransactions() {
+        if (transactionCache[accountId]) {
+            transactions = transactionCache[accountId].filter((t) => {
+                const transDate = new Date(t.date);
+                const selectedDate = new Date(date);
+                selectedDate.setHours(0, 0, 0, 0);
+                const nextDay = new Date(selectedDate);
+                nextDay.setDate(nextDay.getDate() + 1);
+                return transDate >= selectedDate && transDate < nextDay;
+            });
+            return;
+        }
+
         loading = true;
         error = null;
         try {
             await transactionStore.fetchTransactions(accountId);
-            // Filter transactions for the selected date
-            const selectedDate = new Date(date);
-            selectedDate.setHours(0, 0, 0, 0);
-            const nextDay = new Date(selectedDate);
-            nextDay.setDate(nextDay.getDate() + 1);
-
-            transactions = $transactionStore.transactions.filter((t) => {
+            transactionCache[accountId] = $transactionStore.transactions;
+            transactions = transactionCache[accountId].filter((t) => {
                 const transDate = new Date(t.date);
+                const selectedDate = new Date(date);
+                selectedDate.setHours(0, 0, 0, 0);
+                const nextDay = new Date(selectedDate);
+                nextDay.setDate(nextDay.getDate() + 1);
                 return transDate >= selectedDate && transDate < nextDay;
             });
         } catch (err) {
@@ -96,7 +108,7 @@
     $: closedTrades = trades.filter((trade) => trade.status === "CLOSED");
 </script>
 
-{#if loading}
+{#if !transactionCache[accountId] && loading}
     <Loading message="Loading..." overlay={true} />
 {:else if error}
     <div class="text-red-500">{error}</div>
