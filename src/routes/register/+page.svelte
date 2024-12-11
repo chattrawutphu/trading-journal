@@ -3,7 +3,6 @@
     import { auth } from '$lib/stores/authStore';
     import { goto } from '$app/navigation';
     import ThemeToggle from '$lib/components/common/ThemeToggle.svelte';
-    import { generateUsername } from '$lib/utils/validators';
 
     let username = '';
     let email = '';

@@ -11,11 +11,18 @@ export default defineConfig({
             usePolling: true
         }
     },
-    optimizeDeps: {
-        include: ['@sveltejs/kit'],
-        exclude: ['svelte-hmr']
-    },
     ssr: {
-        noExternal: ['@sveltejs/kit']
+        noExternal: true
+    },
+    build: {
+        rollupOptions: {
+            external: [
+                'crypto',
+                'stream',
+                'jsonwebtoken',
+                'express',
+                'mongoose'
+            ]
+        }
     }
 });

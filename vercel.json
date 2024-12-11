@@ -2,22 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "src/lib/server/server.js",
-      "use": "@vercel/node"
-    },
-    {
       "src": "package.json",
-      "use": "@sveltejs/kit"
+      "use": "@vercel/node",
+      "config": {
+        "nodeVersion": "22.12.0"
+      }
     }
   ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "src/lib/server/server.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/"
+  "regions": ["sin1"],
+  "functions": {
+    "api/**": {
+      "memory": 1024,
+      "maxDuration": 10
     }
-  ]
+  }
 }

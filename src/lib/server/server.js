@@ -17,6 +17,7 @@ import transactionRoutes from './routes/transactionRoutes.js';
 import MongoStore from 'connect-mongo';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import './schedulers/subscriptionScheduler.js';
+import mongoose from 'mongoose';
 
 // Get the directory path for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -39,12 +40,28 @@ const connectToDatabase = async () => {
 
 // Middleware
 app.use(cookieParser());
+
+// CORS middleware with dynamic origin handling
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:5173',  // Development
+      'http://localhost:4173',  // Preview default
+      'http://localhost:4174',  // Preview alternative
+      process.env.CORS_ORIGIN   // From env
+    ].filter(Boolean); // Remove falsy values
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, origin);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -55,12 +72,15 @@ app.use(session({
   saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
-    ttl: 7 * 24 * 60 * 60 * 2 // 14 days
+    client: mongoose.connection.getClient(),
+    ttl: 14 * 24 * 60 * 60, // 14 days
+    autoRemove: 'native',
+    touchAfter: 24 * 3600 // time period in seconds
   }),
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 7 * 24 * 60 * 60 * 1000 * 2, // 14 days in milliseconds
+    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days in milliseconds
     sameSite: 'lax'
   }
 }));
@@ -153,13 +173,24 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Export the app for serverless use
-export default app;
+// Initialize database connection before starting server
+const startServer = async () => {
+  try {
+    await connectToDatabase();
+    const PORT = process.env.PORT || 5001;
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
 
 // Only start the server if we're not in a serverless environment
 if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 5001;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+  startServer();
 }
+
+// Export the app for serverless use
+export default app;
