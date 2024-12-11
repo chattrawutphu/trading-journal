@@ -6,7 +6,7 @@ const config = {
 	kit: {
 		adapter: vercel({
 			runtime: 'nodejs22.x',
-			regions: ['sin1', 'iad1'],  // Singapore and US East
+			regions: ['sin1'],  // Single region - Singapore for APAC
 			memory: 1024,
 			maxDuration: 10
 		}),
