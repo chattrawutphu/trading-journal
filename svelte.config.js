@@ -6,14 +6,10 @@ const config = {
 	kit: {
 		adapter: vercel({
 			runtime: 'nodejs22.x',
-			regions: ['sin1'],  // Singapore region for better APAC performance
-			memory: 1024,  // 1GB memory
-			maxDuration: 10  // 10 seconds max duration
-		}),
-		// Ensure proper handling of API routes
-		csrf: {
-			checkOrigin: false
-		}
+			regions: ['sin1'],
+			memory: 1024,
+			maxDuration: 10
+		})
 	},
 	preprocess: vitePreprocess()
 };
