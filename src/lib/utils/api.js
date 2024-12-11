@@ -1,5 +1,13 @@
 // src/lib/utils/api.js
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const getBaseUrl = () => {
+  if (import.meta.env.PROD) {
+    // In production, use relative URLs since the API is served from the same domain
+    return '/api';
+  }
+  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+};
+
+const BASE_URL = getBaseUrl();
 
 async function fetchWithAuth(endpoint, options = {}) {
   try {
@@ -15,7 +23,9 @@ async function fetchWithAuth(endpoint, options = {}) {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({
+        error: `HTTP error! status: ${response.status}`
+      }));
       throw new Error(error.error || 'An unexpected error occurred');
     }
 
