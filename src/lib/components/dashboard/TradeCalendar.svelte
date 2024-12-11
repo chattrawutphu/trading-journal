@@ -180,7 +180,7 @@
 
         // If no closed trades but has open trades or transactions
         if (stats.openTrades > 0 || stats.transactions?.length > 0) {
-            return `cursor-pointer ${$theme === "light" ? "bg-yellow-50" : "bg-yellow-900/10"}`;
+            return `cursor-pointer bg-yellow-50 dark:bg-yellow-900/10`;
         }
 
         return "cursor-pointer";
