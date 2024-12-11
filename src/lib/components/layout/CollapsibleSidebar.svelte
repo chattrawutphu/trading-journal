@@ -61,7 +61,7 @@
             <h1 class="text-xl font-bold bg-gradient-purple bg-clip-text text-transparent">Trading Journal</h1>
         {/if}
         <button 
-            class="text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 p-2 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"
+            class="text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 p-2 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover "
             on:click={toggleCollapse}
         >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,7 +78,7 @@
                 <li>
                     <a
                         href={item.path}
-                        class="flex items-center px-3 py-2 rounded-lg transition-colors duration-200 
+                        class="flex items-center px-3 py-2 rounded-lg  
                             {active ? 
                                 'bg-gradient-purple text-white font-medium shadow-lg shadow-theme-500/25' : 
                                 'text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover hover:text-light-text dark:hover:text-dark-text'
@@ -99,7 +99,7 @@
     <!-- Footer -->
     <div class="p-4 border-t border-light-border dark:border-dark-border">
         <button
-            class="w-full flex items-center justify-center px-3 py-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover hover:text-light-text dark:hover:text-dark-text transition-colors duration-200"
+            class="w-full flex items-center justify-center px-3 py-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover hover:text-light-text dark:hover:text-dark-text "
             on:click={() => dispatch('logout')}
         >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

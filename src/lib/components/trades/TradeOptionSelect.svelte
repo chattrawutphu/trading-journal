@@ -205,7 +205,7 @@
         <div class="absolute inset-y-0 right-0 flex items-center pr-3">
             <button
                 type="button"
-                class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text-muted dark:hover:text-dark-text transition-colors duration-200"
+                class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text-muted dark:hover:text-dark-text "
                 on:click={() => isOpen = !isOpen}
             >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,7 +234,7 @@
                 {#if filteredOptions.length > 0}
                     <div class="max-h-[200px] overflow-y-auto">
                         {#each filteredOptions as option}
-                            <div class="group relative hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200">
+                            <div class="group relative hover:bg-light-hover dark:hover:bg-dark-hover ">
                                 {#if editingOption?.value === option.value}
                                     <div class="flex items-center p-2">
                                         <input

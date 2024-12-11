@@ -203,9 +203,9 @@
     {:else if $accountStore.accounts.length > 0}
         <div class="py-1">
             {#each $accountStore.accounts as account}
-                <div class="group flex items-center justify-between px-4 py-2 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200">
+                <div class="group flex items-center justify-between px-4 py-2 hover:bg-light-hover dark:hover:bg-dark-hover ">
                     <button
-                        class="flex-grow text-left text-sm text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 transition-colors duration-200"
+                        class="flex-grow text-left text-sm text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 "
                         class:font-bold={$accountStore.currentAccount?._id === account._id}
                         on:click={() => handleAccountSwitch(account._id)}
                     >
@@ -213,7 +213,7 @@
                     </button>
                     <div class="hidden group-hover:flex items-center ml-2 space-x-1">
                         <button
-                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-green-500 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
+                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-green-500 hover:bg-light-card dark:hover:bg-dark-card "
                             on:click|stopPropagation={() => startDeposit(account)}
                             title="Deposit"
                         >
@@ -222,7 +222,7 @@
                             </svg>
                         </button>
                         <button
-                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
+                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card "
                             on:click|stopPropagation={() => startWithdraw(account)}
                             title="Withdraw"
                         >
@@ -231,7 +231,7 @@
                             </svg>
                         </button>
                         <button
-                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
+                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400 hover:bg-light-card dark:hover:bg-dark-card "
                             on:click|stopPropagation={() => startEditAccount(account)}
                             title="Edit Account"
                         >
@@ -240,7 +240,7 @@
                             </svg>
                         </button>
                         <button
-                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
+                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card "
                             on:click|stopPropagation={() => handleDeleteAccount(account._id)}
                             title="Delete Account"
                         >
@@ -261,7 +261,7 @@
     <!-- Add Account Button -->
     <div class="border-t border-light-border dark:border-dark-border px-4 py-2">
         <button id="add-account"
-            class="w-full text-left px-3 py-2 rounded-lg text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200 flex items-center"
+            class="w-full text-left px-3 py-2 rounded-lg text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover  flex items-center"
             on:click|stopPropagation={() => showNewAccountModal = true}
         >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -519,6 +519,6 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl transition-colors duration-200;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl ;
     }
 </style>

@@ -139,7 +139,7 @@
                     <!-- Account Selector -->
                     <div class="relative" bind:this={accountMenuRef}>
                         <button 
-                            class="flex items-center space-x-2 text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 transition-colors duration-200"
+                            class="flex items-center space-x-2 text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 "
                             on:click|stopPropagation={() => showAccountMenu = !showAccountMenu}
                         >
                             <span>{$accountStore?.currentAccount?.name || 'Select Account'}</span>
@@ -149,7 +149,7 @@
                         </button>
   
                         {#if showAccountMenu}
-                            <div class="absolute right-0 mt-2 w-64 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 transition-colors duration-200">
+                            <div class="absolute right-0 mt-2 w-64 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 ">
                                 <AccountManager on:close={() => showAccountMenu = false} />
                             </div>
                         {/if}
@@ -157,7 +157,7 @@
   
                     <!-- User Menu -->
                     <div class="relative" bind:this={userMenuRef}>
-                        <button class="flex items-center space-x-2 text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 transition-colors duration-200"
+                        <button class="flex items-center space-x-2 text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 "
                             on:click|stopPropagation={() => showUserMenu = !showUserMenu}
                         >
                             <span>{$auth?.user?.name || 'User'}</span>
@@ -170,21 +170,21 @@
                         </button>
   
                         {#if showUserMenu}
-                            <div class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 transition-colors duration-200">
+                            <div class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 ">
                                 <button
-                                    class="block w-full text-left px-4 py-2 text-sm text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"
+                                    class="block w-full text-left px-4 py-2 text-sm text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover "
                                     on:click={() => goto('/profile')}
                                 >
                                     Profile Settings
                                 </button>
                                 <button
-                                    class="block w-full text-left px-4 py-2 text-sm text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"
+                                    class="block w-full text-left px-4 py-2 text-sm text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover "
                                     on:click={() => goto('/subscription')}
                                 >
                                     Subscription
                                 </button>
                                 <button
-                                    class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"
+                                    class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-light-hover dark:hover:bg-dark-hover "
                                     on:click={handleLogout}
                                 >
                                     Logout

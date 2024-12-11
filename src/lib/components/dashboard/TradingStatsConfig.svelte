@@ -199,7 +199,7 @@
                                     </div>
                                     {#if $tradingStatsStore.selectedPeriods.length > 1}
                                         <button
-                                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card transition-colors duration-200"
+                                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card "
                                             on:click={() =>
                                                 removePeriod(period.id)}
                                         >
@@ -233,7 +233,7 @@
                         <div class="space-y-1">
                             {#each availablePeriods as period}
                                 <button
-                                    class="w-full flex items-center gap-3 p-3 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    class="w-full flex items-center gap-3 p-3 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30 hover:bg-light-hover dark:hover:bg-dark-hover  disabled:opacity-50 disabled:cursor-not-allowed"
                                     on:click={() => addPeriod(period.id)}
                                     disabled={$tradingStatsStore.selectedPeriods
                                         .length >=
@@ -282,11 +282,10 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl transition-colors duration-200;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl ;
     }
 
     .period-item {
-        @apply transition-colors duration-200;
     }
 
     .period-item.dragging {

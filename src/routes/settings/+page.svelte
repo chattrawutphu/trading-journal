@@ -178,7 +178,7 @@
         <nav class="flex space-x-1 p-1">
             {#each tabs as tab}
                 <button
-                    class="flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200 {activeTab === tab.id ? 'bg-gradient-purple text-white' : 'text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover'}"
+                    class="flex items-center space-x-2 px-4 py-2 rounded-lg  {activeTab === tab.id ? 'bg-gradient-purple text-white' : 'text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover'}"
                     on:click={() => activeTab = tab.id}
                 >
                     {@html tab.icon}
@@ -413,10 +413,10 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg ;
     }
 
     .checkbox {
-        @apply h-5 w-5 rounded border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-theme-500 focus:ring-theme-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-bg transition-colors duration-200;
+        @apply h-5 w-5 rounded border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-theme-500 focus:ring-theme-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-bg ;
     }
 </style>

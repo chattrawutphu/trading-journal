@@ -118,7 +118,7 @@
 
     {#if isHovering}
         <button
-            class="absolute -top-2 -right-2 p-2 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border shadow-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"
+            class="absolute -top-2 -right-2 p-2 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border shadow-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
             on:click={() => showConfig = true}
             transition:fade={{ duration: 100 }}
         >
@@ -134,6 +134,6 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg ;
     }
 </style>

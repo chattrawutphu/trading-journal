@@ -298,13 +298,13 @@
         <div class="border-b border-light-border dark:border-dark-border">
             <nav class="-mb-px flex space-x-8">
                 <button
-                    class="py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 {activeTab === 'trades' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
+                    class="py-4 px-1 border-b-2 font-medium text-sm  {activeTab === 'trades' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
                     on:click={() => activeTab = 'trades'}
                 >
                     Trades
                 </button>
                 <button
-                    class="py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 {activeTab === 'transactions' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
+                    class="py-4 px-1 border-b-2 font-medium text-sm  {activeTab === 'transactions' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
                     on:click={() => activeTab = 'transactions'}
                 >
                     Transactions
@@ -575,6 +575,6 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg ;
     }
 </style>

@@ -150,7 +150,7 @@
 
 <style lang="postcss">
     :global(body) {
-        @apply bg-light-bg dark:bg-dark-bg transition-colors duration-200;
+        @apply bg-light-bg dark:bg-dark-bg ;
     }
 
     .spinner {
@@ -158,7 +158,7 @@
     }
 
     :global(.card) {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-lg transition-colors duration-200;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-lg ;
     }
 
     :global(.btn-primary) {
@@ -170,10 +170,10 @@
     }
 
     :global(.input) {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text rounded-lg px-4 py-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors duration-200;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text rounded-lg px-4 py-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent ;
     }
 
     :global(.link) {
-        @apply text-theme-500 hover:text-theme-400 transition-colors duration-200;
+        @apply text-theme-500 hover:text-theme-400 ;
     }
 </style>

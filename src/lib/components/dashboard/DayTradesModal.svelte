@@ -5,8 +5,8 @@
     import TradeTable from "../trades/TradeTable.svelte";
     import TransactionTable from "../transactions/TransactionTable.svelte";
     import TransactionModal from "../transactions/TransactionModal.svelte";
-    import { transactionStore } from '$lib/stores/transactionStore';
-    import Loading from '$lib/components/common/Loading.svelte';
+    import { transactionStore } from "$lib/stores/transactionStore";
+    import Loading from "$lib/components/common/Loading.svelte";
 
     const dispatch = createEventDispatcher();
 
@@ -36,8 +36,8 @@
             selectedDate.setHours(0, 0, 0, 0);
             const nextDay = new Date(selectedDate);
             nextDay.setDate(nextDay.getDate() + 1);
-            
-            transactions = $transactionStore.transactions.filter(t => {
+
+            transactions = $transactionStore.transactions.filter((t) => {
                 const transDate = new Date(t.date);
                 return transDate >= selectedDate && transDate < nextDay;
             });
@@ -50,7 +50,7 @@
 
     function close() {
         show = false;
-        dispatch('close');
+        dispatch("close");
         transactions = [];
     }
 
@@ -85,18 +85,22 @@
     }
 
     function handleEdit(transaction) {
-        dispatch('edit', transaction);
+        dispatch("edit", transaction);
     }
 
     function handleDelete(transactionId) {
-        dispatch('delete', transactionId);
+        dispatch("delete", transactionId);
     }
 
     $: openTrades = trades.filter((trade) => trade.status === "OPEN");
     $: closedTrades = trades.filter((trade) => trade.status === "CLOSED");
 </script>
 
-{#if show}
+{#if loading}
+    <Loading message="Loading..." overlay={true} />
+{:else if error}
+    <div class="text-red-500">{error}</div>
+{:else if show}
     <div
         class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
         transition:fade={{ duration: 150 }}
@@ -189,24 +193,20 @@
                     </div>
                 {/if}
 
-                {#if loading}
-                    <Loading message="Loading Transactions..." overlay={true} />
-                {:else if error}
-                    <div class="text-red-500">{error}</div>
-                {:else}
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">
-                            Transactions
-                        </h3>
-                        <TransactionTable 
-                            accountId={accountId} 
-                            transactions={transactions} 
-                            readOnly={false}
-                            on:edit={handleEdit}
-                            on:delete={handleDelete}
-                        />
-                    </div>
-                {/if}
+                <div class="mb-6">
+                    <h3
+                        class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
+                    >
+                        Transactions
+                    </h3>
+                    <TransactionTable
+                        {accountId}
+                        {transactions}
+                        readOnly={false}
+                        on:edit={handleEdit}
+                        on:delete={handleDelete}
+                    />
+                </div>
 
                 {#if trades.length === 0 && transactions?.length === 0}
                     <div
@@ -229,6 +229,6 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl transition-colors duration-200;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl;
     }
 </style>

@@ -129,7 +129,7 @@
         </thead>
         <tbody class="divide-y divide-light-border dark:divide-dark-border">
             {#each sortedTrades as trade}
-                <tr class="hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200">
+                <tr class="hover:bg-light-hover dark:hover:bg-dark-hover ">
                     <td class="py-2 px-4">
                         <div class="flex items-center gap-2">
                             {#if trade.favorite}
@@ -210,6 +210,6 @@
 
 <style lang="postcss">
     .icon-button {
-        @apply p-1 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200;
+        @apply p-1 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover ;
     }
 </style>

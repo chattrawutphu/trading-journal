@@ -138,7 +138,7 @@
       </thead>
       <tbody class="divide-y divide-light-border dark:divide-dark-border">
         {#each sortedTransactions as transaction (transaction._id)}
-          <tr class="hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200">
+          <tr class="hover:bg-light-hover dark:hover:bg-dark-hover ">
             <td class="py-2 px-4">
               <span class="capitalize {getTypeClass(transaction.type)}">{transaction.type}</span>
             </td>
@@ -186,10 +186,10 @@
 
 <style lang="postcss">
   .icon-button {
-    @apply p-1 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200;
+    @apply p-1 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover ;
   }
 
   .card {
-    @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg transition-colors duration-200;
+    @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg ;
   }
 </style>

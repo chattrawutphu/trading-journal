@@ -525,7 +525,7 @@
                         <!-- Trade Settings -->
                         <div class="grid grid-cols-2 gap-6">
                             <label
-                                class="flex items-center gap-3 p-3 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200 cursor-pointer group"
+                                class="flex items-center gap-3 p-3 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover  cursor-pointer group"
                             >
                                 <input
                                     type="checkbox"
@@ -534,13 +534,13 @@
                                     disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
                                 <span
-                                    class="text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text transition-colors duration-200"
+                                    class="text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text "
                                 >
                                     Has Stop Loss
                                 </span>
                             </label>
                             <label
-                                class="flex items-center gap-3 p-3 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200 cursor-pointer group"
+                                class="flex items-center gap-3 p-3 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover  cursor-pointer group"
                             >
                                 <input
                                     type="checkbox"
@@ -549,7 +549,7 @@
                                     disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
                                 <span
-                                    class="text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text transition-colors duration-200"
+                                    class="text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text "
                                 >
                                     Has Take Profit
                                 </span>
@@ -662,11 +662,11 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl transition-colors duration-200;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl ;
     }
 
     .checkbox {
-        @apply h-5 w-5 rounded border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-theme-500 focus:ring-theme-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-bg transition-colors duration-200;
+        @apply h-5 w-5 rounded border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-theme-500 focus:ring-theme-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-bg ;
     }
 
     .input-wrapper :global(input),

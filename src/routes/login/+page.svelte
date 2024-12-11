@@ -44,7 +44,7 @@
     }
 </script>
 
-<div class="min-h-screen flex flex-col bg-light-bg dark:bg-dark-bg transition-colors duration-200">
+<div class="min-h-screen flex flex-col bg-light-bg dark:bg-dark-bg ">
     <!-- Header with theme toggle -->
     <div class="absolute top-4 right-4">
         <ThemeToggle />

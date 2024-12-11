@@ -166,7 +166,7 @@
                                     href={trade.url} 
                                     target="_blank" 
                                     rel="noopener noreferrer" 
-                                    class="text-theme-500 hover:text-theme-600 dark:hover:text-theme-400 transition-colors duration-200"
+                                    class="text-theme-500 hover:text-theme-600 dark:hover:text-theme-400 "
                                 >
                                     {trade.url}
                                 </a>
@@ -192,6 +192,6 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl transition-colors duration-200;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl ;
     }
 </style>
