@@ -522,7 +522,7 @@
         <div class="p-6">
             <div class="text-center mb-6">
                 <h3 class="text-xl font-semibold text-light-text dark:text-dark-text mb-2">Upgrade to {upgradePlan?.name}</h3>
-                <p class="text-light-text-muted dark:text-dark-text-muted">Upgrading will cancel your current plan and you will be charged the full amount for the new plan.</p>
+                <p class="text-light-text-muted dark:text-dark-text-muted">Upgrading will cancel your current plan and you will be charged the full amount for the new plan. Alternatively, you can send an official email to our support team at [support@email.com] to request a refund for the difference paid due to the plan upgrade.</p>
             </div>
             <div class="flex justify-end gap-4">
                 <button
