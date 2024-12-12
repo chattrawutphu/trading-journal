@@ -15,7 +15,7 @@
     import { api } from "$lib/utils/api";
     import { tradeCacheStore } from "$lib/stores/tradeCache";
 
-    let loading = true;
+    let loading = false;
     let error = "";
     let openTrades = [];
     let closedTrades = [];
@@ -56,51 +56,34 @@
         if (!$accountStore.currentAccount) return;
 
         const accountId = $accountStore.currentAccount._id;
+        let cache = $tradeCacheStore[accountId];
 
-        // console.log('Current cache:', $tradeCacheStore);
-        // console.log('Checking cache for account:', accountId);
-        // console.log('Cache exists:', !!$tradeCacheStore[accountId]);
-
+        // Check if cache exists and is valid
         if (
-            $tradeCacheStore[accountId] &&
-            Array.isArray($tradeCacheStore[accountId].openTrades) &&
-            Array.isArray($tradeCacheStore[accountId].closedTrades)
+            cache &&
+            Array.isArray(cache.openTrades) &&
+            Array.isArray(cache.closedTrades)
         ) {
-            loading = false;
-            openTrades = $tradeCacheStore[accountId].openTrades;
-            closedTrades = $tradeCacheStore[accountId].closedTrades;
-            try {
-                error = "";
-                const response = await api.getTrades(accountId);
-                openTrades = response.filter(
-                    (trade) => trade.status === "OPEN",
-                );
-                closedTrades = response.filter(
-                    (trade) => trade.status === "CLOSED",
-                );
-
-                tradeCacheStore.setCache(accountId, {
-                    openTrades: [...openTrades],
-                    closedTrades: [...closedTrades],
-                });
-            } catch (err) {
-                error = err.message;
-            }
+            openTrades = cache.openTrades;
+            closedTrades = cache.closedTrades;
             return;
         }
 
-        try {
-            error = "";
-            const response = await api.getTrades(accountId);
-            openTrades = response.filter((trade) => trade.status === "OPEN");
-            closedTrades = response.filter(
-                (trade) => trade.status === "CLOSED",
-            );
+        loading = true;
+        error = "";
 
+        try {
+            const response = await api.getTrades(accountId);
+            const [openTradesTemp, closedTradesTemp] = filterTrades(response);
+
+            // Update the cache
             tradeCacheStore.setCache(accountId, {
-                openTrades: [...openTrades],
-                closedTrades: [...closedTrades],
+                openTrades: [...openTradesTemp],
+                closedTrades: [...closedTradesTemp],
             });
+
+            openTrades = openTradesTemp;
+            closedTrades = closedTradesTemp;
         } catch (err) {
             error = err.message;
         } finally {
@@ -108,6 +91,19 @@
         }
     }
 
+    function filterTrades(trades) {
+        return trades.reduce(
+            (acc, trade) => {
+                if (trade.status === "OPEN") {
+                    acc[0].push(trade);
+                } else if (trade.status === "CLOSED") {
+                    acc[1].push(trade);
+                }
+                return acc;
+            },
+            [[], []],
+        );
+    }
     // Watch for account changes
     $: if ($accountStore.currentAccount?._id !== currentAccountId) {
         currentAccountId = $accountStore.currentAccount?._id;

@@ -6,6 +6,7 @@
     import TransactionTable from "../transactions/TransactionTable.svelte";
     import TransactionModal from "../transactions/TransactionModal.svelte";
     import { transactionStore } from "$lib/stores/transactionStore";
+    import { transactionCacheStore } from "$lib/stores/transactionCache";
     import Loading from "$lib/components/common/Loading.svelte";
 
     const dispatch = createEventDispatcher();
@@ -21,43 +22,41 @@
     let selectedTransaction = null;
     let loading = false;
     let error = null;
-    let transactionCache = {};
 
     $: if (show && accountId) {
         loadTransactions();
     }
 
     async function loadTransactions() {
-        if (transactionCache[accountId]) {
-            transactions = transactionCache[accountId].filter((t) => {
-                const transDate = new Date(t.date);
-                const selectedDate = new Date(date);
-                selectedDate.setHours(0, 0, 0, 0);
-                const nextDay = new Date(selectedDate);
-                nextDay.setDate(nextDay.getDate() + 1);
-                return transDate >= selectedDate && transDate < nextDay;
-            });
+        if ($transactionCacheStore[accountId]) {
+            transactions = filterTransactionsByDate($transactionCacheStore[accountId]);
             return;
         }
 
         loading = true;
         error = null;
+
         try {
             await transactionStore.fetchTransactions(accountId);
-            transactionCache[accountId] = $transactionStore.transactions;
-            transactions = transactionCache[accountId].filter((t) => {
-                const transDate = new Date(t.date);
-                const selectedDate = new Date(date);
-                selectedDate.setHours(0, 0, 0, 0);
-                const nextDay = new Date(selectedDate);
-                nextDay.setDate(nextDay.getDate() + 1);
-                return transDate >= selectedDate && transDate < nextDay;
-            });
+            transactionCacheStore.setCache(accountId, $transactionStore.transactions);
+            transactions = filterTransactionsByDate($transactionStore.transactions);
         } catch (err) {
             error = err.message;
         } finally {
             loading = false;
         }
+    }
+
+    function filterTransactionsByDate(transactionList) {
+        const selectedDate = new Date(date);
+        selectedDate.setHours(0, 0, 0, 0);
+        const nextDay = new Date(selectedDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+
+        return transactionList.filter((t) => {
+            const transDate = new Date(t.date);
+            return transDate >= selectedDate && transDate < nextDay;
+        });
     }
 
     function close() {
@@ -67,11 +66,8 @@
     }
 
     function handleNewTrade() {
-        // Format date for date input (YYYY-MM-DD)
-        const formattedDate = new Date(date);
-        formattedDate.setHours(12, 0, 0, 0); // Set to start of day
-        const dateStr = formattedDate.toISOString().slice(0, 10);
-        dispatch("newTrade", dateStr);
+        const formattedDate = new Date(date).toISOString().slice(0, 10);
+        dispatch("newTrade", formattedDate);
         close();
     }
 
@@ -108,7 +104,7 @@
     $: closedTrades = trades.filter((trade) => trade.status === "CLOSED");
 </script>
 
-{#if !transactionCache[accountId] && loading}
+{#if loading}
     <Loading message="Loading..." overlay={true} />
 {:else if error}
     <div class="text-red-500">{error}</div>
