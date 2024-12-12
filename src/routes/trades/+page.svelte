@@ -15,6 +15,7 @@
     import Input from '$lib/components/common/Input.svelte';
     import { api } from '$lib/utils/api';
     import { tradeCacheStore } from '$lib/stores/tradeCache';
+    import { transactionCacheStore } from '$lib/stores/transactionCache';
 
     let loading = true;
     let error = '';
@@ -159,6 +160,8 @@
                     transactionNote // Pass note to createTransaction
                 );
                 await accountStore.setCurrentAccount($accountStore.currentAccount._id);
+                // Clear transaction cache
+                transactionCacheStore.clearCache(currentAccountId);
                 // Fetch updated transactions
                 await transactionStore.fetchTransactions(currentAccountId);
                 showDepositModal = false;
@@ -183,6 +186,8 @@
                     transactionNote // Pass note to createTransaction
                 );
                 await accountStore.setCurrentAccount($accountStore.currentAccount._id);
+                // Clear transaction cache
+                transactionCacheStore.clearCache(currentAccountId);
                 // Fetch updated transactions
                 await transactionStore.fetchTransactions(currentAccountId);
                 showWithdrawModal = false;
