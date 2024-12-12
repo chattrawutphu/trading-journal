@@ -5,6 +5,7 @@
     import { api } from '$lib/utils/api';
     import { onMount, createEventDispatcher } from 'svelte';
     import TradingStatsConfig from './TradingStatsConfig.svelte';
+    import { tradeCacheStore } from '$lib/stores/tradeCache';
 
     const dispatch = createEventDispatcher();
     let stats = {};
@@ -12,7 +13,6 @@
     let showConfig = false;
     let isHovering = false;
     let currentAccountId = null;
-    let statsCache = {};
 
     onMount(async () => {
         if ($accountStore.currentAccount) {
@@ -30,9 +30,9 @@
         if (!$accountStore.currentAccount) return;
         
         const accountId = $accountStore.currentAccount._id;
-        if (statsCache[accountId]) {
-            stats = statsCache[accountId];
-            return;
+        const cachedStats = tradeCacheStore.getStatsCache(accountId);
+        if (cachedStats) {
+            stats = cachedStats;
         }
 
         try {
@@ -53,7 +53,7 @@
                 }
             });
 
-            statsCache[accountId] = stats;
+            tradeCacheStore.setStatsCache(accountId, stats);
         } catch (err) {
             error = err.message;
         }

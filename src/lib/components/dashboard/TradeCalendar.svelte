@@ -5,6 +5,7 @@
     import { transactionStore } from "$lib/stores/transactionStore";
     import Select from "../common/Select.svelte";
     import EmptyDayModal from "./EmptyDayModal.svelte";
+    import { transactionCacheStore } from '$lib/stores/transactionCache';
 
     const dispatch = createEventDispatcher();
 
@@ -109,7 +110,7 @@
 
     // Process transactions into dailyTrades
     $: {
-        const transactions = transactionCache[accountId] || $transactionStore.transactions;
+        const transactions = transactionCache[accountId] || transactionCacheStore.getCache(accountId) || $transactionStore.transactions;
         if (transactions) {
             transactions.forEach((transaction) => {
                 const transDate = normalizeDate(transaction.date);
@@ -174,10 +175,7 @@
         // Check for closed trades first
         const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
         if (hasClosedTrades) {
-            if ($theme === "light") {
-                return `cursor-pointer ${stats.pnl > 0 ? "bg-green-100" : "bg-red-100"}`;
-            }
-            return `cursor-pointer ${stats.pnl > 0 ? "bg-green-900/20" : "bg-red-900/20"}`;
+            return `cursor-pointer ${stats.pnl > 0 ? "bg-green-100 dark:bg-green-900/20" : "bg-red-100 dark:bg-red-900/20"}`;
         }
 
         // If no closed trades but has open trades or transactions

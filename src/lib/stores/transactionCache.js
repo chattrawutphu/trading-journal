@@ -20,7 +20,14 @@ function createTransactionCacheStore() {
                 return newCache;
             });
         },
-        clearAll: () => set({})
+        clearAll: () => set({}),
+        getCache: (accountId) => {
+            let cache;
+            subscribe(value => {
+                cache = value[accountId];
+            })();
+            return cache;
+        }
     };
 }
 

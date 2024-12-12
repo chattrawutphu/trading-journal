@@ -1,4 +1,3 @@
-
 import { writable } from 'svelte/store';
 
 function createTradeCacheStore() {
@@ -21,7 +20,27 @@ function createTradeCacheStore() {
                 return newCache;
             });
         },
-        clearAll: () => set({})
+        clearAll: () => set({}),
+        getCache: (accountId) => {
+            let cache;
+            subscribe(value => {
+                cache = value[accountId];
+            })();
+            return cache;
+        },
+        setStatsCache: (accountId, stats) => {
+            update(cache => ({
+                ...cache,
+                [`${accountId}_stats`]: stats
+            }));
+        },
+        getStatsCache: (accountId) => {
+            let cache;
+            subscribe(value => {
+                cache = value[`${accountId}_stats`];
+            })();
+            return cache;
+        }
     };
 }
 

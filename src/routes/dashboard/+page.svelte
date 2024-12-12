@@ -15,7 +15,7 @@
     import { api } from "$lib/utils/api";
     import { tradeCacheStore } from "$lib/stores/tradeCache";
 
-    let loading = false;
+    let loading = true;
     let error = "";
     let openTrades = [];
     let closedTrades = [];
@@ -31,24 +31,41 @@
     let selectedDayTrades = [];
     let selectedDayTransactions = [];
     let newTradeDate = "";
-    let initialLoad = true;
     let currentAccountId = null;
 
     onMount(async () => {
         try {
-            const account = await accountStore.loadAccounts();
-            if (account) {
-                await Promise.all([
-                    loadTrades(),
-                    transactionStore.fetchTransactions(
-                        $accountStore.currentAccount._id,
-                    ),
-                ]);
+            const cachedAccount = accountStore.getCachedAccount();
+            if (cachedAccount) {
+                const cachedTrades = tradeCacheStore.getCache(cachedAccount._id);
+                if (cachedTrades) {
+                    openTrades = cachedTrades.openTrades;
+                    closedTrades = cachedTrades.closedTrades;
+                    loading = false;
+                } else {
+                    await Promise.all([
+                        loadTrades(),
+                        transactionStore.fetchTransactions(cachedAccount._id),
+                    ]);
+                }
+            } else {
+                const account = await accountStore.loadAccounts();
+                if (account) {
+                    const cachedTrades = tradeCacheStore.getCache($accountStore.currentAccount._id);
+                    if (cachedTrades) {
+                        openTrades = cachedTrades.openTrades;
+                        closedTrades = cachedTrades.closedTrades;
+                        loading = false;
+                    } else {
+                        await Promise.all([
+                            loadTrades(),
+                            transactionStore.fetchTransactions($accountStore.currentAccount._id),
+                        ]);
+                    }
+                }
             }
         } catch (err) {
             error = err.message;
-        } finally {
-            initialLoad = false;
         }
     });
 
@@ -56,53 +73,52 @@
         if (!$accountStore.currentAccount) return;
 
         const accountId = $accountStore.currentAccount._id;
-        let cache = $tradeCacheStore[accountId];
 
-        // Check if cache exists and is valid
         if (
-            cache &&
-            Array.isArray(cache.openTrades) &&
-            Array.isArray(cache.closedTrades)
+            $tradeCacheStore[accountId] &&
+            Array.isArray($tradeCacheStore[accountId].openTrades) &&
+            Array.isArray($tradeCacheStore[accountId].closedTrades)
         ) {
-            openTrades = cache.openTrades;
-            closedTrades = cache.closedTrades;
+            loading = false;
+            openTrades = $tradeCacheStore[accountId].openTrades;
+            closedTrades = $tradeCacheStore[accountId].closedTrades;
+            try {
+                error = "";
+                const response = await api.getTrades(accountId);
+                openTrades = response.filter(
+                    (trade) => trade.status === "OPEN",
+                );
+                closedTrades = response.filter(
+                    (trade) => trade.status === "CLOSED",
+                );
+
+                tradeCacheStore.setCache(accountId, {
+                    openTrades: [...openTrades],
+                    closedTrades: [...closedTrades],
+                });
+            } catch (err) {
+                error = err.message;
+            }
             return;
         }
 
-        loading = true;
-        error = "";
-
         try {
+            error = "";
             const response = await api.getTrades(accountId);
-            const [openTradesTemp, closedTradesTemp] = filterTrades(response);
+            openTrades = response.filter((trade) => trade.status === "OPEN");
+            closedTrades = response.filter(
+                (trade) => trade.status === "CLOSED",
+            );
 
-            // Update the cache
             tradeCacheStore.setCache(accountId, {
-                openTrades: [...openTradesTemp],
-                closedTrades: [...closedTradesTemp],
+                openTrades: [...openTrades],
+                closedTrades: [...closedTrades],
             });
-
-            openTrades = openTradesTemp;
-            closedTrades = closedTradesTemp;
         } catch (err) {
             error = err.message;
         } finally {
             loading = false;
         }
-    }
-
-    function filterTrades(trades) {
-        return trades.reduce(
-            (acc, trade) => {
-                if (trade.status === "OPEN") {
-                    acc[0].push(trade);
-                } else if (trade.status === "CLOSED") {
-                    acc[1].push(trade);
-                }
-                return acc;
-            },
-            [[], []],
-        );
     }
     // Watch for account changes
     $: if ($accountStore.currentAccount?._id !== currentAccountId) {

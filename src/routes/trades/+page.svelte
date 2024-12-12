@@ -14,11 +14,17 @@
     import Button from '$lib/components/common/Button.svelte';
     import Input from '$lib/components/common/Input.svelte';
     import { api } from '$lib/utils/api';
+    import { tradeCacheStore } from '$lib/stores/tradeCache';
 
-    let loading = false;
-    let initialLoad = true;
+    let loading = true;
     let error = '';
     let trades = [];
+    let hasTrades = false;
+    let openTrades = [];
+    let closedTrades = [];
+    let hasOpenTrades = false;
+    let hasClosedTrades = false;
+    let cachedTrades = [];
     let showEditModal = false;
     let showViewModal = false;
     let showDepositModal = false;
@@ -29,16 +35,18 @@
     let activeTab = 'trades';
     let transactionAmount = 0;
     let transactionDate = new Date().toLocaleString('sv').slice(0, 16); // Use user's local time in 'YYYY-MM-DDTHH:MM' format
-    let dataLoaded = false;
     let currentAccountId = null;
     let transactionNote = ''; // Add this variable if not already present
 
-    $: openTrades = trades.filter(t => t.status === 'OPEN');
-    $: closedTrades = trades.filter(t => t.status === 'CLOSED');
-    $: showLoading = loading || initialLoad || !dataLoaded;
-    $: hasOpenTrades = openTrades.length > 0;
-    $: hasClosedTrades = closedTrades.length > 0;
-    $: hasTrades = trades.length > 0;
+    function updateTradeStats(tradeList) {
+        // แยกและอัพเดท trades ทั้งหมด
+        openTrades = tradeList.filter(t => t.status === 'OPEN');
+        closedTrades = tradeList.filter(t => t.status === 'CLOSED');
+        hasOpenTrades = openTrades.length > 0;
+        hasClosedTrades = closedTrades.length > 0;
+        hasTrades = tradeList.length > 0;
+        trades = tradeList;
+    }
 
     $: if ($page.url.searchParams.get('newTrade') === 'true') {
         showEditModal = true;
@@ -50,14 +58,31 @@
 
     onMount(async () => {
         try {
-            const account = await accountStore.loadAccounts();
-            if (account) {
-                await loadTrades();
+            const cachedAccount = accountStore.getCachedAccount();
+            if (cachedAccount) {
+                const cached = tradeCacheStore.getCache(cachedAccount._id);
+                if (cached) {
+                    const cachedTrades = [...cached.openTrades, ...cached.closedTrades];
+                    updateTradeStats(cachedTrades);
+                    loading = false;
+                } else {
+                    await loadTrades();
+                }
+            } else {
+                const account = await accountStore.loadAccounts();
+                if (account) {
+                    const cached = tradeCacheStore.getCache($accountStore.currentAccount._id);
+                    if (cached) {
+                        const cachedTrades = [...cached.openTrades, ...cached.closedTrades];
+                        updateTradeStats(cachedTrades);
+                        loading = false;
+                    } else {
+                        await loadTrades();
+                    }
+                }
             }
         } catch (err) {
             error = err.message;
-        } finally {
-            initialLoad = false;
         }
     });
 
@@ -66,16 +91,21 @@
         
         try {
             loading = true;
-            dataLoaded = false;
             error = '';
             
             const response = await api.getTrades($accountStore.currentAccount._id);
-            trades = response;
-            dataLoaded = true;
+            
+            // อัพเดทข้อมูลและ cache
+            updateTradeStats(response);
+            tradeCacheStore.setCache($accountStore.currentAccount._id, {
+                openTrades,  
+                closedTrades
+            });
+
         } catch (err) {
             error = err.message;
         } finally {
-            loading = false;
+            loading = false; 
         }
     }
 
@@ -105,7 +135,7 @@
 
             showEditModal = false;
             selectedTrade = null;
-            await loadTrades();
+            await loadTrades(); // This will update cache too
             // Refresh account data to update balance
             await accountStore.setCurrentAccount($accountStore.currentAccount._id);
             // Dispatch trade update event
@@ -196,7 +226,7 @@
             error = '';
 
             await api.deleteTrade(tradeId);
-            await loadTrades();
+            await loadTrades(); // This will update cache too
             // Refresh account data to update balance
             await accountStore.setCurrentAccount($accountStore.currentAccount._id);
             // Dispatch trade update event
@@ -312,7 +342,7 @@
             </nav>
         </div>
 
-        {#if showLoading}
+        {#if loading}
             <Loading message="Loading..." overlay={true} />
         {:else}
             {#if activeTab === 'trades'}

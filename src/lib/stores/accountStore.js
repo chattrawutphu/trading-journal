@@ -209,6 +209,13 @@ function createAccountStore() {
     },
     clearError: () => {
       update(state => ({ ...state, error: null }));
+    },
+    getCachedAccount: () => {
+      let cachedAccount;
+      subscribe(value => {
+        cachedAccount = value.currentAccount;
+      })();
+      return cachedAccount;
     }
   };
 }
