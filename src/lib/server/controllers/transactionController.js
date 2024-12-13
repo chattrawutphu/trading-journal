@@ -25,12 +25,12 @@ export const createTransaction = async (req, res) => {
     if (type === 'deposit') {
       account.balance += parseFloat(amount);
     } else if (type === 'withdrawal') {
-      if (account.balance < amount) {
+      /*if (account.balance < amount) {
         return res.status(400).json({
           success: false,
           error: 'Insufficient balance'
         });
-      }
+      }*/
       account.balance -= parseFloat(amount);
     }
 
