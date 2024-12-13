@@ -170,7 +170,7 @@
                 <tr class="hover:bg-light-hover dark:hover:bg-dark-hover ">
                     <td class="w-8 py-2 px-4 text-right">
                         <input 
-                            type="checkbox" 
+                            type="checkbox"
                             class="custom-checkbox"
                             on:click={() => handleSelect(trade._id)}
                             checked={selectedTrades.includes(trade._id)}

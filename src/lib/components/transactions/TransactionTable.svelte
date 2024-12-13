@@ -154,7 +154,8 @@
         <tr class="border-b border-light-border dark:border-dark-border">
           <th class="w-8 text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
             <input 
-              type="checkbox" 
+              type="checkbox"
+              class="custom-checkbox"
               on:click={() => selectedTransactions = selectedTransactions.length === displayTransactions.length ? [] : displayTransactions.map(t => t._id)}
               checked={selectedTransactions.length === displayTransactions.length}
             />
@@ -193,7 +194,8 @@
           <tr class="hover:bg-light-hover dark:hover:bg-dark-hover ">
             <td class="w-8 py-2 px-4 text-right">
               <input 
-                type="checkbox" 
+                type="checkbox"
+                class="custom-checkbox"
                 on:click={() => handleSelect(transaction._id)}
                 checked={selectedTransactions.includes(transaction._id)}
               />
@@ -297,4 +299,8 @@
 .btn-secondary {
     @apply bg-gray-500 text-white hover:bg-gray-600;
   }
+
+  .custom-checkbox {
+        @apply appearance-none h-4 w-4 border border-gray-300 rounded-sm bg-white checked:bg-theme-500 checked:border-transparent focus:outline-none transition duration-200 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer;
+    }
 </style>
