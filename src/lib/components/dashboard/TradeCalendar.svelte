@@ -1,21 +1,65 @@
 <script>
-    import { createEventDispatcher } from "svelte";
+    import { createEventDispatcher, onMount } from "svelte";
     import { theme } from "$lib/stores/themeStore";
     import { calendarStore } from "$lib/stores/calendarStore";
     import { transactionStore } from "$lib/stores/transactionStore";
     import Select from "../common/Select.svelte";
     import EmptyDayModal from "./EmptyDayModal.svelte";
     import { transactionCacheStore } from '$lib/stores/transactionCache';
+    import { tradeCacheStore } from '$lib/stores/tradeCache';
     import { api } from '$lib/utils/api';
 
     const dispatch = createEventDispatcher();
 
     export let trades = [];
     export let accountId;
-
     let showEmptyDayModal = false;
     let selectedDate = "";
 
+    async function initializePage() {
+        try {
+            const cachedTrades = tradeCacheStore.getCache(accountId);
+            if (cachedTrades) {
+                trades = [...cachedTrades.openTrades, ...cachedTrades.closedTrades];
+            }
+            let cachedTransactions = transactionCacheStore.getCache(accountId);
+            if (!cachedTransactions) {
+                const transactionResponse = await transactionStore.fetchTransactions(accountId);
+                if (!transactionResponse.success || !Array.isArray(transactionResponse.data)) {
+                    console.error('Transaction response is not an array:', transactionResponse);
+                    return;
+                }
+                cachedTransactions = transactionResponse.data;
+            }
+
+            trades = [...trades, ...await api.getTrades(accountId)];
+            transactionCache = { ...transactionCache, ...cachedTransactions };
+
+            tradeCacheStore.setCache(accountId, {
+                openTrades: trades.filter(t => t.status === 'OPEN'),
+                closedTrades: trades.filter(t => t.status === 'CLOSED')
+            });
+
+        } catch (err) {
+            console.error('Error initializing page:', err);
+        }
+    }
+
+    onMount(async () => {
+        await initializePage();
+
+        // Listen for remount event
+        const remountHandler = async () => {
+            await initializePage();
+        };
+        window.addEventListener('remount', remountHandler);
+
+        return () => {
+            window.removeEventListener('remount', remountHandler);
+        };
+    });
+
+    // Rest of your code remains unchanged...
     const months = [
         "January",
         "February",
@@ -107,18 +151,12 @@
         return acc;
     }, {});
 
+    let transactionCache = {};
 
     // Process transactions into dailyTrades
-    $: processTransactions();
-
-    async function processTransactions() {
-        let transactions = transactionCacheStore.getCache(accountId);
-        if (!transactions) {
-            transactions = await transactionStore.transactions;
-            transactionCacheStore.setCache(accountId, transactions);
-        }
-
-        if (transactions) {
+    $: {
+        const transactions = transactionCache[accountId] || transactionCacheStore.getCache(accountId) || $transactionStore.transactions;
+        if (Array.isArray(transactions)) {
             transactions.forEach((transaction) => {
                 const transDate = normalizeDate(transaction.date);
                 const dateKey = transDate.toISOString().split("T")[0];
@@ -226,7 +264,7 @@
         }).format(pnl);
     }
 
-    async function handleDayClick(day, stats) {
+    function handleDayClick(day, stats) {
         if (isFutureDate(day)) return;
 
         const date = normalizeDate(new Date(selectedYear, selectedMonth, day));
@@ -237,10 +275,6 @@
             month: "long",
             day: "numeric",
         });
-
-        // Fetch latest trades from the database
-        const response = await api.getTrades(accountId);
-        trades = response;
 
         if (!stats?.trades.length && !stats?.transactions?.length) {
             selectedDate = formattedDate;
@@ -266,6 +300,7 @@
     }
 </script>
 
+<!-- Rest of your template remains unchanged -->
 <div class="card h-full flex flex-col">
     <div class="p-4 border-b border-light-border dark:border-dark-border">
         <div class="flex justify-between items-center">

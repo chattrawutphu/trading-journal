@@ -5,6 +5,7 @@
     const dispatch = createEventDispatcher();
     export let show = false;
     export let closeOnClickOutside = true;
+    export let title = '';
 </script>
 
 {#if show}
@@ -27,7 +28,10 @@
                 on:click|stopPropagation
                 on:keydown|stopPropagation
             >
-                <slot />
+                <div class="modal-header">
+                    <h2>{title}</h2>
+                    <slot />
+                </div>
             </button>
         </div>
     </div>

@@ -29,7 +29,7 @@
 
     async function loadTransactions() {
         if ($transactionCacheStore[accountId]) {
-            transactions = filterTransactionsByDate($transactionCacheStore[accountId]);
+            transactions = filterTransactionsByDate($transactionCacheStore[accountId], date);
             return;
         }
 
@@ -39,23 +39,21 @@
         try {
             await transactionStore.fetchTransactions(accountId);
             transactionCacheStore.setCache(accountId, $transactionStore.transactions);
-            transactions = filterTransactionsByDate($transactionStore.transactions);
+            transactions = filterTransactionsByDate($transactionStore.transactions, date);
         } catch (err) {
             error = err.message;
         } finally {
             loading = false;
         }
     }
-
-    function filterTransactionsByDate(transactionList) {
-        const selectedDate = new Date(date);
-        selectedDate.setHours(0, 0, 0, 0);
-        const nextDay = new Date(selectedDate);
-        nextDay.setDate(nextDay.getDate() + 1);
-
-        return transactionList.filter((t) => {
-            const transDate = new Date(t.date);
-            return transDate >= selectedDate && transDate < nextDay;
+    function filterTransactionsByDate(transactionList, date) {
+        if (!Array.isArray(transactionList)) {
+            console.error('transactionList is not an array:', transactionList);
+            return [];
+        }
+        return transactionList.filter(transaction => {
+            const transactionDate = new Date(transaction.date).toISOString().split('T')[0];
+            return transactionDate === date;
         });
     }
 

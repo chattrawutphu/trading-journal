@@ -52,7 +52,7 @@
     }
   }
 
-  $: sortedTransactions = [...(displayTransactions || [])].sort((a, b) => {
+  $: sortedTransactions = Array.isArray(displayTransactions) ? [...displayTransactions].sort((a, b) => {
     let aValue = a[sortField];
     let bValue = b[sortField];
 
@@ -67,7 +67,7 @@
     if (aValue < bValue) return sortDirection === 'asc'? -1 : 1;
     if (aValue > bValue) return sortDirection === 'asc'? 1 : -1;
     return 0;
-  });
+  }) : [];
 
   function handleEdit(transaction) {
     dispatch('edit', transaction);

@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { api } from '$lib/utils/api';
+import { transactionCacheStore } from '$lib/stores/transactionCache';
 
 function createTransactionStore() {
   const { subscribe, set, update } = writable({
@@ -61,6 +62,7 @@ function createTransactionStore() {
           transactions: response.data || [],
           loading: false
         }));
+        transactionCacheStore.setCache(accountId, response.data || []);
       } catch (error) {
         update(state => ({
           ...state,
