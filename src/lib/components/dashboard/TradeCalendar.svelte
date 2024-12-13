@@ -24,12 +24,7 @@
             }
             let cachedTransactions = transactionCacheStore.getCache(accountId);
             if (!cachedTransactions) {
-                const transactionResponse = await transactionStore.fetchTransactions(accountId);
-                if (!transactionResponse.success || !Array.isArray(transactionResponse.data)) {
-                    console.error('Transaction response is not an array:', transactionResponse);
-                    return;
-                }
-                cachedTransactions = transactionResponse.data;
+                transactionStore.fetchTransactions(accountId);transactionResponse.data;
             }
 
             trades = [...trades, ...await api.getTrades(accountId)];
