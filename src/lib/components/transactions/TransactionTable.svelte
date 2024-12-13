@@ -4,18 +4,21 @@
   import { formatCurrency } from '$lib/utils/formatters';
   import Loading from '../common/Loading.svelte';
   import { transactionCacheStore } from '$lib/stores/transactionCache';
+  import Modal from '../common/Modal.svelte';
 
   const dispatch = createEventDispatcher();
   export let accountId;
-  export let transactions = null; // Allow direct passing of transactions
-  export let readOnly = false; // Add readOnly prop for modals
+  export let transactions = null; 
+  export let readOnly = false; 
 
   let sortField = 'date';
   let sortDirection = 'desc';
   let loading = false;
   let error = null;
+  let selectedTransactions = [];
+  let showModal = false;
+  let deleteAll = false;
 
-  // If transactions not provided, load them from store or cache
   $: storeTransactions = transactionCacheStore.getCache(accountId) || $transactionStore.transactions;
   $: displayTransactions = transactions || storeTransactions;
   $: error = transactions === null && $transactionStore.error;
@@ -27,23 +30,22 @@
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-      // timeZoneName: 'short' // Remove timezone display
     };
-    return new Date(dateStr).toLocaleString(undefined, options); // Use user's locale
+    return new Date(dateStr).toLocaleString(undefined, options); 
   }
 
   function getTypeClass(type) {
-    return type === 'deposit' ? 'text-green-500' : 'text-red-500';
+    return type === 'deposit'? 'text-green-500' : 'text-red-500';
   }
 
   function getSortIcon(field) {
-    if (sortField !== field) return '↕';
-    return sortDirection === 'asc' ? '↑' : '↓';
+    if (sortField !== field) return '';
+    return sortDirection === 'asc'? '↑' : '↓';
   }
 
   function handleSort(field) {
     if (sortField === field) {
-      sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      sortDirection = sortDirection === 'asc'? 'desc' : 'asc';
     } else {
       sortField = field;
       sortDirection = 'desc';
@@ -54,7 +56,6 @@
     let aValue = a[sortField];
     let bValue = b[sortField];
 
-    // Handle special cases
     if (sortField === 'amount') {
       aValue = Number(aValue) || 0;
       bValue = Number(bValue) || 0;
@@ -63,8 +64,8 @@
       bValue = new Date(bValue).getTime();
     }
 
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    if (aValue < bValue) return sortDirection === 'asc'? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc'? 1 : -1;
     return 0;
   });
 
@@ -76,13 +77,56 @@
     if (confirm('Are you sure you want to delete this transaction?')) {
       try {
         await transactionStore.deleteTransaction(transactionId);
-        if (!transactions) { // Only refetch if using store data
+        if (!transactions) { 
           await transactionStore.fetchTransactions(accountId);
           transactionCacheStore.setCache(accountId, $transactionStore.transactions);
         }
       } catch (err) {
         console.error('Error deleting transaction:', err);
       }
+    }
+  }
+
+  function handleSelect(transactionId) {
+    if (selectedTransactions.includes(transactionId)) {
+      selectedTransactions = selectedTransactions.filter(id => id !== transactionId);
+    } else {
+      selectedTransactions = [...selectedTransactions, transactionId];
+    }
+  }
+
+  async function handleDeleteSelected() {
+    deleteAll = false;
+    showModal = true;
+  }
+
+  async function handleDeleteAll() {
+    deleteAll = true;
+    showModal = true;
+  }
+
+  async function confirmDelete() {
+    showModal = false;
+    loading = true;
+    try {
+      if (deleteAll) {
+        for (const transaction of displayTransactions) {
+          await transactionStore.deleteTransaction(transaction._id);
+        }
+      } else {
+        for (const transactionId of selectedTransactions) {
+          await transactionStore.deleteTransaction(transactionId);
+        }
+      }
+      if (!transactions) { 
+        await transactionStore.fetchTransactions(accountId);
+        transactionCacheStore.setCache(accountId, $transactionStore.transactions);
+      }
+      selectedTransactions = [];
+    } catch (err) {
+      console.error('Error deleting transactions:', err);
+    } finally {
+      loading = false;
     }
   }
 </script>
@@ -108,6 +152,13 @@
     <table class="w-full">
       <thead>
         <tr class="border-b border-light-border dark:border-dark-border">
+          <th class="w-8 text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+            <input 
+              type="checkbox" 
+              on:click={() => selectedTransactions = selectedTransactions.length === displayTransactions.length ? [] : displayTransactions.map(t => t._id)}
+              checked={selectedTransactions.length === displayTransactions.length}
+            />
+          </th>
           <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
             <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('type')}>
               Type
@@ -140,6 +191,13 @@
       <tbody class="divide-y divide-light-border dark:divide-dark-border">
         {#each sortedTransactions as transaction (transaction._id)}
           <tr class="hover:bg-light-hover dark:hover:bg-dark-hover ">
+            <td class="w-8 py-2 px-4 text-right">
+              <input 
+                type="checkbox" 
+                on:click={() => handleSelect(transaction._id)}
+                checked={selectedTransactions.includes(transaction._id)}
+              />
+            </td>
             <td class="py-2 px-4">
               <span class="capitalize {getTypeClass(transaction.type)}">{transaction.type}</span>
             </td>
@@ -151,7 +209,7 @@
             <td class="py-2 px-4 text-light-text-muted dark:text-dark-text">
               {formatDate(transaction.date)}
             </td>
-            <td class="py-2 px-4 text-light-text-muted dark:text-dark-text">
+            <td class="py-2 px-4 text-light-text-muted dark:text-dark-text-muted">
               {transaction.note || ''}
             </td>
             {#if !readOnly}
@@ -182,15 +240,61 @@
         {/each}
       </tbody>
     </table>
+    {#if !readOnly}
+      <div class="flex justify-start gap-2 p-2 px-4 mt-2 s-iRRPVm7wyuJo">
+        {#if selectedTransactions.length > 0}
+          <button 
+            class="btn btn-primary flex items-center gap-1"
+            on:click={handleDeleteSelected}
+            title="Delete selected transactions"
+          >
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+            Delete Selected
+          </button>
+        {/if}
+        <button 
+          class="btn btn-secondary flex items-center gap-1"
+          on:click={handleDeleteAll}
+          title="Delete all transactions"
+        >
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+          Delete All
+        </button>
+      </div>
+    {/if}
   {/if}
 </div>
 
+<Modal bind:show={showModal} title="Confirm Deletion">
+  <p>Are you sure you want to {deleteAll ? 'delete all transactions' : 'delete the selected transactions'}?</p>
+  <div class="flex justify-end gap-2 mt-4">
+    <button class="btn btn-secondary" on:click={() => showModal = false}>Cancel</button>
+    <button class="btn btn-primary" on:click={confirmDelete}>Confirm</button>
+  </div>
+</Modal>
+
 <style lang="postcss">
-  .icon-button {
+.icon-button {
     @apply p-1 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover ;
   }
 
-  .card {
+.card {
     @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg ;
+  }
+
+.btn {
+    @apply px-2 py-1 text-xs rounded-lg font-medium;
+  }
+
+.btn-primary {
+    @apply bg-theme-500 text-white hover:bg-theme-600;
+  }
+
+.btn-secondary {
+    @apply bg-gray-500 text-white hover:bg-gray-600;
   }
 </style>

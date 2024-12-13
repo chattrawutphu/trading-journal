@@ -1,7 +1,8 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import { formatCurrency } from '$lib/utils/formatters';
-    
+    import Modal from '../common/Modal.svelte';
+
     const dispatch = createEventDispatcher();
 
     export let trades = [];
@@ -9,18 +10,20 @@
 
     let sortField = type === 'closed' ? 'exitDate' : 'entryDate';
     let sortDirection = 'desc';
+    let selectedTrades = [];
+    let showModal = false;
+    let deleteAll = false;
 
     function formatDate(dateStr) {
-    const options = { 
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-      // timeZoneName: 'short' // Remove timezone display
-    };
-    return new Date(dateStr).toLocaleString(undefined, options); // Use user's locale
-  }
+        const options = { 
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return new Date(dateStr).toLocaleString(undefined, options);
+    }
 
     function getStatusClass(status) {
         return status === 'OPEN' ? 'text-yellow-500' : 'text-green-500';
@@ -48,7 +51,6 @@
         let aValue = a[sortField];
         let bValue = b[sortField];
 
-        // Handle special cases
         if (sortField === 'entryPrice' || sortField === 'exitPrice' || sortField === 'amount' || sortField === 'quantity' || sortField === 'pnl') {
             aValue = Number(aValue) || 0;
             bValue = Number(bValue) || 0;
@@ -61,12 +63,48 @@
         if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
         return 0;
     });
+
+    function handleSelect(tradeId) {
+        if (selectedTrades.includes(tradeId)) {
+            selectedTrades = selectedTrades.filter(id => id !== tradeId);
+        } else {
+            selectedTrades = [...selectedTrades, tradeId];
+        }
+    }
+
+    async function handleDeleteSelected() {
+        deleteAll = false;
+        showModal = true;
+    }
+
+    async function handleDeleteAll() {
+        deleteAll = true;
+        showModal = true;
+    }
+
+    async function confirmDelete() {
+        showModal = false;
+        if (deleteAll) {
+            dispatch('deleteAll');
+        } else {
+            dispatch('deleteSelected', selectedTrades);
+        }
+        selectedTrades = [];
+    }
 </script>
 
 <div class="overflow-x-auto">
     <table class="w-full">
         <thead>
             <tr class="border-b border-light-border dark:border-dark-border">
+                <th class="w-8 text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+                    <input 
+                        type="checkbox" 
+                        class="custom-checkbox"
+                        on:click={() => selectedTrades = selectedTrades.length === trades.length ? [] : trades.map(t => t._id)}
+                        checked={selectedTrades.length === trades.length}
+                    />
+                </th>
                 <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
                     <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('symbol')}>
                         Symbol
@@ -130,6 +168,14 @@
         <tbody class="divide-y divide-light-border dark:divide-dark-border">
             {#each sortedTrades as trade}
                 <tr class="hover:bg-light-hover dark:hover:bg-dark-hover ">
+                    <td class="w-8 py-2 px-4 text-right">
+                        <input 
+                            type="checkbox" 
+                            class="custom-checkbox"
+                            on:click={() => handleSelect(trade._id)}
+                            checked={selectedTrades.includes(trade._id)}
+                        />
+                    </td>
                     <td class="py-2 px-4">
                         <div class="flex items-center gap-2">
                             {#if trade.favorite}
@@ -193,7 +239,7 @@
                             </button>
                             <button 
                                 class="icon-button text-red-500 hover:text-red-600"
-                                on:click={() => dispatch('delete', trade._id)}
+                                on:click={() => handleSelect(trade._id)}
                                 title="Delete trade"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -206,10 +252,58 @@
             {/each}
         </tbody>
     </table>
+    <div class="flex justify-start gap-2 p-2 px-4 mt-2">
+        {#if selectedTrades.length > 0}
+            <button 
+                class="btn btn-primary flex items-center gap-1"
+                on:click={handleDeleteSelected}
+                title="Delete selected trades"
+            >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                Delete Selected
+            </button>
+        {/if}
+        <button 
+            class="btn btn-secondary flex items-center gap-1"
+            on:click={handleDeleteAll}
+            title="Delete all trades"
+        >
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+            Delete All
+        </button>
+    </div>
 </div>
+
+<Modal bind:show={showModal} title="Confirm Deletion">
+    <p>Are you sure you want to {deleteAll ? 'delete all trades' : 'delete the selected trades'}?</p>
+    <div class="flex justify-end gap-2 mt-4">
+        <button class="btn btn-secondary" on:click={() => showModal = false}>Cancel</button>
+        <button class="btn btn-primary" on:click={confirmDelete}>Confirm</button>
+    </div>
+</Modal>
 
 <style lang="postcss">
     .icon-button {
         @apply p-1 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover ;
+    }
+
+    .btn {
+        @apply px-2 py-1 text-xs rounded-lg font-medium;
+    }
+
+    .btn-primary {
+        @apply bg-theme-500 text-white hover:bg-theme-600;
+    }
+
+    .btn-secondary {
+        @apply bg-gray-500 text-white hover:bg-gray-600;
+    }
+
+    .custom-checkbox {
+        @apply appearance-none h-4 w-4 border border-gray-300 rounded-sm bg-white checked:bg-theme-500 checked:border-transparent focus:outline-none transition duration-200 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer;
     }
 </style>
