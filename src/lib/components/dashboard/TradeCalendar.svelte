@@ -6,6 +6,7 @@
     import Select from "../common/Select.svelte";
     import EmptyDayModal from "./EmptyDayModal.svelte";
     import { transactionCacheStore } from '$lib/stores/transactionCache';
+    import { api } from '$lib/utils/api';
 
     const dispatch = createEventDispatcher();
 
@@ -106,11 +107,17 @@
         return acc;
     }, {});
 
-    let transactionCache = {};
 
     // Process transactions into dailyTrades
-    $: {
-        const transactions = transactionCache[accountId] || transactionCacheStore.getCache(accountId) || $transactionStore.transactions;
+    $: processTransactions();
+
+    async function processTransactions() {
+        let transactions = transactionCacheStore.getCache(accountId);
+        if (!transactions) {
+            transactions = await transactionStore.transactions;
+            transactionCacheStore.setCache(accountId, transactions);
+        }
+
         if (transactions) {
             transactions.forEach((transaction) => {
                 const transDate = normalizeDate(transaction.date);
@@ -219,7 +226,7 @@
         }).format(pnl);
     }
 
-    function handleDayClick(day, stats) {
+    async function handleDayClick(day, stats) {
         if (isFutureDate(day)) return;
 
         const date = normalizeDate(new Date(selectedYear, selectedMonth, day));
@@ -230,6 +237,10 @@
             month: "long",
             day: "numeric",
         });
+
+        // Fetch latest trades from the database
+        const response = await api.getTrades(accountId);
+        trades = response;
 
         if (!stats?.trades.length && !stats?.transactions?.length) {
             selectedDate = formattedDate;

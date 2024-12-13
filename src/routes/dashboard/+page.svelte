@@ -191,6 +191,9 @@
                 await api.createTrade(event.detail);
             }
 
+            // Clear trade cache
+            tradeCacheStore.clearCache($accountStore.currentAccount._id);
+
             await loadTrades();
             // Refresh account data to update balance
             await accountStore.setCurrentAccount(
