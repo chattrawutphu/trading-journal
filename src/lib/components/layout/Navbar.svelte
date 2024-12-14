@@ -122,36 +122,11 @@
 {/if}
   
 <nav class>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-end gap-x-4 h-16">
-            <!-- Balance Display -->
-            {#if $auth?.isAuthenticated && $accountStore?.currentAccount}
-                <div class="flex items-center">
-                    <div class="text-light-text dark:text-dark-text">
-                        <span class="text-light-text-muted dark:text-dark-text-muted mr-2">Balance:</span>
-                        <span class="font-semibold text-theme-500">{formatBalance($accountStore.currentAccount.actualBalance)}</span>
-                    </div>
-                    <!-- Added Deposit and Withdraw Buttons -->
-                    <div class="flex items-center gap-1 ml-4">
-                        <Button variant="secondary" size="xs" on:click={() => showDepositModal = true}>
-                            <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                            Deposit
-                        </Button>
-                        <Button variant="secondary" size="xs" on:click={() => showWithdrawModal = true}>
-                            <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
-                            </svg>
-                            Withdraw
-                        </Button>
-                    </div>
-                </div>
-            {/if}
-
-            {#if $auth?.isAuthenticated}
-                <div class="flex items-center space-x-4">
-                    <!-- Account Selector -->
+    <div class="mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between gap-x-4 h-16">
+            <!-- Account Selector -->
+            <div class="flex items-center space-x-4">
+                {#if $auth?.isAuthenticated}
                     <div class="relative" bind:this={accountMenuRef}>
                         <button 
                             class="flex items-center space-x-2 text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 "
@@ -164,13 +139,44 @@
                         </button>
   
                         {#if showAccountMenu}
-                            <div class="absolute right-0 mt-2 w-64 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 ">
+                            <div class="absolute left-0 mt-2 w-64 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 ">
                                 <AccountManager on:close={() => showAccountMenu = false} />
                             </div>
                         {/if}
                     </div>
-  
-                    <!-- User Menu -->
+                {/if}
+            </div>
+
+            <!-- Balance Display and Deposit/Withdraw Buttons -->
+            <div class="flex items-center space-x-4">
+                {#if $auth?.isAuthenticated && $accountStore?.currentAccount}
+                    <div class="flex items-center">
+                        <div class="text-light-text dark:text-dark-text">
+                            <span class="text-light-text-muted dark:text-dark-text-muted mr-2">Balance:</span>
+                            <span class="font-semibold text-theme-500">{formatBalance($accountStore.currentAccount.actualBalance)}</span>
+                        </div>
+                        <!-- Added Deposit and Withdraw Buttons -->
+                        <div class="flex items-center gap-1 ml-4">
+                            <Button variant="secondary" size="xs" on:click={() => showDepositModal = true}>
+                                <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Deposit
+                            </Button>
+                            <Button variant="secondary" size="xs" on:click={() => showWithdrawModal = true}>
+                                <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                                </svg>
+                                Withdraw
+                            </Button>
+                        </div>
+                    </div>
+                {/if}
+            </div>
+
+            <!-- User Menu -->
+            <div class="flex items-center space-x-4">
+                {#if $auth?.isAuthenticated}
                     <div class="relative" bind:this={userMenuRef}>
                         <button class="flex items-center space-x-2 text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 "
                             on:click|stopPropagation={() => showUserMenu = !showUserMenu}
@@ -207,8 +213,8 @@
                             </div>
                         {/if}
                     </div>
-                </div>
-            {/if}
+                {/if}
+            </div>
         </div>
     </div>
 </nav>
@@ -217,7 +223,7 @@
 <TransactionModal
     show={showDepositModal}
     type="deposit"
-    accountId={$accountStore.currentAccount._id}
+    accountId={$accountStore.currentAccount?._id}
     on:close={() => showDepositModal = false}
 />
 
@@ -225,6 +231,6 @@
 <TransactionModal
     show={showWithdrawModal}
     type="withdraw"
-    accountId={$accountStore.currentAccount._id}
+    accountId={$accountStore.currentAccount?._id}
     on:close={() => showWithdrawModal = false}
 />
