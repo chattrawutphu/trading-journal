@@ -98,6 +98,10 @@
         dispatch("delete", transactionId);
     }
 
+    function handleDeleteConfirm(event) {
+        dispatch('deleteConfirm', event.detail);
+    }
+
     $: openTrades = trades.filter((trade) => trade.status === "OPEN");
     $: closedTrades = trades.filter((trade) => trade.status === "CLOSED");
 </script>
@@ -176,6 +180,7 @@
                             on:delete
                             on:favorite
                             on:disable
+                            on:deleteConfirm={handleDeleteConfirm}
                         />
                     </div>
                 {/if}
@@ -194,7 +199,8 @@
                             on:edit
                             on:delete
                             on:favorite
-                            on:disable
+                            on:disable 
+                            on:deleteConfirm={handleDeleteConfirm}
                         />
                     </div>
                 {/if}
@@ -211,6 +217,7 @@
                         readOnly={false}
                         on:edit={handleEdit}
                         on:delete={handleDelete}
+                        on:deleteConfirm={handleDeleteConfirm}
                     />
                 </div>
 

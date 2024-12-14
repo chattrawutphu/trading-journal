@@ -24,7 +24,8 @@
             }
             let cachedTransactions = transactionCacheStore.getCache(accountId);
             if (!cachedTransactions) {
-                transactionStore.fetchTransactions(accountId);transactionResponse.data;
+                const transactionResponse = await transactionStore.fetchTransactions(accountId);
+                cachedTransactions = transactionResponse.data;
             }
 
             trades = [...trades, ...await api.getTrades(accountId)];

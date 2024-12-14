@@ -11,8 +11,6 @@
     let sortField = type === 'closed' ? 'exitDate' : 'entryDate';
     let sortDirection = 'desc';
     let selectedTrades = [];
-    let showModal = false;
-    let deleteAll = false;
     let currentPage = 1;
     let itemsPerPage = 10;
 
@@ -84,23 +82,18 @@
     }
 
     async function handleDeleteSelected() {
-        deleteAll = false;
-        showModal = true;
+        dispatch('deleteConfirm', {
+            type: 'selected',
+            context: 'trades',
+            items: selectedTrades
+        });
     }
 
     async function handleDeleteAll() {
-        deleteAll = true;
-        showModal = true;
-    }
-
-    async function confirmDelete() {
-        showModal = false;
-        if (deleteAll) {
-            dispatch('deleteAll');
-        } else {
-            dispatch('deleteSelected', selectedTrades);
-        }
-        selectedTrades = [];
+        dispatch('deleteConfirm', {
+            type: 'all',
+            context: 'trades'
+        });
     }
 </script>
 
@@ -302,14 +295,6 @@
         {/if}
     </div>
 </div>
-
-<Modal bind:show={showModal} title="Confirm Deletion">
-    <p>Are you sure you want to {deleteAll ? 'delete all trades' : 'delete the selected trades'}?</p>
-    <div class="flex justify-end gap-2 mt-4">
-        <button class="btn btn-secondary" on:click={() => showModal = false}>Cancel</button>
-        <button class="btn btn-primary" on:click={confirmDelete}>Confirm</button>
-    </div>
-</Modal>
 
 <style lang="postcss">
     .icon-button {

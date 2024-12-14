@@ -16,8 +16,6 @@
   let loading = false;
   let error = null;
   let selectedTransactions = [];
-  let showModal = false;
-  let deleteAll = false;
   let currentPage = 1;
   let itemsPerPage = 10;
 
@@ -107,38 +105,18 @@
   }
 
   async function handleDeleteSelected() {
-    deleteAll = false;
-    showModal = true;
+    dispatch('deleteConfirm', {
+        type: 'selected',
+        context: 'transactions',
+        items: selectedTransactions
+    });
   }
 
   async function handleDeleteAll() {
-    deleteAll = true;
-    showModal = true;
-  }
-
-  async function confirmDelete() {
-    showModal = false;
-    loading = true;
-    try {
-      if (deleteAll) {
-        for (const transaction of displayTransactions) {
-          await transactionStore.deleteTransaction(transaction._id);
-        }
-      } else {
-        for (const transactionId of selectedTransactions) {
-          await transactionStore.deleteTransaction(transactionId);
-        }
-      }
-      if (!transactions) { 
-        await transactionStore.fetchTransactions(accountId);
-        transactionCacheStore.setCache(accountId, $transactionStore.transactions);
-      }
-      selectedTransactions = [];
-    } catch (err) {
-      console.error('Error deleting transactions:', err);
-    } finally {
-      loading = false;
-    }
+    dispatch('deleteConfirm', {
+        type: 'all',
+        context: 'transactions'
+    });
   }
 </script>
 
@@ -295,14 +273,6 @@
     {/if}
   {/if}
 </div>
-
-<Modal bind:show={showModal} title="Confirm Deletion">
-  <p>Are you sure you want to {deleteAll ? 'delete all transactions' : 'delete the selected transactions'}?</p>
-  <div class="flex justify-end gap-2 mt-4">
-    <button class="btn btn-secondary" on:click={() => showModal = false}>Cancel</button>
-    <button class="btn btn-primary" on:click={confirmDelete}>Confirm</button>
-  </div>
-</Modal>
 
 <style lang="postcss">
 .icon-button {

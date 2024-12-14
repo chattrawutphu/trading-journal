@@ -12,6 +12,7 @@
     import NewAccountModal from "$lib/components/accounts/NewAccountModal.svelte";
     import Loading from "$lib/components/common/Loading.svelte";
     import Button from "$lib/components/common/Button.svelte";
+    import Modal from "$lib/components/common/Modal.svelte";
     import { api } from "$lib/utils/api";
     import { tradeCacheStore } from "$lib/stores/tradeCache";
 
@@ -32,6 +33,10 @@
     let selectedDayTransactions = [];
     let newTradeDate = "";
     let currentAccountId = null;
+    let showDeleteConfirmModal = false;
+    let deleteType = ''; // 'selected' or 'all'
+    let deleteContext = ''; // 'trades' or 'transactions'
+    let selectedItems = [];
 
     onMount(async () => {
         try {
@@ -263,6 +268,46 @@
         selectedDisplayDate = selectedDate;
         showDayModal = true;
         transactionStore.fetchTransactions(currentAccountId);
+    }
+
+    async function handleDeleteConfirm(event) {
+        const { type, context, items } = event.detail;
+        deleteType = type;
+        deleteContext = context;
+        selectedItems = items || [];
+        showDeleteConfirmModal = true;
+    }
+
+    async function confirmDelete() {
+        showDeleteConfirmModal = false;
+        if (deleteContext === 'trades') {
+            // Handle trade deletion
+            if (deleteType === 'all') {
+                for (const trade of selectedDayTrades) {
+                    await handleDelete({ detail: trade._id });
+                }
+            } else {
+                for (const tradeId of selectedItems) {
+                    await handleDelete({ detail: tradeId });
+                }
+            }
+        } else if (deleteContext === 'transactions') {
+            // Handle transaction deletion
+            try {
+                if (deleteType === 'all') {
+                    for (const transaction of selectedDayTransactions) {
+                        await transactionStore.deleteTransaction(transaction._id);
+                    }
+                } else {
+                    for (const transactionId of selectedItems) {
+                        await transactionStore.deleteTransaction(transactionId);
+                    }
+                }
+                await transactionStore.fetchTransactions($accountStore.currentAccount._id);
+            } catch (err) {
+                error = err.message;
+            }
+        }
     }
 </script>
 
@@ -544,6 +589,7 @@
         on:edit={handleEdit}
         on:delete={handleDelete}
         on:newTrade={handleNewTradeFromCalendar}
+        on:deleteConfirm={handleDeleteConfirm}
     />
 
     <TradeModal
@@ -570,6 +616,17 @@
         on:newTrade={handleNewTradeFromCalendar}
     />
 {/if}
+
+<Modal
+    bind:show={showDeleteConfirmModal}
+    title="Confirm Deletion"
+>
+    <p>Are you sure you want to {deleteType === 'all' ? 'delete all' : 'delete the selected'} {deleteContext}?</p>
+    <div class="flex justify-end gap-2 mt-4">
+        <button class="btn btn-secondary" on:click={() => showDeleteConfirmModal = false}>Cancel</button>
+        <button class="btn btn-primary" on:click={confirmDelete}>Confirm</button>
+    </div>
+</Modal>
 
 <style lang="postcss">
     .card {

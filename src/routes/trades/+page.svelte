@@ -16,6 +16,7 @@
     import { api } from '$lib/utils/api';
     import { tradeCacheStore } from '$lib/stores/tradeCache';
     import { transactionCacheStore } from '$lib/stores/transactionCache';
+    import Modal from '$lib/components/common/Modal.svelte';
 
     let loading = true;
     let error = '';
@@ -38,6 +39,10 @@
     let transactionDate = new Date().toLocaleString('sv').slice(0, 16); // Use user's local time in 'YYYY-MM-DDTHH:MM' format
     let currentAccountId = null;
     let transactionNote = ''; // Add this variable if not already present
+    let showDeleteConfirmModal = false;
+    let deleteType = '';
+    let deleteContext = '';  
+    let selectedItems = [];
 
     function updateTradeStats(tradeList) {
         // แยกและอัพเดท trades ทั้งหมด
@@ -284,6 +289,44 @@
     function handleAddAccount() {
         showAccountModal = true;
     }
+
+    async function handleDeleteConfirm(event) {
+        const { type, context, items } = event.detail;
+        deleteType = type;
+        deleteContext = context;
+        selectedItems = items || [];
+        showDeleteConfirmModal = true;
+    }
+
+    async function confirmDelete() {
+        showDeleteConfirmModal = false;
+        if (deleteContext === 'trades') {
+            if (deleteType === 'all') {
+                for (const trade of trades) {
+                    await handleDelete(trade._id); 
+                }
+            } else {
+                for (const tradeId of selectedItems) {
+                    await handleDelete(tradeId);
+                }
+            }
+        } else if (deleteContext === 'transactions') {
+            try {
+                if (deleteType === 'all') {
+                    for (const transaction of $transactionStore.transactions) {
+                        await transactionStore.deleteTransaction(transaction._id);
+                    }
+                } else {
+                    for (const transactionId of selectedItems) {
+                        await transactionStore.deleteTransaction(transactionId);
+                    }
+                }
+                await transactionStore.fetchTransactions($accountStore.currentAccount._id);
+            } catch (err) {
+                error = err.message;
+            }
+        }
+    }
 </script>
 
 <div class="space-y-4 p-8">
@@ -369,6 +412,7 @@
                                 on:delete={e => handleDelete(e.detail)}
                                 on:favorite={e => handleFavorite(e.detail)}
                                 on:disable={e => handleDisable(e.detail)}
+                                on:deleteConfirm={handleDeleteConfirm}
                             />
                         </div>
                     {/if}
@@ -387,6 +431,7 @@
                                 on:delete={e => handleDelete(e.detail)}
                                 on:favorite={e => handleFavorite(e.detail)}
                                 on:disable={e => handleDisable(e.detail)}
+                                on:deleteConfirm={handleDeleteConfirm}
                             />
                         </div>
                     {/if}
@@ -410,6 +455,7 @@
                         accountId={currentAccountId}
                         transactions={transactionStore.transactions}
                         readOnly={false}
+                        on:deleteConfirm={handleDeleteConfirm}
                     />
                 </div>
             {/if}
@@ -607,6 +653,17 @@
         </div>
     {/if}
 {/if}
+
+<Modal
+    bind:show={showDeleteConfirmModal}
+    title="Confirm Deletion"
+>
+    <p>Are you sure you want to {deleteType === 'all' ? 'delete all' : 'delete the selected'} {deleteContext}?</p>
+    <div class="flex justify-end gap-2 mt-4">
+        <button class="btn btn-secondary" on:click={() => showDeleteConfirmModal = false}>Cancel</button>
+        <button class="btn btn-primary" on:click={confirmDelete}>Confirm</button>
+    </div>
+</Modal>
 
 <style lang="postcss">
     .card {
