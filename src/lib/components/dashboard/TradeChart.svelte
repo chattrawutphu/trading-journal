@@ -45,7 +45,7 @@
             if (!trade.exitDate) return acc;
             
             const date = new Date(trade.exitDate);
-            const dateKey = date.toISOString().split('T')[0];
+            const dateKey = date.toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
             
             if (!acc[dateKey]) {
                 acc[dateKey] = {

@@ -7,7 +7,7 @@
     const dispatch = createEventDispatcher();
     export let collapsed = false;
 
-    const isCollapsed = writable(false);
+    const isCollapsed = writable(collapsed);
 
     onMount(() => {
         const handleResize = () => {
@@ -71,9 +71,14 @@
     ];
 
     function toggleCollapse() {
-        collapsed = !collapsed;
-        dispatch("collapse", collapsed);
+        if (window.innerWidth >= 640) { // Only allow collapse on screens larger than sm breakpoint
+            collapsed = !collapsed;
+            isCollapsed.set(collapsed);
+            dispatch("collapse", collapsed);
+        }
     }
+
+    $: $isCollapsed = collapsed;
 
     $: isActive = (path) => $page.url.pathname === path;
 </script>

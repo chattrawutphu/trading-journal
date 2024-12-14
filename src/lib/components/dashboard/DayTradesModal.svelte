@@ -58,7 +58,7 @@
             return [];
         }
         return transactionList.filter(transaction => {
-            const transactionDate = new Date(transaction.date).toISOString().split('T')[0];
+            const transactionDate = new Date(transaction.date).toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
             return transactionDate === date;
         });
     }

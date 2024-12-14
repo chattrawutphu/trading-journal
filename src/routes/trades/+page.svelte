@@ -171,7 +171,7 @@
                 await transactionStore.fetchTransactions(currentAccountId);
                 showDepositModal = false;
                 transactionAmount = 0;
-                transactionDate = new Date().toISOString().split('T')[0];
+                transactionDate = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
                 transactionNote = ''; // Reset note
             } catch (err) {
                 error = err.message;
@@ -197,7 +197,7 @@
                 await transactionStore.fetchTransactions(currentAccountId);
                 showWithdrawModal = false;
                 transactionAmount = 0;
-                transactionDate = new Date().toISOString().split('T')[0];
+                transactionDate = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
                 transactionNote = ''; // Reset note
             } catch (err) {
                 error = err.message;
@@ -219,11 +219,11 @@
         selectedTransaction = event.detail;
         if (selectedTransaction.type === 'deposit') {
             transactionAmount = selectedTransaction.amount;
-            transactionDate = new Date(selectedTransaction.date).toISOString().split('T')[0];
+            transactionDate = new Date(selectedTransaction.date).toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
             showDepositModal = true;
         } else {
             transactionAmount = selectedTransaction.amount;
-            transactionDate = new Date(selectedTransaction.date).toISOString().split('T')[0];
+            transactionDate = new Date(selectedTransaction.date).toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
             showWithdrawModal = true;
         }
     }
@@ -519,7 +519,7 @@
                             showDepositModal = false;
                             selectedTransaction = null;
                             transactionAmount = 0;
-                            transactionDate = new Date().toISOString().split('T')[0];
+                            transactionDate = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
                             transactionNote = ''; // Reset note
                         }}
                     >
@@ -563,7 +563,7 @@
                             showDepositModal = false;
                             selectedTransaction = null;
                             transactionAmount = 0;
-                            transactionDate = new Date().toISOString().split('T')[0];
+                            transactionDate = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
                             transactionNote = ''; // Reset note
                         }}
                     >
@@ -595,7 +595,7 @@
                             showWithdrawModal = false;
                             selectedTransaction = null;
                             transactionAmount = 0;
-                            transactionDate = new Date().toISOString().split('T')[0];
+                            transactionDate = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
                             transactionNote = ''; // Reset note
                         }}
                     >
@@ -639,7 +639,7 @@
                             showWithdrawModal = false;
                             selectedTransaction = null;
                             transactionAmount = 0;
-                            transactionDate = new Date().toISOString().split('T')[0];
+                            transactionDate = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
                             transactionNote = ''; // Reset note
                         }}
                     >

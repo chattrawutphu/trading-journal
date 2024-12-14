@@ -13,7 +13,7 @@
     export let accountId;
 
     let transactionAmount = 0;
-    let transactionDateInput = new Date().toISOString().split('T')[0];
+    let transactionDateInput = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', ''); // Use current date and time in the correct format for datetime-local
     let transactionNote = '';
 
     async function handleSubmit() {
@@ -32,7 +32,7 @@
                 await transactionStore.fetchTransactions($accountStore.currentAccount._id);
                 dispatch("close");
                 transactionAmount = 0;
-                transactionDateInput = new Date().toISOString().split('T')[0];
+                transactionDateInput = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', ''); // Reset to current date and time
                 transactionNote = '';
             } catch (err) {
                 console.error(err);
