@@ -120,7 +120,7 @@
         >
           Cancel
         </Button>
-        <Button type="submit" variant="primary" on:click={handleSubmit}>
+        <Button type="submit" variant="primary" size="sm" on:click={handleSubmit}>
           Save Changes
         </Button>
       </div>

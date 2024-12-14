@@ -373,7 +373,7 @@
             Dashboard
         </h1>
         {#if $accountStore.currentAccount}
-            <Button variant="primary" on:click={handleNewTrade}>
+            <Button variant="primary" size="sm" on:click={handleNewTrade}>
                 <svg
                     class="w-5 h-5 mr-2"
                     fill="none"
@@ -581,7 +581,7 @@
                     Track your performance, analyze your trades, and improve
                     your trading strategy with our comprehensive trading tools.
                 </p>
-                <Button variant="primary" on:click={handleAddAccount}>
+                <Button variant="primary" size="sm" on:click={handleAddAccount}>
                     <svg
                         class="w-5 h-5 mr-2"
                         fill="none"

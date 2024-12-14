@@ -643,13 +643,13 @@
                     {/if}
                 </div>
                 <div class="flex gap-4">
-                    <Button type="button" variant="secondary" on:click={close}>
+                    <Button type="button" variant="secondary" size="sm" on:click={close}>
                         Cancel
                     </Button>
                     <Button
                         type="submit"
                         variant="primary"
-                        on:click={handleSubmit}
+                        size="sm" on:click={handleSubmit}
                         class="min-w-[100px]"
                     >
                         Save Trade

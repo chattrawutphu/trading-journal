@@ -126,7 +126,7 @@
                     {displayDate || formatDate(date)}
                 </h2>
                 <div class="flex items-center gap-4">
-                    <Button variant="primary" on:click={handleNewTrade}>
+                    <Button variant="primary" size="sm" on:click={handleNewTrade}>
                         <svg
                             class="w-5 h-5 mr-2"
                             fill="none"

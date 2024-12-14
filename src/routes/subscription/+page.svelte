@@ -531,7 +531,7 @@
                 >
                     Cancel
                 </button>
-                <Button variant="primary" on:click={() => handleDepayPayment(upgradePlan)}>
+                <Button variant="primary" size="sm" on:click={() => handleDepayPayment(upgradePlan)}>
                     Confirm Upgrade
                 </Button>
             </div>

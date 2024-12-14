@@ -295,7 +295,7 @@
                 <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
                     Track your performance, analyze your trades, and improve your trading strategy with our advanced analytics tools.
                 </p>
-                <Button variant="primary" on:click={handleAddAccount}>
+                <Button variant="primary" size="sm" on:click={handleAddAccount}>
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>

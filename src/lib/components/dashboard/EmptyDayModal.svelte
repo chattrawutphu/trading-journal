@@ -67,10 +67,10 @@
 
             <!-- Footer -->
             <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
-                <Button variant="secondary" on:click={close}>
+                <Button variant="secondary" size="sm" on:click={close}>
                     Cancel
                 </Button>
-                <Button variant="primary" on:click={handleNewTrade}>
+                <Button variant="primary" size="sm" on:click={handleNewTrade}>
                     Create Trade
                 </Button>
             </div>

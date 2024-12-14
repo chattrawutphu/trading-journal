@@ -346,7 +346,7 @@
         <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">History</h1>
         {#if $accountStore.currentAccount}
             {#if activeTab === 'trades'}
-                <Button variant="primary" on:click={() => showEditModal = true}>
+                <Button variant="primary" size="sm" on:click={() => showEditModal = true}>
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
@@ -354,13 +354,13 @@
                 </Button>
             {:else if activeTab === 'transactions'}
                 <div class="flex gap-2">
-                    <Button variant="primary" on:click={() => showDepositModal = true}>
+                    <Button variant="primary" size="sm" on:click={() => showDepositModal = true}>
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
                         Deposit
                     </Button>
-                    <Button variant="primary" on:click={() => showWithdrawModal = true}>
+                    <Button variant="primary" size="sm" on:click={() => showWithdrawModal = true}>
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
                         </svg>
@@ -470,7 +470,7 @@
                 <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
                     Track your trades, manage your transactions, and analyze your performance with our comprehensive trading tools.
                 </p>
-                <Button variant="primary" on:click={handleAddAccount}>
+                <Button variant="primary" size="sm" on:click={handleAddAccount}>
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
