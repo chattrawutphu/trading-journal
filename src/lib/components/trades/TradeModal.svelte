@@ -187,8 +187,8 @@
         dispatch("close");
         form = {
             account: accountId,
-            entryDate: entryDate || getCurrentDate(), // Keep using entryDate from calendar if provided
-            exitDate: "",
+            entryDate: getCurrentDateTime(), // Reset to current date and time
+            exitDate: getCurrentDateTime(), // Reset to current date and time
             symbol: "",
             status: "OPEN",
             side: "LONG",
