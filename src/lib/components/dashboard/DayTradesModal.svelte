@@ -17,10 +17,10 @@
     export let date = "";
     export let displayDate = "";
     export let accountId;
+    export let loading = false; // เพิ่มสถานะ loading
 
     let showTransactionModal = false;
     let selectedTransaction = null;
-    let loading = false;
     let error = null;
 
     $: if (show && accountId) {

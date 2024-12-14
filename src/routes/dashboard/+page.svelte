@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { accountStore } from "$lib/stores/accountStore";
     import { transactionStore } from "$lib/stores/transactionStore";
+    import { transactionCacheStore } from "$lib/stores/transactionCache"; // เพิ่มการ import นี้
     import TradingStats from "$lib/components/dashboard/TradingStats.svelte";
     import TradeChart from "$lib/components/dashboard/TradeChart.svelte";
     import TradeCalendar from "$lib/components/dashboard/TradeCalendar.svelte";
@@ -37,6 +38,7 @@
     let deleteType = ''; // 'selected' or 'all'
     let deleteContext = ''; // 'trades' or 'transactions'
     let selectedItems = [];
+    let dayTradesLoading = false; // เพิ่มสถานะ loading สำหรับ DayTradesModal
 
     onMount(async () => {
         try {
@@ -165,10 +167,8 @@
     }
 
     async function handleDelete(event) {
-        if (!confirm("Are you sure you want to delete this trade?")) return;
-
         try {
-            loading = true;
+            dayTradesLoading = true; // Set loading to true
             error = "";
 
             await api.deleteTrade(event.detail);
@@ -183,7 +183,24 @@
         } catch (err) {
             error = err.message;
         } finally {
-            loading = false;
+            dayTradesLoading = false; // Set loading to false
+        }
+    }
+
+    async function handleDeleteTransaction(transactionId) {
+    
+        try {
+            dayTradesLoading = true; // Set loading to true
+            error = "";
+
+            await transactionStore.deleteTransaction(transactionId);
+            transactionCacheStore.clearCache($accountStore.currentAccount._id);
+            // Fetch updated transactions
+            await transactionStore.fetchTransactions($accountStore.currentAccount._id);
+        } catch (err) {
+            error = err.message;
+        } finally {
+            dayTradesLoading = false; // Set loading to false
         }
     }
 
@@ -291,23 +308,38 @@
                     await handleDelete({ detail: tradeId });
                 }
             }
+            await loadTrades(); // Fetch and update cache after deletion
+            await fetchDayTrades(); // Fetch and update DayTradesModal
         } else if (deleteContext === 'transactions') {
             // Handle transaction deletion
             try {
                 if (deleteType === 'all') {
                     for (const transaction of selectedDayTransactions) {
-                        await transactionStore.deleteTransaction(transaction._id);
+                        await handleDeleteTransaction(transaction._id);
                     }
                 } else {
                     for (const transactionId of selectedItems) {
-                        await transactionStore.deleteTransaction(transactionId);
+                        await handleDeleteTransaction(transactionId);
                     }
                 }
                 await transactionStore.fetchTransactions($accountStore.currentAccount._id);
+                await fetchDayTrades(); // Fetch and update DayTradesModal
             } catch (err) {
                 error = err.message;
             }
         }
+    }
+
+    async function fetchDayTrades() {
+        const accountId = $accountStore.currentAccount._id;
+        const response = await api.getTrades(accountId);
+        selectedDayTrades = response.filter(trade => {
+            const tradeDate = trade.status === "CLOSED" ? trade.exitDate : trade.entryDate;
+            return new Date(tradeDate).toISOString().split('T')[0] === selectedDate;
+        });
+        selectedDayTransactions = (transactionStore.transactions || []).filter(transaction => {
+            return new Date(transaction.date).toISOString().split('T')[0] === selectedDate;
+        });
     }
 </script>
 
@@ -590,6 +622,7 @@
         on:delete={handleDelete}
         on:newTrade={handleNewTradeFromCalendar}
         on:deleteConfirm={handleDeleteConfirm}
+        loading={dayTradesLoading}
     />
 
     <TradeModal
