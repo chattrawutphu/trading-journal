@@ -16,13 +16,9 @@
 
     let showNewAccountModal = false;
     let showEditAccountModal = false;
-    let showDepositModal = false;
-    let showWithdrawModal = false;
     let newAccountName = "";
     let newAccountBalance = 0;
     let editingAccount = null;
-    let transactionAmount = 0;
-    let transactionDate = new Date().toISOString().split("T")[0];
     let error = "";
     let switchingAccount = false;
 
@@ -60,60 +56,6 @@
         }
     }
 
-    async function handleDeposit() {
-        if (editingAccount && transactionAmount > 0) {
-            try {
-                error = "";
-                await Promise.all([
-                    transactionStore.createTransaction(
-                        editingAccount._id,
-                        "deposit",
-                        transactionAmount,
-                        new Date(transactionDate),
-                    ),
-                    accountStore.setCurrentAccount(editingAccount._id),
-                    accountStore.loadAccounts(),
-                    transactionStore.fetchTransactions(editingAccount._id),
-                ]);
-                showDepositModal = false;
-                editingAccount = null;
-                transactionAmount = 0;
-                transactionDate = new Date().toISOString().split("T")[0];
-
-                
-            } catch (err) {
-                error = err.message;
-            }
-        }
-    }
-
-    async function handleWithdraw() {
-        if (editingAccount && transactionAmount > 0) {
-            try {
-                error = "";
-                await Promise.all([
-                    transactionStore.createTransaction(
-                        editingAccount._id,
-                        "withdrawal",
-                        transactionAmount,
-                        new Date(transactionDate),
-                    ),
-                    accountStore.setCurrentAccount(editingAccount._id),
-                    accountStore.loadAccounts(),
-                    transactionStore.fetchTransactions(editingAccount._id),
-                ]);
-                showWithdrawModal = false;
-                editingAccount = null;
-                transactionAmount = 0;
-                transactionDate = new Date().toISOString().split("T")[0];
-
-                
-            } catch (err) {
-                error = err.message;
-            }
-        }
-    }
-
     async function handleDeleteAccount(accountId) {
         if (
             confirm(
@@ -132,20 +74,6 @@
     function startEditAccount(account) {
         editingAccount = { ...account };
         showEditAccountModal = true;
-    }
-
-    function startDeposit(account) {
-        editingAccount = { ...account };
-        transactionAmount = 0;
-        transactionDate = new Date().toISOString().split("T")[0];
-        showDepositModal = true;
-    }
-
-    function startWithdraw(account) {
-        editingAccount = { ...account };
-        transactionAmount = 0;
-        transactionDate = new Date().toISOString().split("T")[0];
-        showWithdrawModal = true;
     }
 
     async function handleAccountSwitch(accountId) {
@@ -241,7 +169,7 @@
         <div class="py-1">
             {#each $accountStore.accounts as account}
                 <div
-                    class="group flex items-center justify-between px-4 py-2 hover:bg-light-hover dark:hover:bg-dark-hover"
+                    class="flex items-center justify-between px-4 py-2 hover:bg-light-hover dark:hover:bg-dark-hover"
                 >
                     <button
                         class="flex-grow text-left text-sm text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400"
@@ -251,49 +179,7 @@
                     >
                         <span>{account.name}</span>
                     </button>
-                    <div
-                        class="hidden group-hover:flex items-center ml-2 space-x-1"
-                    >
-                        <button
-                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-green-500 hover:bg-light-card dark:hover:bg-dark-card"
-                            on:click|stopPropagation={() =>
-                                startDeposit(account)}
-                            title="Deposit"
-                        >
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M12 4v16m8-8H4"
-                                />
-                            </svg>
-                        </button>
-                        <button
-                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card"
-                            on:click|stopPropagation={() =>
-                                startWithdraw(account)}
-                            title="Withdraw"
-                        >
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M20 12H4"
-                                />
-                            </svg>
-                        </button>
+                    <div class="flex items-center ml-2 space-x-1">
                         <button
                             class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400 hover:bg-light-card dark:hover:bg-dark-card"
                             on:click|stopPropagation={() =>
@@ -531,190 +417,6 @@
                     on:click={handleUpdateAccount}
                 >
                     Save Changes
-                </Button>
-            </div>
-        </div>
-    </div>
-{/if}
-
-<!-- Deposit Modal -->
-{#if showDepositModal && editingAccount}
-    <div
-        class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
-        transition:fade={{ duration: 150 }}
-    >
-        <div class="card w-full max-w-md mx-auto relative transform ease-out">
-            <!-- Header -->
-            <div
-                class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
-            >
-                <h2
-                    class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent"
-                >
-                    Deposit
-                </h2>
-                <button
-                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
-                    on:click={() => {
-                        showDepositModal = false;
-                        editingAccount = null;
-                        transactionAmount = 0;
-                        transactionDate = new Date()
-                            .toISOString()
-                            .split("T")[0];
-                    }}
-                >
-                    <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Content -->
-            <div class="px-8 py-6 space-y-4">
-                <form on:submit|preventDefault={handleDeposit}>
-                    <Input
-                        label="Amount"
-                        type="number"
-                        bind:value={transactionAmount}
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                    />
-                    <Input
-                        label="Date"
-                        type="date"
-                        bind:value={transactionDate}
-                    />
-                </form>
-            </div>
-
-            <!-- Footer -->
-            <div
-                class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
-            >
-                <Button
-                    type="button"
-                    variant="secondary"
-                    on:click={() => {
-                        showDepositModal = false;
-                        editingAccount = null;
-                        transactionAmount = 0;
-                        transactionDate = new Date()
-                            .toISOString()
-                            .split("T")[0];
-                    }}
-                >
-                    Cancel
-                </Button>
-                <Button
-                    type="submit"
-                    variant="primary"
-                    on:click={handleDeposit}
-                >
-                    Deposit
-                </Button>
-            </div>
-        </div>
-    </div>
-{/if}
-
-<!-- Withdraw Modal -->
-{#if showWithdrawModal && editingAccount}
-    <div
-        class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
-        transition:fade={{ duration: 150 }}
-    >
-        <div class="card w-full max-w-md mx-auto relative transform ease-out">
-            <!-- Header -->
-            <div
-                class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
-            >
-                <h2
-                    class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent"
-                >
-                    Withdraw
-                </h2>
-                <button
-                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
-                    on:click={() => {
-                        showWithdrawModal = false;
-                        editingAccount = null;
-                        transactionAmount = 0;
-                        transactionDate = new Date()
-                            .toISOString()
-                            .split("T")[0];
-                    }}
-                >
-                    <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Content -->
-            <div class="px-8 py-6 space-y-4">
-                <form on:submit|preventDefault={handleWithdraw}>
-                    <Input
-                        label="Amount"
-                        type="number"
-                        bind:value={transactionAmount}
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                    />
-                    <Input
-                        label="Date"
-                        type="date"
-                        bind:value={transactionDate}
-                    />
-                </form>
-            </div>
-
-            <!-- Footer -->
-            <div
-                class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
-            >
-                <Button
-                    type="button"
-                    variant="secondary"
-                    on:click={() => {
-                        showWithdrawModal = false;
-                        editingAccount = null;
-                        transactionAmount = 0;
-                        transactionDate = new Date()
-                            .toISOString()
-                            .split("T")[0];
-                    }}
-                >
-                    Cancel
-                </Button>
-                <Button
-                    type="submit"
-                    variant="primary"
-                    on:click={handleWithdraw}
-                >
-                    Withdraw
                 </Button>
             </div>
         </div>
