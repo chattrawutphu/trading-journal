@@ -1,10 +1,27 @@
-<!-- src/lib/components/layout/CollapsibleSidebar.svelte -->
 <script>
     import { page } from "$app/stores";
-    import { createEventDispatcher } from "svelte";
+    import { createEventDispatcher, onMount } from "svelte";
+    import { writable } from "svelte/store";
 
     const dispatch = createEventDispatcher();
     export let collapsed = false;
+
+    const isCollapsed = writable(false);
+
+    onMount(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 640) { // Tailwind's sm breakpoint is 640px
+                isCollapsed.set(true);
+            } else {
+                isCollapsed.set(false);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Initial check
+
+        return () => window.removeEventListener('resize', handleResize);
+    });
 
     const menuItems = [
         {
@@ -60,9 +77,20 @@
     $: isActive = (path) => $page.url.pathname === path;
 </script>
 
+<style>
+    .sidebar {
+        transition: width 0.3s ease;
+    }
+
+    .collapsed {
+        width: 0;
+        overflow: hidden;
+    }
+</style>
+
 <aside class="h-screen p-2">
     <div
-        class="rounded-md h-full bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col {collapsed
+        class="rounded-md h-full bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col { $isCollapsed
             ? 'w-20'
             : 'w-64'}"
     >
@@ -70,7 +98,7 @@
         <div
             class="p-4 border-b border-light-border dark:border-dark-border flex items-center justify-between"
         >
-            {#if !collapsed}
+            {#if !$isCollapsed}
                 <h1
                     class="text-xl font-bold bg-gradient-purple bg-clip-text text-transparent"
                 >
@@ -91,7 +119,7 @@
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         stroke-width="2"
-                        d={collapsed
+                        d={$isCollapsed
                             ? "M13 5l7 7-7 7M5 5l7 7-7 7"
                             : "M11 19l-7-7 7-7m8 14l-7-7 7-7"}
                     />
@@ -113,7 +141,7 @@
                                 : 'text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover hover:text-light-text dark:hover:text-dark-text'}"
                         >
                             {@html item.icon}
-                            {#if !collapsed}
+                            {#if !$isCollapsed}
                                 <span class="ml-3">{item.title}</span>
                             {:else}
                                 <span class="sr-only">{item.title}</span>
@@ -143,7 +171,7 @@
                         d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                     />
                 </svg>
-                {#if !collapsed}
+                {#if !$isCollapsed}
                     <span class="ml-3">Logout</span>
                 {/if}
             </button>

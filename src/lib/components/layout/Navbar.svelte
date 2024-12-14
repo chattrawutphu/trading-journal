@@ -6,6 +6,8 @@
     import { goto } from '$app/navigation';
     import AccountManager from '../accounts/AccountManager.svelte';
     import ThemeToggle from '../common/ThemeToggle.svelte';
+    import Button from '../common/Button.svelte'; // Added import for Button component
+    import TransactionModal from '../transactions/TransactionModal.svelte'; // Added import for TransactionModal component
     import { onMount } from 'svelte';
   
     let showAccountMenu = false;
@@ -14,6 +16,8 @@
     let userMenuRef;
     let showSubscriptionWarning = false;
     let warningDismissed = false;
+    let showDepositModal = false; // Added for deposit modal
+    let showWithdrawModal = false; // Added for withdraw modal
 
     function handleLogout() {
       auth.logout();
@@ -128,6 +132,21 @@
                         <span class="text-light-text-muted dark:text-dark-text-muted mr-2">Balance:</span>
                         <span class="font-semibold text-theme-500">{formatBalance($accountStore.currentAccount.actualBalance)}</span>
                     </div>
+                    <!-- Added Deposit and Withdraw Buttons -->
+                    <div class="flex items-center gap-1 ml-4">
+                        <Button variant="secondary" size="xs" on:click={() => showDepositModal = true}>
+                            <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Deposit
+                        </Button>
+                        <Button variant="secondary" size="xs" on:click={() => showWithdrawModal = true}>
+                            <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            </svg>
+                            Withdraw
+                        </Button>
+                    </div>
                 </div>
             {/if}
 
@@ -197,3 +216,19 @@
         </div>
     </div>
 </nav>
+
+<!-- Deposit Modal -->
+<TransactionModal
+    show={showDepositModal}
+    type="deposit"
+    accountId={$accountStore.currentAccount._id}
+    on:close={() => showDepositModal = false}
+/>
+
+<!-- Withdraw Modal -->
+<TransactionModal
+    show={showWithdrawModal}
+    type="withdraw"
+    accountId={$accountStore.currentAccount._id}
+    on:close={() => showWithdrawModal = false}
+/>
