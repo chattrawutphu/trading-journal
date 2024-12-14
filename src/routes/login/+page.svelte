@@ -4,7 +4,7 @@
     import { goto } from '$app/navigation';
     import ThemeToggle from '$lib/components/common/ThemeToggle.svelte';
 
-    let email = '';
+    let identifier = ''; // This can be either email or username
     let password = '';
     let error = '';
     let loading = false;
@@ -20,19 +20,19 @@
         error = '';
 
         try {
-            if (!email || !password) {
+            if (!identifier || !password) {
                 throw new Error('Please fill in all fields');
             }
 
-            if (!validateEmail(email)) {
-                throw new Error('Please enter a valid email address');
+            if (!validateEmail(identifier) && !identifier.trim()) {
+                throw new Error('Please enter a valid email address or username');
             }
 
             if (password.length < 6) {
                 throw new Error('Password must be at least 6 characters');
             }
 
-            await auth.login(email, password);
+            await auth.login(identifier, password);
             goto('/dashboard');
         } catch (err) {
             error = err.message || 'Login failed. Please try again.';
@@ -102,16 +102,16 @@
                 {/if}
 
                 <div>
-                    <label for="email" class="block text-sm font-medium text-light-text dark:text-dark-text mb-1">
-                        Email address
+                    <label for="identifier" class="block text-sm font-medium text-light-text dark:text-dark-text mb-1">
+                        Email or Username
                     </label>
                     <input
-                        id="email"
-                        type="email"
-                        bind:value={email}
+                        id="identifier"
+                        type="text"
+                        bind:value={identifier}
                         required
-                        class="input w-full {error && !email ? 'border-red-500' : ''}"
-                        placeholder="Enter your email"
+                        class="input w-full {error && !identifier ? 'border-red-500' : ''}"
+                        placeholder="Enter your email or username"
                     />
                 </div>
 

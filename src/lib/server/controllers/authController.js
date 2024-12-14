@@ -7,10 +7,43 @@ export const register = async (req, res) => {
   try {
     const { email, password, username } = req.body;
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
+    // Check if email or username already exists
+    const emailExists = await User.findOne({ email });
+    if (emailExists) {
       res.status(400);
-      throw new Error('User already exists');
+      throw new Error('Email already exists');
+    }
+
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists) {
+      res.status(400);
+      throw new Error('Username already exists');
+    }
+
+    // Password validation
+    if (password.length < 8) {
+      res.status(400);
+      throw new Error('Password must be at least 8 characters long');
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      res.status(400);
+      throw new Error('Password must contain at least one uppercase letter');
+    }
+
+    if (!/[a-z]/.test(password)) {
+      res.status(400);
+      throw new Error('Password must contain at least one lowercase letter');
+    }
+
+    if (!/[0-9]/.test(password)) {
+      res.status(400);
+      throw new Error('Password must contain at least one number');
+    }
+
+    if (!/[!@#$%^&*]/.test(password)) {
+      res.status(400);
+      throw new Error('Password must contain at least one special character');
     }
 
     const userData = {
@@ -47,21 +80,28 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, username, password } = req.body;
 
-    if (!email || !password) {
+    if (!email && !username) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide email and password'
+        error: 'Please provide either email or username and password'
       });
     }
 
-    const user = await User.findOne({ email });
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please provide a password'
+      });
+    }
+
+    const user = await User.findOne({ $or: [{ email }, { username }] });
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid email or password'
+        error: 'Invalid email, username, or password'
       });
     }
 
@@ -69,7 +109,7 @@ export const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid email or password'
+        error: 'Invalid email, username, or password'
       });
     }
 
