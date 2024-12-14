@@ -2,6 +2,7 @@
     import { page } from "$app/stores";
     import { createEventDispatcher, onMount } from "svelte";
     import { writable } from "svelte/store";
+    import ThemeToggle from '../common/ThemeToggle.svelte'; // Import ThemeToggle component
 
     const dispatch = createEventDispatcher();
     export let collapsed = false;
@@ -153,7 +154,11 @@
         </nav>
 
         <!-- Footer -->
-        <div class="p-4 border-t border-light-border dark:border-dark-border">
+        <div class="p-4 border-t border-light-border dark:border-dark-border flex items-center justify-between">
+            <!-- Theme Toggle -->
+            <ThemeToggle />
+
+            <!-- Logout Button -->
             <button
                 class="w-full flex items-center justify-center px-3 py-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover hover:text-light-text dark:hover:text-dark-text"
                 on:click={() => dispatch("logout")}

@@ -5,7 +5,6 @@
     import { SUBSCRIPTION_FEATURES, SUBSCRIPTION_TYPES } from '$lib/config/subscription';
     import { goto } from '$app/navigation';
     import AccountManager from '../accounts/AccountManager.svelte';
-    import ThemeToggle from '../common/ThemeToggle.svelte';
     import Button from '../common/Button.svelte'; // Added import for Button component
     import TransactionModal from '../transactions/TransactionModal.svelte'; // Added import for TransactionModal component
     import { onMount } from 'svelte';
@@ -152,9 +151,6 @@
 
             {#if $auth?.isAuthenticated}
                 <div class="flex items-center space-x-4">
-                    <!-- Theme Toggle -->
-                    <ThemeToggle />
-
                     <!-- Account Selector -->
                     <div class="relative" bind:this={accountMenuRef}>
                         <button 
