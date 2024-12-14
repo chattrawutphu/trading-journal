@@ -66,6 +66,8 @@
             }
         } catch (err) {
             error = err.message;
+        } finally {
+            loading = false; // Ensure loading is set to false after data fetch
         }
     });
 
