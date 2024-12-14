@@ -5,7 +5,7 @@ import { SUBSCRIPTION_TYPES } from '../../config/subscription.js';
 
 export const register = async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, username } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -16,7 +16,7 @@ export const register = async (req, res) => {
     const userData = {
       email,
       password,
-      name,
+      username,
       role: 'user',
       strategies: []
     };
@@ -27,7 +27,7 @@ export const register = async (req, res) => {
       req.session.userId = user._id;
       res.status(201).json({
         _id: user._id,
-        name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
         strategies: user.strategies,
@@ -78,7 +78,7 @@ export const login = async (req, res) => {
       success: true,
       user: {
         _id: user._id,
-        name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
         strategies: user.strategies,
@@ -121,7 +121,7 @@ export const getProfile = async (req, res) => {
     if (user) {
       res.json({
         _id: user._id,
-        name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
         strategies: user.strategies
@@ -146,7 +146,7 @@ export const updateProfile = async (req, res) => {
     const user = await User.findById(req.user._id);
 
     if (user) {
-      user.name = req.body.name || user.name;
+      user.username = req.body.username || user.username;
       user.email = req.body.email || user.email;
       if (req.body.password) {
         user.password = req.body.password;
@@ -156,7 +156,7 @@ export const updateProfile = async (req, res) => {
 
       res.json({
         _id: updatedUser._id,
-        name: updatedUser.name,
+        username: updatedUser.username,
         email: updatedUser.email,
         role: updatedUser.role,
         strategies: updatedUser.strategies,
@@ -180,7 +180,7 @@ export const verifyToken = async (req, res) => {
     if (user) {
       res.json({
         _id: user._id,
-        name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
         strategies: user.strategies,
