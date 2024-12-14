@@ -56,9 +56,10 @@
         if (!Array.isArray(transactionList)) {
             console.error('transactionList is not an array:', transactionList);
             return [];
+        
         }
         return transactionList.filter(transaction => {
-            const transactionDate = new Date(transaction.date).toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
+            const transactionDate = new Date(transaction.date).toISOString().split('T')[0];
             return transactionDate === date;
         });
     }
@@ -70,8 +71,13 @@
     }
 
     function handleNewTrade() {
-        const formattedDate = new Date(date).toISOString().slice(0, 10);
-        dispatch("newTrade", formattedDate);
+        const selectedDate = new Date(date);
+        if (!isNaN(selectedDate.getTime())) {
+            selectedDate.setHours(12, 0, 0, 0); // Use local time
+            dispatch("newTrade", selectedDate.toISOString());
+        } else {
+            console.error('Invalid date:', date);
+        }
         close();
     }
 

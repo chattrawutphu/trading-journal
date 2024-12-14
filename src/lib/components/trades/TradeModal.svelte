@@ -41,9 +41,15 @@
         return now.toISOString().slice(0, 10);
     }
 
+    function getCurrentDateTime() {
+        const now = new Date();
+        now.setSeconds(0, 0);
+        return now.toLocaleString('sv-SE', { hour12: false }).slice(0, 16); // Use local date and time
+    }
+
     let form = {
-        entryDate: "",
-        exitDate: "",
+        entryDate: getCurrentDateTime(),
+        exitDate: getCurrentDateTime(),
         symbol: "",
         status: "OPEN",
         side: "LONG",
@@ -83,27 +89,34 @@
         form = {
             ...trade,
             entryDate: trade.entryDate
-                ? new Date(trade.entryDate).toISOString().slice(0, 10)
-                : "",
+                ? new Date(trade.entryDate).toISOString().slice(0, 16)
+                : getCurrentDateTime(),
             exitDate: trade.exitDate
-                ? new Date(trade.exitDate).toISOString().slice(0, 10)
-                : "",
+                ? new Date(trade.exitDate).toISOString().slice(0, 16)
+                : getCurrentDateTime(),
             leverage: trade.leverage || leverageStore.getLeverage(trade.symbol),
         };
         previousSymbol = trade.symbol;
     } else {
         form.account = accountId;
-        // If entryDate is provided (from calendar), use it. Otherwise use current date
-        form.entryDate = entryDate || getCurrentDate();
+        form.entryDate = getCurrentDateTime();
+        form.exitDate = getCurrentDateTime();
     }
 
-    // Watch for entryDate prop changes
-    $: if (entryDate && !trade) {
-        form.entryDate = entryDate;
-    }
+    // Remove or comment out the following reactive statement since we handle it above
+    // $: if (entryDate) {
+    //     const date = new Date(entryDate);
+    //     if (!isNaN(date.getTime())) {
+    //         if (!trade) {
+    //             form.entryDate = date.toISOString().slice(0, 16);
+    //         }
+    //     }
+    // } else if (!trade) {
+    //     form.entryDate = getCurrentDateTime();
+    // }
 
     $: if (form.status === "CLOSED" && !form.exitDate) {
-        form.exitDate = getCurrentDate();
+        form.exitDate = getCurrentDateTime();
     }
 
     function calculatePnL() {
@@ -148,14 +161,12 @@
         try {
             if (formData.entryDate) {
                 const entryDate = new Date(formData.entryDate);
-                entryDate.setHours(12, 0, 0, 0); // Set to start of day
                 if (!isNaN(entryDate.getTime())) {
                     formData.entryDate = entryDate.toISOString();
                 }
             }
             if (formData.exitDate) {
                 const exitDate = new Date(formData.exitDate);
-                exitDate.setHours(12, 0, 0, 0); // Set to start of day
                 if (!isNaN(exitDate.getTime())) {
                     formData.exitDate = exitDate.toISOString();
                 }
@@ -348,9 +359,9 @@
                             <div class="space-y-4">
                                 <Input
                                     label="Entry Date"
-                                    type="date"
+                                    type="datetime-local"
                                     bind:value={form.entryDate}
-                                    max={new Date().toISOString().slice(0, 10)}
+                                    max={new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16)}
                                     required
                                     error={touched.entryDate &&
                                         errors.entryDate}
@@ -359,11 +370,9 @@
                                 {#if form.status === "CLOSED"}
                                     <Input
                                         label="Exit Date"
-                                        type="date"
+                                        type="datetime-local"
                                         bind:value={form.exitDate}
-                                        max={new Date()
-                                            .toISOString()
-                                            .slice(0, 10)}
+                                        max={new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16)}
                                         required
                                         error={touched.exitDate &&
                                             errors.exitDate}
