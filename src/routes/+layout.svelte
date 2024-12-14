@@ -134,7 +134,7 @@
                 collapsed={sidebarCollapsed} 
                 on:collapse={handleSidebarCollapse} 
             />
-            <div class="flex-1 flex flex-col overflow-hidden">
+            <div class="flex-1 flex flex-col overflow-hidden ps-0 p-2">
                 <Navbar {sidebarCollapsed} on:logout={handleLogout} />
                 <main class="flex-1 overflow-x-hidden overflow-y-auto">
                     <slot />

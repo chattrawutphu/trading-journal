@@ -1,6 +1,6 @@
 <script>
     import { page } from "$app/stores";
-    import { createEventDispatcher, onMount } from "svelte";
+    import { createEventDispatcher } from "svelte";
     import { writable } from "svelte/store";
     import ThemeToggle from '../common/ThemeToggle.svelte'; // Import ThemeToggle component
 
@@ -8,21 +8,6 @@
     export let collapsed = false;
 
     const isCollapsed = writable(collapsed);
-
-    onMount(() => {
-        const handleResize = () => {
-            if (window.innerWidth < 640) { // Tailwind's sm breakpoint is 640px
-                isCollapsed.set(true);
-            } else {
-                isCollapsed.set(false);
-            }
-        };
-
-        window.addEventListener('resize', handleResize);
-        handleResize(); // Initial check
-
-        return () => window.removeEventListener('resize', handleResize);
-    });
 
     const menuItems = [
         {
@@ -71,11 +56,9 @@
     ];
 
     function toggleCollapse() {
-        if (window.innerWidth >= 640) { // Only allow collapse on screens larger than sm breakpoint
-            collapsed = !collapsed;
-            isCollapsed.set(collapsed);
-            dispatch("collapse", collapsed);
-        }
+        collapsed = !collapsed;
+        isCollapsed.set(collapsed);
+        dispatch("collapse", collapsed);
     }
 
     $: $isCollapsed = collapsed;
@@ -94,7 +77,7 @@
     }
 </style>
 
-<aside class="h-screen p-2">
+<aside class="h-screen hidden sm:block p-2 pe-0">
     <div
         class="rounded-md h-full bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col { $isCollapsed
             ? 'w-20'

@@ -343,7 +343,7 @@
     }
 </script>
 
-<div class="space-y-4 p-8">
+<div class="space-y-4 p-8 pb-0 pt-4">
     {#if error}
         <div
             class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded-lg"

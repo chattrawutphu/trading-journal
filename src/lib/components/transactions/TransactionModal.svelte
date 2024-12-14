@@ -13,7 +13,7 @@
     export let accountId;
 
     let transactionAmount = 0;
-    let transactionDateInput = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', ''); // Use current date and time in the correct format for datetime-local
+    let transactionDateInput = new Date().toISOString().slice(0, 16); // Use current date and time in the correct format for datetime-local
     let transactionNote = '';
 
     async function handleSubmit() {
