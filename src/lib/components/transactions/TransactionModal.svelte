@@ -6,6 +6,7 @@
     import { accountStore } from '$lib/stores/accountStore';
     import { transactionCacheStore } from "$lib/stores/transactionCache";
     import { transactionDate } from '$lib/stores/transactionDateStore';
+    import { goto } from '$app/navigation'; // Import goto for page refresh
 
     const dispatch = createEventDispatcher();
 
@@ -43,6 +44,8 @@
                     new Date(transactionDateInput),
                     transactionNote
                 );
+                // เคลียร์ transactionDateStore หลังจากบันทึก transaction
+                transactionDate.set(null);
                 await accountStore.setCurrentAccount(accountId);
                 transactionCacheStore.clearCache(accountId);
                 await transactionStore.fetchTransactions(accountId);
@@ -51,6 +54,9 @@
                 transactionAmount = 0;
                 transactionDateInput = new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16); // Reset to current local date and time
                 transactionNote = '';
+
+                // Refresh the current page
+                goto(window.location.pathname);
             } catch (err) {
                 console.error(err);
             }
