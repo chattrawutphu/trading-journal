@@ -5,33 +5,49 @@
     import { transactionStore } from "$lib/stores/transactionStore";
     import { accountStore } from '$lib/stores/accountStore';
     import { transactionCacheStore } from "$lib/stores/transactionCache";
+    import { transactionDate } from '$lib/stores/transactionDateStore';
 
     const dispatch = createEventDispatcher();
 
     export let show = false;
     export let type = "deposit"; // Can be "deposit" or "withdraw"
-    export let accountId;
+    export let accountId = null; // Ensure accountId is initialized
+    export let transaction = null; // Ensure transaction prop is handled
+
+    console.log("Account ID:", accountId); // Log accountId for debugging
 
     let transactionAmount = 0;
-    let transactionDateInput = new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16); // Use local date and time in the correct format for datetime-local
+    let transactionDateInput;
+
+    // Use the store's value for transactionDateInput
+    $: transactionDateInput = $transactionDate 
+        ? new Date($transactionDate).toLocaleString('sv-SE', { hour12: false }).slice(0, 16) 
+        : new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16);
+
     let transactionNote = '';
+
+    if (transaction) {
+        transactionAmount = transaction.amount;
+        transactionDateInput = new Date(transaction.date).toLocaleString('sv-SE', { hour12: false }).slice(0, 16);
+        transactionNote = transaction.note;
+    }
 
     async function handleSubmit() {
         if (transactionAmount > 0) {
             try {
                 const transactionType = type === "deposit" ? "deposit" : "withdrawal";
                 await transactionStore.createTransaction(
-                    $accountStore.currentAccount._id,
+                    accountId, // Use accountId prop
                     transactionType,
                     transactionAmount,
                     new Date(transactionDateInput),
                     transactionNote
                 );
-                await accountStore.setCurrentAccount($accountStore.currentAccount._id);
-                transactionCacheStore.clearCache($accountStore.currentAccount._id);
-                await transactionStore.fetchTransactions($accountStore.currentAccount._id);
+                await accountStore.setCurrentAccount(accountId);
+                transactionCacheStore.clearCache(accountId);
+                await transactionStore.fetchTransactions(accountId);
                 dispatch("close");
-                dispatch("transactionUpdated", { accountId: $accountStore.currentAccount._id });
+                dispatch("transactionUpdated", { accountId });
                 transactionAmount = 0;
                 transactionDateInput = new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16); // Reset to current local date and time
                 transactionNote = '';
@@ -42,6 +58,7 @@
     }
 
     function closeModal() {
+        transactionDate.set(null);
         dispatch("close");
     }
 </script>

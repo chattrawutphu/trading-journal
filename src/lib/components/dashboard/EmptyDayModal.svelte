@@ -7,14 +7,17 @@
     import { transactionStore } from '$lib/stores/transactionStore';
     import { accountStore } from '$lib/stores/accountStore';
     import { transactionCacheStore } from '$lib/stores/transactionCache';
+    import { transactionDate } from '$lib/stores/transactionDateStore';
+    import { tradeDate } from '$lib/stores/tradeDateStore';
 
     const dispatch = createEventDispatcher();
 
     export let show = false;
     export let date = '';
+    export let accountId = null; //
 
     // Get current date in YYYY-MM-DD format for max attribute
-    const maxDate = new Date().toISOString().slice(0, 10);
+    const maxDate = new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16) 
 
     let showDepositModal = false;
     let showWithdrawModal = false;
@@ -24,11 +27,22 @@
     }
 
     function handleNewTrade() {
-        // Format date for date input (YYYY-MM-DD)
         const formattedDate = new Date(date);
-        formattedDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
-        dispatch('newTrade', formattedDate.toISOString().slice(0, 10));
+        // ตั้งเวลาเป็น 7:00 น.
+        formattedDate.setHours(7, 0, 0, 0);
+        tradeDate.set(formattedDate.toISOString());
+        dispatch('newTrade');
         close();
+    }
+
+    function handleDeposit() {
+        transactionDate.set(date);
+        showDepositModal = true;
+    }
+
+    function handleWithdraw() {
+        transactionDate.set(date);
+        showWithdrawModal = true;
     }
 </script>
 
@@ -43,13 +57,13 @@
                 <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">New Trade</h2>
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-1">
-                        <Button variant="secondary" size="xs" on:click={() => showDepositModal = true}>
+                        <Button variant="secondary" size="xs" on:click={handleDeposit}>
                             <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                             </svg>
                             Deposit
                         </Button>
-                        <Button variant="secondary" size="xs" on:click={() => showWithdrawModal = true}>
+                        <Button variant="secondary" size="xs" on:click={handleWithdraw}>
                             <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
                             </svg>
@@ -81,7 +95,7 @@
             </div>
             <div class="px-8 py-6 hidden">
                 <Input
-                    type="date"
+                    type="datetime-local"
                     label="Entry Date"
                     bind:value={date}
                     required
@@ -103,7 +117,7 @@
 <TransactionModal
     show={showDepositModal}
     type="deposit"
-    accountId={$accountStore.currentAccount._id}
+    accountId={accountId}
     on:close={() => showDepositModal = false}
 />
 
@@ -111,7 +125,7 @@
 <TransactionModal
     show={showWithdrawModal}
     type="withdraw"
-    accountId={$accountStore.currentAccount._id}
+    accountId={accountId}
     on:close={() => showWithdrawModal = false}
 />
 

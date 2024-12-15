@@ -10,13 +10,13 @@
     import { subscriptionStore } from '$lib/stores/subscriptionStore';
     import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
     import { goto } from '$app/navigation';
+    import { tradeDate } from '$lib/stores/tradeDateStore';
 
     const dispatch = createEventDispatcher();
 
     export let show = false;
     export let trade = null;
     export let accountId = null;
-    export let entryDate = "";
 
     let errors = {};
     let touched = {};
@@ -48,7 +48,7 @@
     }
 
     let form = {
-        entryDate: getCurrentDateTime(),
+        entryDate: '', // เริ่มต้นค่า entryDate
         exitDate: getCurrentDateTime(),
         symbol: "",
         status: "OPEN",
@@ -72,6 +72,67 @@
         leverage: 1,
     };
 
+    // Helper function to format ISO date to 'YYYY-MM-DDTHH:mm'
+    function formatDateTimeLocal(dateInput) {
+        let date;
+        if (dateInput instanceof Date) {
+            date = dateInput;
+        } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
+            date = new Date(dateInput);
+        } else {
+            // ถ้า dateInput เป็น null หรือ undefined ให้ใช้วันที่ปัจจุบัน
+            date = new Date();
+        }
+
+        if (isNaN(date.getTime())) {
+            // ถ้าไม่สามารถแปลงเป็น Date ที่ถูกต้องได้ ให้ใช้วันที่ปัจจุบัน
+            date = new Date();
+        }
+
+        const offset = date.getTimezoneOffset();
+        const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+        return localDate.toISOString().slice(0,16);
+    }
+
+    // ใช้ statement แบบ reactive เพื่ออัพเดต form.entryDate
+    $: if (show) {
+        if (trade && trade.entryDate) {
+            form.entryDate = formatDateTimeLocal(trade.entryDate);
+        } else if ($tradeDate) {
+            // ตั้งเวลาเป็น 7:00 น. เมื่อใช้วันที่จาก store
+            const dateFromStore = new Date($tradeDate);
+            dateFromStore.setHours(7, 0, 0, 0);
+            form.entryDate = formatDateTimeLocal(dateFromStore);
+            tradeDate.set(null); // รีเซ็ต tradeDate หลังจากใช้งาน
+        } else {
+            // ใช้วันที่และเวลา local ปัจจุบัน
+            form.entryDate = formatDateTimeLocal(new Date());
+        }
+    }
+
+    // If editing an existing trade, populate form with trade data
+    if (trade) {
+        form = {
+            ...trade,
+            entryDate: trade.entryDate
+                ? formatDateTimeLocal(trade.entryDate)
+                : getCurrentDateTime(),
+            exitDate: trade.exitDate
+                ? new Date(trade.exitDate).toISOString().slice(0, 16)
+                : getCurrentDateTime(),
+            leverage: trade.leverage || leverageStore.getLeverage(trade.symbol),
+        };
+        previousSymbol = trade.symbol;
+    } else {
+        // Use the tradeDate store value if available
+        $: if ($tradeDate) {
+            form.entryDate = formatDateTimeLocal($tradeDate);
+            tradeDate.set(null); // Clear the store after using
+        } else {
+            form.entryDate = formatDateTimeLocal(new Date().toISOString()); // Default to current date
+        }
+    }
+
     // Watch for symbol changes to update leverage from cache
     $: if (form.symbol !== previousSymbol) {
         if (form.symbol) {
@@ -84,36 +145,6 @@
     $: if (form.symbol && form.leverage) {
         leverageStore.setLeverage(form.symbol, form.leverage);
     }
-
-    $: if (trade) {
-        form = {
-            ...trade,
-            entryDate: trade.entryDate
-                ? new Date(trade.entryDate).toISOString().slice(0, 16)
-                : getCurrentDateTime(),
-            exitDate: trade.exitDate
-                ? new Date(trade.exitDate).toISOString().slice(0, 16)
-                : getCurrentDateTime(),
-            leverage: trade.leverage || leverageStore.getLeverage(trade.symbol),
-        };
-        previousSymbol = trade.symbol;
-    } else {
-        form.account = accountId;
-        form.entryDate = getCurrentDateTime();
-        form.exitDate = getCurrentDateTime();
-    }
-
-    // Remove or comment out the following reactive statement since we handle it above
-    // $: if (entryDate) {
-    //     const date = new Date(entryDate);
-    //     if (!isNaN(date.getTime())) {
-    //         if (!trade) {
-    //             form.entryDate = date.toISOString().slice(0, 16);
-    //         }
-    //     }
-    // } else if (!trade) {
-    //     form.entryDate = getCurrentDateTime();
-    // }
 
     $: if (form.status === "CLOSED" && !form.exitDate) {
         form.exitDate = getCurrentDateTime();

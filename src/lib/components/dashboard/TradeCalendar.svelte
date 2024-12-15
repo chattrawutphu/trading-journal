@@ -465,6 +465,7 @@
 <EmptyDayModal
     bind:show={showEmptyDayModal}
     date={selectedDate}
+    accountId={accountId}
     on:newTrade={handleNewTrade}
 />
 

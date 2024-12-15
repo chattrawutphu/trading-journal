@@ -10,6 +10,8 @@
     import { accountStore } from '$lib/stores/accountStore';
     import Loading from "$lib/components/common/Loading.svelte";
     import Input from "$lib/components/common/Input.svelte";
+    import { transactionDate } from '$lib/stores/transactionDateStore';
+    import { tradeDate } from '$lib/stores/tradeDateStore';
 
     const dispatch = createEventDispatcher();
 
@@ -72,12 +74,10 @@
 
     function handleNewTrade() {
         const selectedDate = new Date(date);
-        if (!isNaN(selectedDate.getTime())) {
-            selectedDate.setHours(12, 0, 0, 0); // Use local time
-            dispatch("newTrade", selectedDate.toISOString());
-        } else {
-            console.error('Invalid date:', date);
-        }
+        // ตั้งเวลาเป็น 7:00 น.
+        selectedDate.setHours(7, 0, 0, 0);
+        tradeDate.set(selectedDate.toISOString());
+        dispatch('newTrade');
         close();
     }
 
@@ -114,6 +114,16 @@
         dispatch('deleteConfirm', event.detail);
     }
 
+    function handleDeposit() {
+        transactionDate.set(date);
+        showDepositModal = true;
+    }
+
+    function handleWithdraw() {
+        transactionDate.set(date);
+        showWithdrawModal = true;
+    }
+
     $: openTrades = trades.filter((trade) => trade.status === "OPEN");
     $: closedTrades = trades.filter((trade) => trade.status === "CLOSED");
 </script>
@@ -139,13 +149,13 @@
                 </h2>
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-1">
-                        <Button variant="secondary" size="xs" on:click={() => showDepositModal = true}>
+                        <Button variant="secondary" size="xs" on:click={handleDeposit}>
                             <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                             </svg>
                             Deposit
                         </Button>
-                        <Button variant="secondary" size="xs" on:click={() => showWithdrawModal = true}>
+                        <Button variant="secondary" size="xs" on:click={handleWithdraw}>
                             <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
                             </svg>
@@ -241,7 +251,7 @@
                         {accountId}
                         {transactions}
                         readOnly={false}
-                        on:edit={handleEdit}
+                        on:edit={handleEditTransaction}
                         on:delete={handleDelete}
                         on:deleteConfirm={handleDeleteConfirm}
                     />
@@ -262,6 +272,7 @@
 <TransactionModal
     show={showTransactionModal}
     transaction={selectedTransaction}
+    accountId={accountId}
     on:submit={handleTransactionSubmit}
     on:close={() => (showTransactionModal = false)}
 />
