@@ -362,6 +362,7 @@
                                 <div
                                     class="absolute inset-0 p-1.5 pt-5 flex flex-col"
                                 >
+                                <div class={`border-s border-s-2 border-transparent ${stats.pnl === 0 ? '' : stats.pnl < 0 ? 'dark:border-red-600 ps-1' : 'dark:border-green-600 ps-1'}`}>
                                     <!-- Trade count & Win/Loss -->
                                     {#if stats.trades.length > 0}
                                         <div class="space-y-0.5">
@@ -400,7 +401,7 @@
 
                                     <!-- P&L -->
                                     {#if stats.pnl !== 0}
-                                        <div class="mt-auto mb-6">
+                                        <div class="mt-auto">
                                             <span
                                                 class="text-xs font-medium {getTextClass(
                                                     stats,
@@ -452,6 +453,7 @@
                                             {/if}
                                         </div>
                                     {/if}
+                                </div>
                                 </div>
                             {/if}
                         </div>
