@@ -5,8 +5,6 @@
     import { transactionStore } from "$lib/stores/transactionStore";
     import Select from "../common/Select.svelte";
     import EmptyDayModal from "./EmptyDayModal.svelte";
-    import { transactionCacheStore } from '$lib/stores/transactionCache';
-    import { tradeCacheStore } from '$lib/stores/tradeCache';
     import { api } from '$lib/utils/api';
     import DatePicker from '../common/DatePicker.svelte';
 
@@ -21,24 +19,8 @@
 
     async function initializePage() {
         try {
-            const cachedTrades = tradeCacheStore.getCache(accountId);
-            if (cachedTrades) {
-                trades = [...cachedTrades.openTrades, ...cachedTrades.closedTrades];
-            }
-            let cachedTransactions = transactionCacheStore.getCache(accountId);
-            if (!cachedTransactions) {
-                const transactionResponse = await transactionStore.fetchTransactions(accountId);
-                cachedTransactions = transactionResponse.data;
-            }
-
-            trades = [...trades, ...await api.getTrades(accountId)];
-            transactionCache = { ...transactionCache, ...cachedTransactions };
-
-            tradeCacheStore.setCache(accountId, {
-                openTrades: trades.filter(t => t.status === 'OPEN'),
-                closedTrades: trades.filter(t => t.status === 'CLOSED')
-            });
-
+            await transactionStore.fetchTransactions(accountId);
+            trades = await api.getTrades(accountId);
         } catch (err) {
             console.error('Error initializing page:', err);
         }
@@ -150,11 +132,9 @@
         return acc;
     }, {});
 
-    let transactionCache = {};
-
     // Process transactions into dailyTrades
     $: {
-        const transactions = transactionCache[accountId] || transactionCacheStore.getCache(accountId) || $transactionStore.transactions;
+        const transactions = $transactionStore.transactions;
         if (Array.isArray(transactions)) {
             transactions.forEach((transaction) => {
                 const transDate = normalizeDate(transaction.date);

@@ -6,7 +6,6 @@
     import Button from "../common/Button.svelte";
     import TradeOptionSelect from "./TradeOptionSelect.svelte";
     import { validateTradeForm } from "$lib/utils/validators";
-    import { leverageStore } from "$lib/stores/leverageStore";
     import { subscriptionStore } from '$lib/stores/subscriptionStore';
     import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
     import { goto } from '$app/navigation';
@@ -120,7 +119,6 @@
             exitDate: trade.exitDate
                 ? new Date(trade.exitDate).toISOString().slice(0, 16)
                 : getCurrentDateTime(),
-            leverage: trade.leverage || leverageStore.getLeverage(trade.symbol),
         };
         previousSymbol = trade.symbol;
     } else {
@@ -131,19 +129,6 @@
         } else {
             form.entryDate = formatDateTimeLocal(new Date().toISOString()); // Default to current date
         }
-    }
-
-    // Watch for symbol changes to update leverage from cache
-    $: if (form.symbol !== previousSymbol) {
-        if (form.symbol) {
-            form.leverage = leverageStore.getLeverage(form.symbol);
-        }
-        previousSymbol = form.symbol;
-    }
-
-    // Watch for leverage changes to update cache
-    $: if (form.symbol && form.leverage) {
-        leverageStore.setLeverage(form.symbol, form.leverage);
     }
 
     $: if (form.status === "CLOSED" && !form.exitDate) {

@@ -14,8 +14,6 @@
     import Button from '$lib/components/common/Button.svelte';
     import Input from '$lib/components/common/Input.svelte';
     import { api } from '$lib/utils/api';
-    import { tradeCacheStore } from '$lib/stores/tradeCache';
-    import { transactionCacheStore } from '$lib/stores/transactionCache';
     import Modal from '$lib/components/common/Modal.svelte';
 
     let loading = true;
@@ -26,7 +24,6 @@
     let closedTrades = [];
     let hasOpenTrades = false;
     let hasClosedTrades = false;
-    let cachedTrades = [];
     let showEditModal = false;
     let showViewModal = false;
     let showDepositModal = false;
@@ -64,29 +61,7 @@
 
     onMount(async () => {
         try {
-            const cachedAccount = accountStore.getCachedAccount();
-            if (cachedAccount) {
-                const cached = tradeCacheStore.getCache(cachedAccount._id);
-                if (cached) {
-                    const cachedTrades = [...cached.openTrades, ...cached.closedTrades];
-                    updateTradeStats(cachedTrades);
-                    loading = false;
-                } else {
-                    await loadTrades();
-                }
-            } else {
-                const account = await accountStore.loadAccounts();
-                if (account) {
-                    const cached = tradeCacheStore.getCache($accountStore.currentAccount._id);
-                    if (cached) {
-                        const cachedTrades = [...cached.openTrades, ...cached.closedTrades];
-                        updateTradeStats(cachedTrades);
-                        loading = false;
-                    } else {
-                        await loadTrades();
-                    }
-                }
-            }
+            await loadTrades();
         } catch (err) {
             error = err.message;
         }
@@ -101,12 +76,8 @@
             
             const response = await api.getTrades($accountStore.currentAccount._id);
             
-            // อัพเดทข้อมูลและ cache
+            // อัพเดทข้อมูล
             updateTradeStats(response);
-            tradeCacheStore.setCache($accountStore.currentAccount._id, {
-                openTrades,  
-                closedTrades
-            });
 
         } catch (err) {
             error = err.message;
@@ -141,7 +112,7 @@
 
             showEditModal = false;
             selectedTrade = null;
-            await loadTrades(); // This will update cache too
+            await loadTrades();
             // Refresh account data to update balance
             await accountStore.setCurrentAccount($accountStore.currentAccount._id);
             // Dispatch trade update event
@@ -165,8 +136,6 @@
                     transactionNote // Pass note to createTransaction
                 );
                 await accountStore.setCurrentAccount($accountStore.currentAccount._id);
-                // Clear transaction cache
-                transactionCacheStore.clearCache(currentAccountId);
                 // Fetch updated transactions
                 await transactionStore.fetchTransactions(currentAccountId);
                 showDepositModal = false;
@@ -191,8 +160,6 @@
                     transactionNote // Pass note to createTransaction
                 );
                 await accountStore.setCurrentAccount($accountStore.currentAccount._id);
-                // Clear transaction cache
-                transactionCacheStore.clearCache(currentAccountId);
                 // Fetch updated transactions
                 await transactionStore.fetchTransactions(currentAccountId);
                 showWithdrawModal = false;
@@ -236,7 +203,7 @@
             error = '';
 
             await api.deleteTrade(tradeId);
-            await loadTrades(); // This will update cache too
+            await loadTrades();
             // Refresh account data to update balance
             await accountStore.setCurrentAccount($accountStore.currentAccount._id);
             // Dispatch trade update event

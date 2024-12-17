@@ -6,7 +6,6 @@
     import TransactionTable from "../transactions/TransactionTable.svelte";
     import TransactionModal from "../transactions/TransactionModal.svelte";
     import { transactionStore } from "$lib/stores/transactionStore";
-    import { transactionCacheStore } from "$lib/stores/transactionCache";
     import { accountStore } from '$lib/stores/accountStore';
     import Loading from "$lib/components/common/Loading.svelte";
     import Input from "$lib/components/common/Input.svelte";
@@ -35,17 +34,11 @@
     }
 
     async function loadTransactions() {
-        if ($transactionCacheStore[accountId]) {
-            transactions = filterTransactionsByDate($transactionCacheStore[accountId], date);
-            return;
-        }
-
         loading = true;
         error = null;
 
         try {
             await transactionStore.fetchTransactions(accountId);
-            transactionCacheStore.setCache(accountId, $transactionStore.transactions);
             transactions = filterTransactionsByDate($transactionStore.transactions, date);
         } catch (err) {
             error = err.message;

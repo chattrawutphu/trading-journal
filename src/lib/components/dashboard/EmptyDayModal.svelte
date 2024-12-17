@@ -6,7 +6,6 @@
     import TransactionModal from '../transactions/TransactionModal.svelte';
     import { transactionStore } from '$lib/stores/transactionStore';
     import { accountStore } from '$lib/stores/accountStore';
-    import { transactionCacheStore } from '$lib/stores/transactionCache';
     import { transactionDate } from '$lib/stores/transactionDateStore';
     import { tradeDate } from '$lib/stores/tradeDateStore';
 
@@ -14,10 +13,10 @@
 
     export let show = false;
     export let date = '';
-    export let accountId = null; //
+    export let accountId = null;
 
     // Get current date in YYYY-MM-DD format for max attribute
-    const maxDate = new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16) 
+    const maxDate = new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16);
 
     let showDepositModal = false;
     let showWithdrawModal = false;

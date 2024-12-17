@@ -6,7 +6,6 @@
     import { tradingStatsStore } from "$lib/stores/tradingStatsStore";
     import { accountSymbolStore } from "$lib/stores/accountSymbolStore";
     import { userStrategyStore } from "$lib/stores/userStrategyStore";
-    import { transactionCacheStore } from "$lib/stores/transactionCache";
     import { api } from "$lib/utils/api";
     import Button from "../common/Button.svelte";
     import Input from "../common/Input.svelte";

@@ -4,7 +4,6 @@
     import Input from "../common/Input.svelte";
     import { transactionStore } from "$lib/stores/transactionStore";
     import { accountStore } from '$lib/stores/accountStore';
-    import { transactionCacheStore } from "$lib/stores/transactionCache";
     import { transactionDate } from '$lib/stores/transactionDateStore';
     import { goto } from '$app/navigation'; // Import goto for page refresh
 
@@ -47,7 +46,6 @@
                 // เคลียร์ transactionDateStore หลังจากบันทึก transaction
                 transactionDate.set(null);
                 await accountStore.setCurrentAccount(accountId);
-                transactionCacheStore.clearCache(accountId);
                 await transactionStore.fetchTransactions(accountId);
                 dispatch("close");
                 dispatch("transactionUpdated", { accountId });

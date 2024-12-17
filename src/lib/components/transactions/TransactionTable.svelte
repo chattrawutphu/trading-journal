@@ -3,7 +3,6 @@
   import { transactionStore } from '$lib/stores/transactionStore';
   import { formatCurrency } from '$lib/utils/formatters';
   import Loading from '../common/Loading.svelte';
-  import { transactionCacheStore } from '$lib/stores/transactionCache';
   import Modal from '../common/Modal.svelte';
 
   const dispatch = createEventDispatcher();
@@ -19,7 +18,7 @@
   let currentPage = 1;
   let itemsPerPage = 10;
 
-  $: storeTransactions = transactionCacheStore.getCache(accountId) || $transactionStore.transactions;
+  $: storeTransactions = $transactionStore.transactions;
   $: displayTransactions = transactions || storeTransactions;
   $: error = transactions === null && $transactionStore.error;
 
@@ -88,7 +87,6 @@
         await transactionStore.deleteTransaction(transactionId);
         if (!transactions) { 
           await transactionStore.fetchTransactions(accountId);
-          transactionCacheStore.setCache(accountId, $transactionStore.transactions);
         }
       } catch (err) {
         console.error('Error deleting transaction:', err);
