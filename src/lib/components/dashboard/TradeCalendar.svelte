@@ -8,6 +8,7 @@
     import { transactionCacheStore } from '$lib/stores/transactionCache';
     import { tradeCacheStore } from '$lib/stores/tradeCache';
     import { api } from '$lib/utils/api';
+    import DatePicker from '../common/DatePicker.svelte';
 
     const dispatch = createEventDispatcher();
 
@@ -15,6 +16,8 @@
     export let accountId;
     let showEmptyDayModal = false;
     let selectedDate = "";
+    let showMonthYearPicker = false;
+    let showDatePicker = false;
 
     async function initializePage() {
         try {
@@ -299,26 +302,25 @@
 <!-- Rest of your template remains unchanged -->
 <div class="card h-full flex flex-col">
     <div class="p-4 border-b border-light-border dark:border-dark-border">
-        <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Trading Calendar</h2>
-            <div class="flex gap-2">
-                <Select
-                    options={months.map((month, i) => ({
-                        value: i,
-                        label: month,
-                    }))}
-                    bind:value={selectedMonth}
-                    className="w-36"
+        <div class="flex justify-between items-center relative">
+            <span
+                class="text-xl font-semibold cursor-pointer text-light-text-muted dark:text-dark-text"
+                on:click={() => showDatePicker = !showDatePicker}
+            >
+                {months[selectedMonth]} {selectedYear}
+                <svg class="w-5 h-5 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </span>
+            {#if showDatePicker}
+                <DatePicker
+                    bind:selectedMonth
+                    bind:selectedYear
+                    bind:showDatePicker
+                    months={months}
+                    years={years}
                 />
-                <Select
-                    options={years.map((year) => ({
-                        value: year,
-                        label: year.toString(),
-                    }))}
-                    bind:value={selectedYear}
-                    className="w-24"
-                />
-            </div>
+            {/if}
         </div>
     </div>
 
