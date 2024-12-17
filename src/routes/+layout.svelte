@@ -9,6 +9,7 @@
     import { goto } from '$app/navigation';
     import CollapsibleSidebar from '$lib/components/layout/CollapsibleSidebar.svelte';
     import Navbar from '$lib/components/layout/Navbar.svelte';
+    import MobileMenu from '$lib/components/layout/MobileMenu.svelte'; // Import MobileMenu component
     import '../app.css';
 
     const publicRoutes = ['/', '/login', '/register', '/forgot-password'];
@@ -134,11 +135,13 @@
                 collapsed={sidebarCollapsed} 
                 on:collapse={handleSidebarCollapse} 
             />
-            <div class="flex-1 flex flex-col overflow-hidden ps-0 p-2">
+            <div class="flex-1 flex flex-col overflow-hidden ps-0 p-3">
+                <MobileMenu />
                 <Navbar {sidebarCollapsed} on:logout={handleLogout} />
                 <main class="flex-1 overflow-x-hidden overflow-y-auto">
                     <slot />
                 </main>
+                 <!-- Add MobileMenu component here -->
             </div>
         </div>
     {/if}
