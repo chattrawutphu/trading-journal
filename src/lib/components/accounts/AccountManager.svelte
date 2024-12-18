@@ -273,7 +273,7 @@
                     New Account
                 </h2>
                 <button
-                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
+                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
                     on:click={() => {
                         showNewAccountModal = false;
                         newAccountName = "";
@@ -361,7 +361,7 @@
                     Edit Account
                 </h2>
                 <button
-                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover transition-all duration-200"
+                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
                     on:click={() => {
                         showEditAccountModal = false;
                         editingAccount = null;

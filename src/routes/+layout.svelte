@@ -165,11 +165,11 @@
     }
 
     :global(.btn-primary) {
-        @apply bg-gradient-purple hover:bg-gradient-purple-dark text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:ring-2 focus:ring-theme-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-bg;
+        @apply bg-gradient-purple hover:bg-gradient-purple-dark text-white font-medium px-4 py-2 rounded-lg  focus:ring-2 focus:ring-theme-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-bg;
     }
 
     :global(.btn-secondary) {
-        @apply bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text border border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover font-medium px-4 py-2 rounded-lg transition-all duration-200;
+        @apply bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text border border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover font-medium px-4 py-2 rounded-lg ;
     }
 
     :global(.input) {
