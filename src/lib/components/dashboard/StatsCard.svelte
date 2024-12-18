@@ -1,66 +1,82 @@
-<!-- src/lib/components/dashboard/StatsCard.svelte -->
 <script>
-    export let title;
-    export let pnl = 0;
-    export let trades = 0;
-    export let winRate = 0;
-    export let balanceChange = 0;
-  
-    $: pnlClass = pnl > 0 ? 'text-green-500' : pnl < 0 ? 'text-red-500' : '';
-    $: balanceChangeClass = balanceChange > 0 ? 'text-green-500' : balanceChange < 0 ? 'text-red-500' : '';
-    
-    function formatPercentage(value) {
-        const sign = value > 0 ? '+' : '';
-        return `${sign}${value.toFixed(2)}%`;
-    }
+    export let totalPnL;
+    export let openTrades;
+    export let closedTrades;
+    export let winRate;
 </script>
-  
-<div class="card p-6 hover:scale-102 ">
-    <h3 class="text-sm text-light-text-muted dark:text-dark-text-muted mb-3">{title}</h3>
-    <div class="flex justify-between items-baseline mb-4">
-        <div class="flex flex-col">
-            <span class="text-2xl font-bold {pnlClass}">${pnl.toFixed(2)}</span>
-            {#if balanceChange !== 0}
-                <span class="text-sm {balanceChangeClass}">
-                    {formatPercentage(balanceChange)}
-                </span>
-            {/if}
-        </div>
-        <div class="flex items-center space-x-2">
-            <span class="text-sm text-light-text-muted dark:text-dark-text-muted">{trades} trades</span>
-            <div class="h-4 w-[1px] bg-light-border dark:bg-dark-border"></div>
-            <div class="flex items-center space-x-1">
-                <div class="w-2 h-2 rounded-full" class:bg-green-500={winRate >= 50} class:bg-red-500={winRate < 50}></div>
-                <span class="text-sm text-light-text-muted dark:text-dark-text-muted">{winRate.toFixed(1)}%</span>
+
+<div class="w-[18.6%] card p-4 flex flex-col gap-4">
+    <!-- Total P&L -->
+    <div class="flex-1">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                Total P&L
+            </h3>
+            <div class="w-8 h-8 rounded-full {totalPnL >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
+                <svg class="w-4 h-4 {totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
             </div>
         </div>
+        <p class="text-2xl font-bold {totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}">
+            ${totalPnL.toFixed(2)}
+        </p>
     </div>
-    <div class="space-y-2">
-        <div class="flex justify-between text-xs text-light-text dark:text-dark-text">
-            <span>Win Rate</span>
-            <span class="font-medium">{winRate.toFixed(1)}%</span>
+
+    <!-- Open Positions -->
+    <div class="flex-1">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                Open Positions
+            </h3>
+            <div class="w-8 h-8 rounded-full bg-yellow-500 bg-opacity-10 flex items-center justify-center">
+                <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
         </div>
-        <div class="relative h-2 bg-light-hover dark:bg-dark-hover rounded-full overflow-hidden">
-            <div 
-                class="absolute top-0 left-0 h-full rounded-full "
-                class:bg-gradient-purple={winRate >= 50}
-                class:bg-red-500={winRate < 50}
-                style="width: {winRate}%"
-            ></div>
+        <p class="text-2xl font-bold text-light-text dark:text-dark-text">
+            {openTrades.length}
+        </p>
+    </div>
+
+    <!-- Total Trades -->
+    <div class="flex-1">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                Total Trades
+            </h3>
+            <div class="w-8 h-8 rounded-full bg-theme-500 bg-opacity-10 flex items-center justify-center">
+                <svg class="w-4 h-4 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+            </div>
         </div>
+        <p class="text-2xl font-bold text-light-text dark:text-dark-text">
+            {openTrades.length + closedTrades.length}
+        </p>
+    </div>
+
+    <!-- Win Rate -->
+    <div class="flex-1">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                Win Rate
+            </h3>
+            <div class="w-8 h-8 rounded-full bg-green-500 bg-opacity-10 flex items-center justify-center">
+                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+            </div>
+        </div>
+        <p class="text-2xl font-bold text-light-text dark:text-dark-text">
+            {winRate}%
+        </p>
     </div>
 </div>
 
 <style lang="postcss">
     .card {
-        background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-        backdrop-filter: blur(10px);
-        border: 1px solid;
-        border-color: rgba(255, 255, 255, 0.1);
-    }
-
-    :global(.light) .card {
-        background: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%);
-        border-color: rgba(0, 0, 0, 0.1);
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg;
     }
 </style>
