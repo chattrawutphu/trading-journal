@@ -15,8 +15,8 @@
     import Input from '$lib/components/common/Input.svelte';
     import { api } from '$lib/utils/api';
     import Modal from '$lib/components/common/Modal.svelte';
+    import { loadingStore } from '$lib/stores/loadingStore'; // Import loading store
 
-    let loading = true;
     let error = '';
     let trades = [];
     let hasTrades = false;
@@ -71,7 +71,7 @@
         if (!$accountStore.currentAccount) return;
         
         try {
-            loading = true;
+            loadingStore.set(true); // Set loading to true
             error = '';
             
             const response = await api.getTrades($accountStore.currentAccount._id);
@@ -82,7 +82,7 @@
         } catch (err) {
             error = err.message;
         } finally {
-            loading = false; 
+            loadingStore.set(false); // Set loading to false
         }
     }
 
@@ -101,7 +101,7 @@
 
     async function handleSubmit(event) {
         try {
-            loading = true;
+            loadingStore.set(true); // Set loading to true
             error = '';
 
             if (selectedTrade) {
@@ -120,7 +120,7 @@
         } catch (err) {
             error = err.message;
         } finally {
-            loading = false;
+            loadingStore.set(false); // Set loading to false
         }
     }
 
@@ -199,7 +199,7 @@
         if (!confirm('Are you sure you want to delete this trade?')) return;
 
         try {
-            loading = true;
+            loadingStore.set(true); // Set loading to true
             error = '';
 
             await api.deleteTrade(tradeId);
@@ -211,13 +211,13 @@
         } catch (err) {
             error = err.message;
         } finally {
-            loading = false;
+            loadingStore.set(false); // Set loading to false
         }
     }
 
     async function handleFavorite(tradeId) {
         try {
-            loading = true;
+            loadingStore.set(true); // Set loading to true
             error = '';
 
             await api.toggleFavorite(tradeId);
@@ -225,13 +225,13 @@
         } catch (err) {
             error = err.message;
         } finally {
-            loading = false;
+            loadingStore.set(false); // Set loading to false
         }
     }
 
     async function handleDisable(tradeId) {
         try {
-            loading = true;
+            loadingStore.set(true); // Set loading to true
             error = '';
 
             await api.toggleDisabled(tradeId);
@@ -239,7 +239,7 @@
         } catch (err) {
             error = err.message;
         } finally {
-            loading = false;
+            loadingStore.set(false); // Set loading to false
         }
     }
 
@@ -357,7 +357,7 @@
             </nav>
         </div>
 
-        {#if loading}
+        {#if $loadingStore}
             <Loading message="Loading..." overlay={true} />
         {:else}
             {#if activeTab === 'trades'}

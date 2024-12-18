@@ -14,8 +14,8 @@
     import Button from "$lib/components/common/Button.svelte";
     import Modal from "$lib/components/common/Modal.svelte";
     import { api } from "$lib/utils/api";
+    import { loadingStore } from '$lib/stores/loadingStore'; // Import loading store
 
-    let loading = true;
     let error = "";
     let openTrades = [];
     let closedTrades = [];
@@ -40,6 +40,7 @@
 
     onMount(async () => {
         try {
+            loadingStore.set(true);
             const account = await accountStore.loadAccounts();
             if (account) {
                 await Promise.all([
@@ -50,7 +51,7 @@
         } catch (err) {
             error = err.message;
         } finally {
-            loading = false; // Ensure loading is set to false after data fetch
+            loadingStore.set(false); // Ensure loading is set to false after data fetch
         }
     });
 
@@ -66,8 +67,6 @@
             closedTrades = response.filter((trade) => trade.status === "CLOSED");
         } catch (err) {
             error = err.message;
-        } finally {
-            loading = false;
         }
     }
     // Watch for account changes
@@ -75,6 +74,7 @@
         currentAccountId = $accountStore.currentAccount?._id;
         if (currentAccountId) {
             loadTrades();
+            transactionStore.fetchTransactions(currentAccountId);
         }
     }
 
@@ -145,7 +145,7 @@
 
     async function handleSubmit(event) {
         try {
-            loading = true;
+            loadingStore.set(true); // Set loading to true
             error = "";
 
             if (selectedTrade) {
@@ -168,7 +168,7 @@
         } catch (err) {
             error = err.message;
         } finally {
-            loading = false;
+            loadingStore.set(false); // Set loading to false
         }
     }
 
@@ -330,7 +330,7 @@
         {/if}
     </div>
 
-    {#if loading}
+    {#if $loadingStore}
         <Loading message="Loading..." overlay={true} />
     {:else if $accountStore.currentAccount}
         <!-- Stats -->

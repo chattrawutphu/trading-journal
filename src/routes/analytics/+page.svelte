@@ -7,8 +7,8 @@
     import Button from '$lib/components/common/Button.svelte';
     import NewAccountModal from '$lib/components/accounts/NewAccountModal.svelte';
     import { api } from '$lib/utils/api';
+    import { loadingStore } from '$lib/stores/loadingStore'; // Import loading store
 
-    let loading = false;
     let initialLoad = true;
     let error = '';
     let openTrades = [];
@@ -44,7 +44,7 @@
         if (!$accountStore.currentAccount) return;
         
         try {
-            loading = true;
+            loadingStore.set(true); // Set loading to true
             dataLoaded = false;
             error = '';
             
@@ -55,7 +55,7 @@
         } catch (err) {
             error = err.message;
         } finally {
-            loading = false;
+            loadingStore.set(false); // Set loading to false
         }
     }
 
@@ -116,7 +116,7 @@
         }).length
     };
 
-    $: showLoading = loading || initialLoad || !dataLoaded;
+    $: showLoading = $loadingStore || initialLoad || !dataLoaded;
 </script>
 
 <div class="space-y-8 p-8">

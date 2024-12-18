@@ -1,7 +1,7 @@
 <script>
     import { createEventDispatcher, onMount } from "svelte";
     import { theme } from "$lib/stores/themeStore";
-    import { calendarStore } from "$lib/stores/calendarStore";
+    import { accountStore } from "$lib/stores/accountStore";
     import { transactionStore } from "$lib/stores/transactionStore";
     import Select from "../common/Select.svelte";
     import EmptyDayModal from "./EmptyDayModal.svelte";
@@ -11,36 +11,31 @@
     const dispatch = createEventDispatcher();
 
     export let trades = [];
-    export let accountId;
     let showEmptyDayModal = false;
     let selectedDate = "";
     let showMonthYearPicker = false;
     let showDatePicker = false;
+    let currentAccountId = null;
+    let dailyTrades = {};
 
-    async function initializePage() {
+    onMount(async () => {
         try {
-            await transactionStore.fetchTransactions(accountId);
-            trades = await api.getTrades(accountId);
+            await transactionStore.fetchTransactions($accountStore.currentAccount._id);
+            trades = await api.getTrades($accountStore.currentAccount._id);
         } catch (err) {
             console.error('Error initializing page:', err);
         }
-    }
-
-    onMount(async () => {
-        await initializePage();
-
-        // Listen for remount event
-        const remountHandler = async () => {
-            await initializePage();
-        };
-        window.addEventListener('remount', remountHandler);
-
-        return () => {
-            window.removeEventListener('remount', remountHandler);
-        };
     });
 
-    // Rest of your code remains unchanged...
+    // Watch for account changes
+    $: if ($accountStore.currentAccount?._id !== currentAccountId) {
+        currentAccountId = $accountStore.currentAccount?._id;
+        if (currentAccountId) {
+            selectedMonth = new Date().getMonth();
+            selectedYear = new Date().getFullYear();
+        }
+    }
+
     const months = [
         "January",
         "February",
@@ -59,8 +54,8 @@
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 6 }, (_, i) => currentYear - 5 + i);
 
-    let selectedMonth = $calendarStore.month;
-    let selectedYear = $calendarStore.year;
+    let selectedMonth = new Date().getMonth();
+    let selectedYear = new Date().getFullYear();
 
     // Helper function to normalize date to noon
     function normalizeDate(date) {
@@ -69,19 +64,12 @@
         return d;
     }
 
-    $: {
-        if (
-            selectedMonth !== $calendarStore.month ||
-            selectedYear !== $calendarStore.year
-        ) {
-            calendarStore.setDate(selectedMonth, selectedYear);
-        }
-    }
-
     $: daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
     $: firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
     $: lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0).getDay();
 
+    let calendarDays = [];
+    let statsPerDay = {};
     $: calendarDays = Array.from(
         { length: daysInMonth + firstDayOfMonth + (6 - lastDayOfMonth) },
         (_, i) => {
@@ -90,6 +78,15 @@
             return dayNumber;
         },
     );
+
+    $: if (Array.isArray(calendarDays) && dailyTrades) {
+        statsPerDay = {};
+        calendarDays.forEach(day => {
+            if (day !== null) {
+                statsPerDay[day] = getDayStats(day);
+            }
+        });
+    }
 
     $: dailyTrades = trades.reduce((acc, trade) => {
         let tradeDate;
@@ -277,6 +274,7 @@
     function handleNewTrade() {
         dispatch("newTrade", selectedDate);
     }
+
 </script>
 
 <!-- Rest of your template remains unchanged -->
@@ -320,18 +318,17 @@
         <!-- Calendar days -->
         <div class="grid grid-cols-7 gap-1">
             {#each calendarDays as day}
-                {@const stats = getDayStats(day)}
-                <div class="relative aspect-square">
-                    {#if day !== null}
+                {#if day !== null}
+                    <div class="relative aspect-square">
                         <div
                             class="absolute inset-0 border border-light-border dark:border-dark-border rounded-md
                                    {getCardClass(
-                                stats,
+                                statsPerDay[day],
                                 day,
                             )} hover:shadow {!isFutureDate(
                                 day,
                             ) && 'hover:scale-[1.02]'}"
-                            on:click={() => handleDayClick(day, stats)}
+                            on:click={() => handleDayClick(day, statsPerDay[day])}
                         >
                             <!-- Date in top right -->
                             <div
@@ -340,13 +337,13 @@
                                 {day}
                             </div>
 
-                            {#if stats}
+                            {#if statsPerDay[day]}
                                 <div
                                     class="absolute inset-0 p-1.5 pt-5 flex flex-col"
                                 >
-                                <div class={`border-s border-s-2 border-transparent ${stats.pnl === 0 ? '' : stats.pnl < 0 ? 'dark:border-red-600 ps-1' : 'dark:border-green-600 ps-1'}`}>
+                                <div class={`border-s border-s-2 border-transparent ${statsPerDay[day].pnl === 0 ? '' : statsPerDay[day].pnl < 0 ? 'dark:border-red-600 ps-1' : 'dark:border-green-600 ps-1'}`}>
                                     <!-- Trade count & Win/Loss -->
-                                    {#if stats.trades.length > 0}
+                                    {#if statsPerDay[day].trades.length > 0}
                                         <div class="space-y-0.5">
                                             <div
                                                 class="flex items-center gap-1"
@@ -354,7 +351,7 @@
                                                 <span
                                                     class="text-[10px] text-light-text-muted dark:text-dark-text-muted"
                                                 >
-                                                    {stats.trades.length} trade{stats
+                                                    {statsPerDay[day].trades.length} trade{statsPerDay[day]
                                                         .trades.length !== 1
                                                         ? "s"
                                                         : ""}
@@ -362,18 +359,18 @@
                                                 <div
                                                     class="flex gap-1 text-[10px]"
                                                 >
-                                                    {#if stats.wins > 0}
+                                                    {#if statsPerDay[day].wins > 0}
                                                         <span
                                                             class="text-green-600 dark:text-green-400"
                                                         >
-                                                            {stats.wins} wins
+                                                            {statsPerDay[day].wins} wins
                                                         </span>
                                                     {/if}
-                                                    {#if stats.losses > 0}
+                                                    {#if statsPerDay[day].losses > 0}
                                                         <span
                                                             class="text-red-600 dark:text-red-400"
                                                         >
-                                                            {stats.losses} losses
+                                                            {statsPerDay[day].losses} losses
                                                         </span>
                                                     {/if}
                                                 </div>
@@ -382,24 +379,24 @@
                                     {/if}
 
                                     <!-- P&L -->
-                                    {#if stats.pnl !== 0}
+                                    {#if statsPerDay[day].pnl !== 0}
                                         <div class="mt-auto">
                                             <span
                                                 class="text-xs font-medium {getTextClass(
-                                                    stats,
+                                                    statsPerDay[day],
                                                 )}"
                                             >
-                                                {formatPnL(stats.pnl)}
+                                                {formatPnL(statsPerDay[day].pnl)}
                                             </span>
                                         </div>
                                     {/if}
 
                                     <!-- Transaction Icons -->
-                                    {#if stats.transactions?.length > 0}
+                                    {#if statsPerDay[day].transactions?.length > 0}
                                         <div
                                             class="absolute bottom-1 right-1 flex gap-0.5 items-center opacity-60 dark:opacity-80"
                                         >
-                                            {#if stats.transactions.some((t) => t.type === "deposit")}
+                                            {#if statsPerDay[day].transactions.some((t) => t.type === "deposit")}
                                                 <div class="flex items-center">
                                                     <svg
                                                         class="w-[14px] h-[14px] text-green-600 dark:text-green-400"
@@ -416,7 +413,7 @@
                                                     </svg>
                                                 </div>
                                             {/if}
-                                            {#if stats.transactions.some((t) => t.type === "withdrawal")}
+                                            {#if statsPerDay[day].transactions.some((t) => t.type === "withdrawal")}
                                                 <div class="flex items-center">
                                                     <svg
                                                         class="w-[14px] h-[14px] text-red-600 dark:text-red-400"
@@ -439,8 +436,8 @@
                                 </div>
                             {/if}
                         </div>
-                    {/if}
-                </div>
+                    </div>
+                {/if}
             {/each}
         </div>
     </div>
@@ -449,7 +446,7 @@
 <EmptyDayModal
     bind:show={showEmptyDayModal}
     date={selectedDate}
-    accountId={accountId}
+    accountId={$accountStore.currentAccount._id}
     on:newTrade={handleNewTrade}
 />
 
