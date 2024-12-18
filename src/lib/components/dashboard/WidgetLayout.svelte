@@ -9,10 +9,10 @@
 
     // Widget configurations with predefined sizes
     const defaultWidgetConfigs = {
-        StatsCards: { cols: 2, rows: 6, height: 420 },
-        TradingStats: { cols: 12, rows: 1, height: 70 },
-        TradeCalendar: { cols: 10, rows: 6, height: 420 },
-        TradeChart: { cols: 6, rows: 6, height: 420 }
+        TradingStats: { cols: 12, rows: 2, height: 140 },
+        StatsCards: { cols: 2, rows: 8, height: 560 },
+        TradeCalendar: { cols: 6, rows: 8, height: 560 },
+        TradeChart: { cols: 4, rows: 8, height: 560 }
     };
 
     export let openTrades = [];
@@ -21,39 +21,97 @@
     export let winRate = 0;
     export let accountId = null;
 
-    // Initial widget layout
-    let widgets = writable([
-        { 
-            id: 'StatsCards', 
-            component: StatsCard, 
-            config: {...defaultWidgetConfigs.StatsCards},
-            props: { totalPnL, openTrades, closedTrades, winRate }
-        },
-        { 
-            id: 'TradingStats', 
-            component: TradingStats, 
-            config: {...defaultWidgetConfigs.TradingStats}
-        },
-        { 
-            id: 'TradeCalendar', 
-            component: TradeCalendar, 
-            config: {...defaultWidgetConfigs.TradeCalendar},
-            props: { trades: [...openTrades, ...closedTrades], accountId }
-        },
-        { 
-            id: 'TradeChart', 
-            component: TradeChart, 
-            config: {...defaultWidgetConfigs.TradeChart},
-            props: { openTrades, closedTrades }
+    // Initialize widgets with saved layout from localStorage or default layout
+    function getInitialLayout() {
+        const savedLayout = localStorage.getItem('widgetLayout');
+        if (savedLayout) {
+            const parsed = JSON.parse(savedLayout);
+            return parsed.map(widget => ({
+                ...widget,
+                component: getComponentByName(widget.id)
+            }));
         }
-    ]);
+        return [
+            { 
+                id: 'TradingStats', 
+                component: TradingStats, 
+                config: {...defaultWidgetConfigs.TradingStats}
+            },
+            { 
+                id: 'StatsCards', 
+                component: StatsCard, 
+                config: {...defaultWidgetConfigs.StatsCards},
+                props: { totalPnL, openTrades, closedTrades, winRate }
+            },
+            { 
+                id: 'TradeCalendar', 
+                component: TradeCalendar, 
+                config: {...defaultWidgetConfigs.TradeCalendar},
+                props: { trades: [...openTrades, ...closedTrades], accountId }
+            },
+            { 
+                id: 'TradeChart', 
+                component: TradeChart, 
+                config: {...defaultWidgetConfigs.TradeChart},
+                props: { openTrades, closedTrades }
+            }
+        ];
+    }
 
+    function getComponentByName(id) {
+        const componentMap = {
+            'TradingStats': TradingStats,
+            'StatsCards': StatsCard,
+            'TradeCalendar': TradeCalendar,
+            'TradeChart': TradeChart
+        };
+        return componentMap[id];
+    }
+
+    function backupLayout($widgets) {
+        return $widgets.map(widget => ({
+            id: widget.id,
+            config: {...widget.config},
+            props: widget.props ? {...widget.props} : undefined
+        }));
+    }
+
+    function restoreLayout(backupData) {
+        return backupData.map(widget => ({
+            ...widget,
+            component: getComponentByName(widget.id)
+        }));
+    }
+
+    let widgets = writable(getInitialLayout());
+    let tempWidgets; // Store temporary layout during edit mode
     let editMode = false;
     let showConfigModal = false;
     let selectedWidgetForConfig = null;
 
     function toggleEditMode() {
+        if (!editMode) {
+            // Entering edit mode - store current layout without components
+            tempWidgets = backupLayout($widgets);
+        }
         editMode = !editMode;
+    }
+
+    function saveLayout() {
+        // Save to localStorage
+        const savableWidgets = $widgets.map(widget => ({
+            id: widget.id,
+            config: widget.config,
+            props: widget.props
+        }));
+        localStorage.setItem('widgetLayout', JSON.stringify(savableWidgets));
+        editMode = false;
+    }
+
+    function cancelEdit() {
+        // Restore previous layout with components
+        widgets.set(restoreLayout(tempWidgets));
+        editMode = false;
     }
 
     function handleDndConsider(e) {
@@ -114,12 +172,29 @@
 </script>
 
 <div class="relative w-full">
-    <button 
-        on:click={toggleEditMode} 
-        class="absolute top-2 right-2 z-10 bg-blue-500 text-white px-4 py-2 rounded"
-    >
-        {editMode ? 'Exit Edit Mode' : 'Edit Layout'}
-    </button>
+    <div class="absolute top-2 right-2 z-10 flex gap-2">
+        {#if editMode}
+            <button 
+                on:click={cancelEdit}
+                class="bg-gray-500 text-white px-4 py-2 rounded"
+            >
+                Cancel
+            </button>
+            <button 
+                on:click={saveLayout}
+                class="bg-green-500 text-white px-4 py-2 rounded"
+            >
+                Save Layout
+            </button>
+        {:else}
+            <button 
+                on:click={toggleEditMode}
+                class="bg-blue-500 text-white px-4 py-2 rounded"
+            >
+                Edit Layout
+            </button>
+        {/if}
+    </div>
 
     <div 
         use:dndzone={{ items: $widgets, dragDisabled: !editMode }}
