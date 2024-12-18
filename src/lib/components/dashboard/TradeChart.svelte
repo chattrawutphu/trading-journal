@@ -29,6 +29,7 @@
         { value: 365, label: '365 Days' }
     ];
 
+    // Rest of the existing script remains the same (filterTradesByDate, getDailyStats, getCumulativeData, updateChart functions)
     function filterTradesByDate(trades) {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - dateRange);
@@ -261,7 +262,7 @@
     }
 </script>
 
-<div class="card">
+<div class="card h-full">
     <div class="p-4 border-b border-light-border dark:border-dark-border">
         <div class="flex justify-between items-center">
             <h2 class="text-xl font-semibold bg-gradient-purple bg-clip-text text-transparent">Performance Chart</h2>
@@ -279,7 +280,7 @@
             </div>
         </div>
     </div>
-    <div class="p-4 h-[400px]">
+    <div class="p-4">
         <canvas bind:this={chartCanvas}></canvas>
     </div>
 </div>

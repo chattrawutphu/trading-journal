@@ -76,7 +76,7 @@
 </script>
 
 <div 
-    class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 relative group"
+    class="grid h-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 relative group"
     on:mouseenter={() => isHovering = true}
     on:mouseleave={() => isHovering = false}
 >

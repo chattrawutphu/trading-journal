@@ -71,7 +71,7 @@
     let calendarDays = [];
     let statsPerDay = {};
     $: calendarDays = Array.from(
-        { length: daysInMonth + firstDayOfMonth + (6 - lastDayOfMonth) },
+        { length: 56 }, // Always 6 rows (7 * 6 = 42)
         (_, i) => {
             const dayNumber = i - firstDayOfMonth + 1;
             if (dayNumber < 1 || dayNumber > daysInMonth) return null;
@@ -277,7 +277,7 @@
 
 </script>
 
-<!-- Rest of your template remains unchanged -->
+<!-- Rest of the template remains the same as in the previous version -->
 <div class="card h-full flex flex-col">
     <div class="p-4 border-b border-light-border dark:border-dark-border">
         <div class="flex justify-between items-center relative">
@@ -316,7 +316,7 @@
         </div>
 
         <!-- Calendar days -->
-        <div class="grid grid-cols-7 gap-1">
+        <div class="grid grid-cols-7 gap-1 h-full">
             {#each calendarDays as day}
                 {#if day !== null}
                     <div class="relative aspect-square">

@@ -5,7 +5,7 @@
     export let winRate;
 </script>
 
-<div class="w-[18.6%] card p-4 flex flex-col gap-4">
+<div class="card p-4 h-full flex flex-col gap-4">
     <!-- Total P&L -->
     <div class="flex-1">
         <div class="flex items-center justify-between mb-2">
