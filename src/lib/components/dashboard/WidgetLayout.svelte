@@ -220,6 +220,9 @@
         
         // เพิ่ม widget และ force re-render
         dispatch('updateWidgets', [...widgets, newWidget]);
+        
+        // ปิด modal หลังจากเพิ่ม widget
+        showWidgetModal = false;
     }
 
     // แยกฟังก์ชันสร้าง widget ใหม่
