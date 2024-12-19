@@ -6,6 +6,19 @@
     import StatsCard from './StatsCard.svelte';
     import TradeChart from './TradeChart.svelte';
     import Modal from '../common/Modal.svelte';
+    import { onMount } from 'svelte';
+    let mounted = false;
+
+    // เพิ่มตัวแปรสำหรับนับ sequence
+    let idCounter = 0;
+
+    onMount(() => {
+        mounted = true;
+        return () => {
+            mounted = false;
+            idCounter = 0;
+        };
+    });
 
     // Widget configurations with predefined sizes
     const defaultWidgetConfigs = {
@@ -15,6 +28,42 @@
         TradeChart: { cols: 4, rows: 8, height: 560 }
     };
 
+    // เพิ่มการกำหนดจำนวนสูงสุดของแต่ละ widget
+    const widgetLimits = {
+        TradeCalendar: 3,
+        TradeChart: 3,
+        StatsCards: 12,
+        TradingStats: 1 // default limit
+    };
+
+    // ปรับปรุง availableWidgets เพื่อแสดงจำนวนที่เหลือ
+    const availableWidgets = [
+        { 
+            id: 'TradingStats',
+            title: 'Trading Stats',
+            icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2z',
+            config: {...defaultWidgetConfigs.TradingStats}
+        },
+        { 
+            id: 'StatsCards',
+            title: 'Stats Cards',
+            icon: 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z',
+            config: {...defaultWidgetConfigs.StatsCards}
+        },
+        { 
+            id: 'TradeCalendar',
+            title: 'Calendar',
+            icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+            config: {...defaultWidgetConfigs.TradeCalendar}
+        },
+        { 
+            id: 'TradeChart',
+            title: 'Chart',
+            icon: 'M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z',
+            config: {...defaultWidgetConfigs.TradeChart}
+        }
+    ];
+
     export let openTrades = [];
     export let closedTrades = [];
     export let totalPnL = 0;
@@ -22,50 +71,84 @@
     export let accountId = null;
 
     // Initialize widgets with saved layout from localStorage or default layout
+    // ปรับปรุงฟังก์ชัน getInitialLayout เพื่อสร้าง unique IDs
     function getInitialLayout() {
         const savedLayout = localStorage.getItem('widgetLayout');
         if (savedLayout) {
             const parsed = JSON.parse(savedLayout);
             return parsed.map(widget => ({
                 ...widget,
-                component: getComponentByName(widget.id)
+                props: getWidgetProps(widget.id.split('_')[0])
             }));
         }
+
+        const timestamp = Date.now();
+        // สร้าง initial widgets พร้อม unique IDs
         return [
             { 
-                id: 'TradingStats', 
-                component: TradingStats, 
+                id: createUniqueId('TradingStats'),
                 config: {...defaultWidgetConfigs.TradingStats}
             },
             { 
-                id: 'StatsCards', 
-                component: StatsCard, 
+                id: createUniqueId('StatsCards'),
                 config: {...defaultWidgetConfigs.StatsCards},
                 props: { totalPnL, openTrades, closedTrades, winRate }
             },
             { 
-                id: 'TradeCalendar', 
-                component: TradeCalendar, 
+                id: createUniqueId('TradeCalendar'),
                 config: {...defaultWidgetConfigs.TradeCalendar},
                 props: { trades: [...openTrades, ...closedTrades], accountId }
             },
             { 
-                id: 'TradeChart', 
-                component: TradeChart, 
+                id: createUniqueId('TradeChart'),
                 config: {...defaultWidgetConfigs.TradeChart},
                 props: { openTrades, closedTrades }
             }
         ];
     }
 
+    // เพิ่มฟังก์ชันสร้าง unique ID
+    function createUniqueId(baseType) {
+        return `${baseType}_${generateUUID()}`;
+    }
+
+    // เพิ่ม UUID generator function
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    // ปรับปรุง getComponentByName เพื่อจัดการ shadow placeholders
     function getComponentByName(id) {
+        if (!id || id.includes('dnd-shadow') || id.includes('placeholder')) {
+            return null;
+        }
+        
+        // Extract the base component type from the ID
+        const baseType = id.split('_')[0];
+        
         const componentMap = {
             'TradingStats': TradingStats,
             'StatsCards': StatsCard,
             'TradeCalendar': TradeCalendar,
             'TradeChart': TradeChart
         };
-        return componentMap[id];
+
+        return componentMap[baseType] || null;
+    }
+
+    function getWidgetProps(baseType) {
+        if (baseType === 'StatsCards') {
+            return { totalPnL, openTrades, closedTrades, winRate };
+        } else if (baseType === 'TradeCalendar') {
+            return { trades: [...openTrades, ...closedTrades], accountId };
+        } else if (baseType === 'TradeChart') {
+            return { openTrades, closedTrades };
+        }
+        return {};
     }
 
     function backupLayout($widgets) {
@@ -79,7 +162,7 @@
     function restoreLayout(backupData) {
         return backupData.map(widget => ({
             ...widget,
-            component: getComponentByName(widget.id)
+            props: getWidgetProps(widget.id.split('_')[0])
         }));
     }
 
@@ -114,19 +197,124 @@
         editMode = false;
     }
 
+    function handleAddWidget(baseType) {
+        // ตรวจสอบจำนวนที่เหลือ
+        const currentCount = getWidgetTypeCount($widgets, baseType);
+        const maxCount = widgetLimits[baseType] || 1;
+
+        if (currentCount >= maxCount) {
+            alert(`Maximum ${maxCount} ${baseType} widgets allowed`);
+            return;
+        }
+
+        // สร้าง widget ใหม่
+        const newWidget = createNewWidget(baseType);
+        
+        // ตรวจสอบว่า ID ไม่ซ้ำกับ widgets ที่มีอยู่
+        while ($widgets.some(w => w.id === newWidget.id)) {
+            newWidget.id = createUniqueId(baseType);
+        }
+        
+        // เพิ่ม widget และ force re-render
+        widgets.update(w => [...w, newWidget]);
+    }
+
+    // แยกฟังก์ชันสร้าง widget ใหม่
+    function createNewWidget(baseType) {
+        const uniqueId = createUniqueId(baseType);
+        const newWidget = {
+            id: uniqueId,
+            config: {...defaultWidgetConfigs[baseType]},
+            props: getWidgetProps(baseType)
+        };
+        return newWidget;
+    }
+
+    // เพิ่มฟังก์ชันนับจำนวน widget แต่ละประเภท
+    function getWidgetTypeCount(widgets, baseType) {
+        return widgets.filter(w => w.id.startsWith(baseType)).length;
+    }
+
+    // คำนวณจำนวน widget ที่เหลือสำหรับแสดงใน widget bar
+    $: availableWidgetsWithCount = availableWidgets.map(widget => ({
+        ...widget,
+        remaining: (widgetLimits[widget.id] || 1) - getWidgetTypeCount($widgets, widget.id)
+    }));
+
+    // ปรับปรุง reactive statements สำหรับการอัพเดท props
+    $: {
+        if ($widgets) {
+            $widgets.forEach(widget => {
+                if (!widget.id.includes('dnd-shadow')) {
+                    const baseType = widget.id.split('_')[0];
+                    widget.props = getWidgetProps(baseType);
+                }
+            });
+        }
+    }
+
+    // ปรับปรุงฟังก์ชัน handleDndConsider
     function handleDndConsider(e) {
-        widgets.update(w => e.detail.items);
+        const { items } = e.detail;
+        const uniqueItems = Array.from(new Map(items.map(item => [item.id, item])).values());
+        widgets.update(currentWidgets => {
+            // สร้าง Map ของ widgets ปัจจุบันด้วย ID
+            const currentWidgetsMap = new Map(
+                currentWidgets.map(w => [w.id, w])
+            );
+
+            // อัพเดท items โดยรักษา widget data เดิม
+            return uniqueItems.map(item => {
+                // หากเป็น shadow item ให้คืนค่าเดิม
+                if (item.id.includes('dnd-shadow')) {
+                    return item;
+                }
+                
+                // หากมี widget เดิมให้ใช้ข้อมูลเดิม
+                const existingWidget = currentWidgetsMap.get(item.id);
+                if (existingWidget) {
+                    return { ...existingWidget };
+                }
+
+                // กรณีไม่พบ widget เดิม (ไม่ควรเกิดขึ้น)
+                console.warn(`Widget not found: ${item.id}`);
+                return item;
+            });
+        });
     }
 
+    // ปรับปรุงฟังก์ชัน handleDndFinalize
     function handleDndFinalize(e) {
-        widgets.update(w => e.detail.items);
+        const { items } = e.detail;
+        const uniqueItems = Array.from(new Map(items.map(item => [item.id, item])).values());
+        widgets.update(currentWidgets => {
+            const currentWidgetsMap = new Map(
+                currentWidgets.map(w => [w.id, w])
+            );
+
+            return uniqueItems
+                .filter(item => !item.id.includes('dnd-shadow'))
+                .map(item => {
+                    const existingWidget = currentWidgetsMap.get(item.id);
+                    if (!existingWidget) {
+                        console.warn(`Widget not found: ${item.id}`);
+                        return item;
+                    }
+                    return {
+                        ...existingWidget,
+                        props: getWidgetProps(existingWidget.id.split('_')[0])
+                    };
+                });
+        });
     }
 
+    // เพิ่มฟังก์ชัน openWidgetConfig
     function openWidgetConfig(widget) {
-        selectedWidgetForConfig = {...widget};
+        selectedWidgetForConfig = { ...widget };
         showConfigModal = true;
     }
 
+    // เพิ่มฟังก์ชัน updateWidgetConfig
     function updateWidgetConfig() {
         if (selectedWidgetForConfig) {
             // Calculate height based on rows (70px per row)
@@ -146,27 +334,6 @@
                 )
             );
             showConfigModal = false;
-        }
-    }
-
-    // Reactive updates for props
-    $: {
-        const statsCardsWidget = $widgets.find(w => w.id === 'StatsCards');
-        if (statsCardsWidget) {
-            statsCardsWidget.props = { totalPnL, openTrades, closedTrades, winRate };
-        }
-
-        const tradeCalendarWidget = $widgets.find(w => w.id === 'TradeCalendar');
-        if (tradeCalendarWidget) {
-            tradeCalendarWidget.props = { 
-                trades: [...openTrades, ...closedTrades], 
-                accountId 
-            };
-        }
-
-        const tradeChartWidget = $widgets.find(w => w.id === 'TradeChart');
-        if (tradeChartWidget) {
-            tradeChartWidget.props = { openTrades, closedTrades };
         }
     }
 </script>
@@ -196,35 +363,73 @@
         {/if}
     </div>
 
-    <div 
-        use:dndzone={{ items: $widgets, dragDisabled: !editMode }}
-        on:consider={handleDndConsider}
-        on:finalize={handleDndFinalize}
-        class="grid grid-cols-12 gap-4 p-4"
-    >
-        {#each $widgets as widget (widget.id)}
-            <div 
-                class="widget relative" 
-                style="grid-column: span {widget.config.cols}; grid-row: span {widget.config.rows}; height: {widget.config.height}px;"
-            >
-                {#if editMode}
-                    <button 
-                        on:click={() => openWidgetConfig(widget)}
-                        class="absolute top-2 right-2 z-10 bg-gray-200 dark:bg-gray-700 p-2 rounded-full"
-                    >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        </svg>
-                    </button>
-                {/if}
-                <svelte:component 
-                    this={widget.component} 
-                    {...(widget.props || {})} 
-                    height={widget.config.height}
-                />
+    {#if editMode}
+        <div class="fixed left-4 top-1/2 -translate-y-1/2 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-2 shadow-lg">
+            <div class="text-sm font-semibold mb-2 px-2">Available Widgets</div>
+            <div class="space-y-2">
+                {#each availableWidgetsWithCount as widget (widget.id)}
+                    <div class="flex items-center justify-between gap-2 p-2 bg-light-background dark:bg-dark-background rounded cursor-pointer hover:bg-opacity-50"
+                         on:click={() => handleAddWidget(widget.id)}
+                         class:opacity-50={widget.remaining <= 0}
+                         class:pointer-events-none={widget.remaining <= 0}>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={widget.icon}/>
+                            </svg>
+                            <span class="text-sm">{widget.title}</span>
+                        </div>
+                        <span class="text-xs text-gray-500">
+                            {widget.remaining} left
+                        </span>
+                    </div>
+                {/each}
             </div>
-        {/each}
-    </div>
+        </div>
+    {/if}
+
+    {#if mounted}
+        <div 
+            use:dndzone={{ 
+                items: $widgets, 
+                dragDisabled: !editMode,
+                dropFromOthersDisabled: true,
+                dropTargetStyle: {
+                    outline: '2px dashed #4A90E2',
+                    backgroundColor: 'rgba(74, 144, 226, 0.1)'
+                },
+                flipDurationMs: 300,
+                morphDisabled: true
+            }}
+            on:consider={handleDndConsider}
+            on:finalize={handleDndFinalize}
+            class="grid grid-cols-12 gap-4 p-4"
+        >
+            {#each $widgets as widget (widget.id)}
+                <div 
+                    class="widget relative" 
+                    style="grid-column: span {widget.config?.cols || 1}; grid-row: span {widget.config?.rows || 1}; height: {widget.config?.height || 100}px;"
+                >
+                    {#if editMode && !widget.id.includes('dnd-shadow')}
+                        <button 
+                            on:click={() => openWidgetConfig(widget)}
+                            class="absolute top-2 right-2 z-10 bg-gray-200 dark:bg-gray-700 p-2 rounded-full"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            </svg>
+                        </button>
+                    {/if}
+                    {#if mounted && !widget.id.startsWith('dnd-shadow') && getComponentByName(widget.id)}
+                        <svelte:component 
+                            this={getComponentByName(widget.id)} 
+                            {...(widget.props || {})} 
+                            height={widget.config?.height}
+                        />
+                    {/if}
+                </div>
+            {/each}
+        </div>
+    {/if}
 </div>
 
 {#if showConfigModal && selectedWidgetForConfig}
