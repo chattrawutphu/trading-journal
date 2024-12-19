@@ -7,6 +7,7 @@
     import TradeChart from './TradeChart.svelte';
     import Modal from '../common/Modal.svelte';
     import { onMount, createEventDispatcher } from 'svelte';
+    import Button from '../common/Button.svelte';
     const dispatch = createEventDispatcher();
     let mounted = false;
 
@@ -304,44 +305,57 @@
 <div class="relative w-full">
     <div class="absolute top-2 right-2 z-10 flex gap-2">
         {#if editMode}
-            <button 
+            <Button 
+                variant="secondary" 
+                size="sm"
                 on:click={cancelEdit}
-                class="bg-gray-500 text-white px-4 py-2 rounded"
             >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
                 Cancel
-            </button>
-            <button 
+            </Button>
+            <Button 
+                variant="primary" 
+                size="sm"
                 on:click={saveLayout}
-                class="bg-green-500 text-white px-4 py-2 rounded"
             >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
                 Save Layout
-            </button>
+            </Button>
         {:else}
-            <button 
+            <Button 
+                variant="outline" 
+                size="sm"
                 on:click={toggleEditMode}
-                class="bg-blue-500 text-white px-4 py-2 rounded"
             >
-                Edit Layout
-            </button>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Customize Layout
+            </Button>
         {/if}
     </div>
 
     {#if editMode}
-        <div class="fixed left-4 top-1/2 -translate-y-1/2 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-2 shadow-lg">
-            <div class="text-sm font-semibold mb-2 px-2">Available Widgets</div>
+        <div class="fixed left-4 top-1/2 -translate-y-1/2 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-4 shadow-lg">
+            <div class="text-sm font-semibold mb-3 text-light-text dark:text-dark-text">Available Widgets</div>
             <div class="space-y-2">
                 {#each availableWidgetsWithCount as widget (widget.id)}
-                    <div class="flex items-center justify-between gap-2 p-2 bg-light-background dark:bg-dark-background rounded cursor-pointer hover:bg-opacity-50"
+                    <div class="flex items-center justify-between gap-2 p-3 bg-light-background dark:bg-dark-background hover:bg-light-hover dark:hover:bg-dark-hover rounded-lg cursor-pointer transition-colors duration-200"
                          on:click={() => handleAddWidget(widget.id)}
                          class:opacity-50={widget.remaining <= 0}
                          class:pointer-events-none={widget.remaining <= 0}>
                         <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={widget.icon}/>
                             </svg>
-                            <span class="text-sm">{widget.title}</span>
+                            <span class="text-sm text-light-text dark:text-dark-text">{widget.title}</span>
                         </div>
-                        <span class="text-xs text-gray-500">
+                        <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
                             {widget.remaining} left
                         </span>
                     </div>
@@ -357,8 +371,8 @@
                 dragDisabled: !editMode,
                 dropFromOthersDisabled: true,
                 dropTargetStyle: {
-                    outline: '2px dashed #4A90E2',
-                    backgroundColor: 'rgba(74, 144, 226, 0.1)'
+                    outline: '2px dashed var(--theme-500)',
+                    backgroundColor: 'var(--theme-500-10)'
                 },
                 flipDurationMs: 300,
                 morphDisabled: true
@@ -373,22 +387,24 @@
                     style="grid-column: span {widget.config?.cols || 1}; grid-row: span {widget.config?.rows || 1}; height: {widget.config?.height || 100}px;"
                 >
                     {#if editMode && !widget.id.includes('dnd-shadow')}
-                        <button 
-                            on:click={() => openWidgetConfig(widget)}
-                            class="absolute top-2 right-2 z-10 bg-gradient-purple text-white p-1 rounded-full"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            </svg>
-                        </button>
-                        <button 
-                            on:click={() => deleteWidget(widget.id)}
-                            class="absolute top-2 right-10 z-10 bg-gradient-purple text-white p-1 rounded-full"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                        <div class="absolute top-2 right-2 z-10 flex gap-2">
+                            <button 
+                                on:click={() => openWidgetConfig(widget)}
+                                class="p-1.5 rounded-lg bg-light-background dark:bg-dark-background hover:bg-light-hover dark:hover:bg-dark-hover text-light-text dark:text-dark-text transition-colors duration-200"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                </svg>
+                            </button>
+                            <button 
+                                on:click={() => deleteWidget(widget.id)}
+                                class="p-1.5 rounded-lg bg-light-background dark:bg-dark-background hover:bg-red-500 hover:text-white text-light-text dark:text-dark-text transition-colors duration-200"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     {/if}
                     {#if mounted && !widget.id.startsWith('dnd-shadow') && getComponentByName(widget.id)}
                         <svelte:component 
@@ -411,39 +427,39 @@
         <div class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block mb-2">Columns</label>
+                    <label class="block mb-2 text-light-text dark:text-dark-text">Columns</label>
                     <input 
                         type="number" 
                         min="1" 
                         max="12" 
                         bind:value={selectedWidgetForConfig.config.cols} 
-                        class="w-full border rounded p-2"
+                        class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent"
                     />
                 </div>
                 <div>
-                    <label class="block mb-2">Rows</label>
+                    <label class="block mb-2 text-light-text dark:text-dark-text">Rows</label>
                     <input 
                         type="number" 
                         min="1" 
                         max="12" 
                         bind:value={selectedWidgetForConfig.config.rows} 
-                        class="w-full border rounded p-2"
+                        class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent"
                     />
                 </div>
             </div>
             <div class="flex justify-end space-x-2 mt-4">
-                <button 
+                <Button 
+                    variant="secondary" 
                     on:click={() => showConfigModal = false}
-                    class="btn btn-secondary"
                 >
                     Cancel
-                </button>
-                <button 
+                </Button>
+                <Button 
+                    variant="primary" 
                     on:click={updateWidgetConfig}
-                    class="btn btn-primary"
                 >
                     Save
-                </button>
+                </Button>
             </div>
         </div>
     </Modal>
@@ -452,9 +468,16 @@
 <style>
     .widget {
         transition: all 0.3s ease;
-        border: 2px solid transparent;
         position: relative;
         display: flex;
         flex-direction: column;
+    }
+
+    :global(.dark) {
+        --theme-500-10: rgba(var(--theme-500-rgb), 0.1);
+    }
+
+    :global(.light) {
+        --theme-500-10: rgba(var(--theme-500-rgb), 0.1);
     }
 </style>
