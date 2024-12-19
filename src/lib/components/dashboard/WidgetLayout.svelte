@@ -173,6 +173,7 @@
     let editMode = false;
     let showConfigModal = false;
     let selectedWidgetForConfig = null;
+    let showWidgetModal = false;
 
     function toggleEditMode() {
         if (!editMode) {
@@ -339,6 +340,16 @@
     <div class="absolute top-2 right-2 z-10 flex gap-2">
         {#if editMode}
             <Button 
+                variant="outline" 
+                size="sm"
+                on:click={() => showWidgetModal = true}
+            >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Widget
+            </Button>
+            <Button 
                 variant="secondary" 
                 size="sm"
                 on:click={cancelEdit}
@@ -358,6 +369,7 @@
                 </svg>
                 Save Layout
             </Button>
+            
         {:else}
             <Button 
                 variant="outline" 
@@ -373,9 +385,28 @@
         {/if}
     </div>
 
-    {#if editMode}
-        <div class="fixed left-4 top-1/2 -translate-y-1/2 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-4 shadow-lg">
-            <div class="text-sm font-semibold mb-3 text-light-text dark:text-dark-text">Available Widgets</div>
+    {#if showWidgetModal}
+        <Modal bind:show={showWidgetModal} title="Available Widgets">
+            <div class="absolute top-2 right-2 z-10">
+                <button
+                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
+                    on:click={() => showWidgetModal = false}
+                >
+                    <svg
+                        class="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
+                </button>
+            </div>
             <div class="space-y-2">
                 {#each availableWidgetsWithCount as widget (widget.id)}
                     <div class="flex items-center justify-between gap-2 p-3 bg-light-background dark:bg-dark-background hover:bg-light-hover dark:hover:bg-dark-hover rounded-lg cursor-pointer transition-colors duration-200"
@@ -394,7 +425,7 @@
                     </div>
                 {/each}
             </div>
-        </div>
+        </Modal>
     {/if}
 
     {#if mounted}
