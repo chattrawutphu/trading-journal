@@ -302,7 +302,8 @@
     }
 </script>
 
-<div class="relative w-full">
+<!-- เพิ่มคลาส 'edit-mode' ให้กับ container เมื่อ editMode เป็นจริง -->
+<div class="relative w-full {editMode ? 'edit-mode' : ''}">
     <div class="absolute top-2 right-2 z-10 flex gap-2">
         {#if editMode}
             <Button 
@@ -479,5 +480,19 @@
 
     :global(.light) {
         --theme-500-10: rgba(var(--theme-500-rgb), 0.1);
+    }
+
+    /* เพิ่มอนิเมชันการสั่น */
+    @keyframes shake {
+        0% { transform: rotate(0deg); }
+        25% { transform: rotate(0.3deg); }
+        50% { transform: rotate(0deg); }
+        75% { transform: rotate(-0.3deg); }
+        100% { transform: rotate(0deg); }
+    }
+
+    /* ใช้อนิเมชันเมื่ออยู่ในโหมดแก้ไข */
+    :global(.edit-mode) .widget {
+        animation: shake 0.3s infinite;
     }
 </style>
