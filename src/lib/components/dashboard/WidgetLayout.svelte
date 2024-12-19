@@ -300,6 +300,38 @@
         dispatch('updateWidgets', updatedWidgets);
         showConfigModal = false;
     }
+
+    let touchTimeout;
+    let touchStartEvent;
+
+    function handleWidgetPointerDown(event, widgetId) {
+        if (editMode) return;
+
+        touchStartEvent = event;
+        touchTimeout = setTimeout(() => {
+            toggleEditMode();
+            startDragging(widgetId, touchStartEvent);
+        }, 500); // 2 วินาที
+    }
+
+    function handleWidgetPointerUp() {
+        clearTimeout(touchTimeout);
+    }
+
+    function startDragging(widgetId, event) {
+        // เริ่มการลากวิดเจ็ตโดยจำลองเหตุการณ์การลาก
+        const widgetElement = document.getElementById(`widget-${widgetId}`);
+        if (widgetElement && event) {
+            const dragEvent = new DragEvent('dragstart', {
+                bubbles: true,
+                cancelable: true,
+                clientX: event.clientX,
+                clientY: event.clientY,
+                dataTransfer: new DataTransfer()
+            });
+            widgetElement.dispatchEvent(dragEvent);
+        }
+    }
 </script>
 
 <!-- เพิ่มคลาส 'edit-mode' ให้กับ container เมื่อ editMode เป็นจริง -->
@@ -385,7 +417,11 @@
             {#each widgets as widget (widget.id)}
                 <div 
                     class="widget relative" 
+                    id={"widget-" + widget.id}
                     style="grid-column: span {widget.config?.cols || 1}; grid-row: span {widget.config?.rows || 1}; height: {widget.config?.height || 100}px;"
+                    on:pointerdown={(event) => handleWidgetPointerDown(event, widget.id)}
+                    on:pointerup={handleWidgetPointerUp}
+                    on:pointerleave={handleWidgetPointerUp}
                 >
                     {#if editMode && !widget.id.includes('dnd-shadow')}
                         <div class="absolute top-2 right-2 z-10 flex gap-2">
