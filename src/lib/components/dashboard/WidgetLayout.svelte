@@ -282,9 +282,7 @@
     function handleDndFinalize(e) {
         const { items } = e.detail;
         dispatch('updateWidgets', items);
-        // Turn off edit mode after layout change and dispatch event
-        editMode = false;
-        dispatch('editModeChange', false);
+        // Keep edit mode on after drag and drop
     }
 
     // เพิ่มฟังก์ชัน openWidgetConfig
@@ -507,6 +505,13 @@
                             this={getComponentByName(widget.id)} 
                             {...(widget.props || {})} 
                             height={widget.config?.height}
+                            on:view
+                            on:edit
+                            on:delete
+                            on:deleteTransaction
+                            on:dayClick
+                            on:monthClick
+                            on:newTrade
                         />
                     {/if}
                 </div>

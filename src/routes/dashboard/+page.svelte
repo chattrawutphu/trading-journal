@@ -391,6 +391,13 @@
                 if (showViewModal) showViewModal = false;
                 if (showNewTradeModal) showNewTradeModal = false;
                 if (showEmptyDayModal) showEmptyDayModal = false;
+                // Close month modal in calendar widgets
+                const widgets = document.querySelectorAll('svelte\\:component');
+                widgets.forEach(widget => {
+                    if (widget.__svelte_component__ && widget.__svelte_component__.closeMonthModal) {
+                        widget.__svelte_component__.closeMonthModal();
+                    }
+                });
             }}
                             >
                                 <span>{layout.name}</span>
@@ -466,6 +473,13 @@
                 }
             }}
             on:editModeChange={(e) => editMode = e.detail}
+            on:dayClick={handleDayClick}
+            on:monthClick={handleDayClick}
+            on:view={handleView}
+            on:edit={handleEdit}
+            on:delete={handleDelete}
+            on:deleteTransaction={handleDeleteTransaction}
+            on:newTrade={handleNewTradeFromCalendar}
         />
     {:else}
         <div class="card p-16 text-center space-y-6">
@@ -562,7 +576,40 @@
 />
 
 {#if $accountStore.currentAccount}
-    <!-- Existing Modals remain the same -->
+    <DayTradesModal
+        bind:show={showDayModal}
+        trades={selectedDayTrades}
+        transactions={selectedDayTransactions}
+        displayDate={selectedDisplayDate}
+        loading={dayTradesLoading}
+        on:view={handleView}
+        on:edit={handleEdit}
+        on:delete={handleDelete}
+        on:deleteTransaction={handleDeleteTransaction}
+        on:newTrade={handleNewTradeFromCalendar}
+    />
+
+    <TradeModal
+        bind:show={showEditModal}
+        trade={selectedTrade}
+        accountId={$accountStore.currentAccount._id}
+        date={newTradeDate}
+        on:submit={handleSubmit}
+        on:close={closeEditModal}
+    />
+
+    <TradeViewModal
+        bind:show={showViewModal}
+        trade={selectedTrade}
+        on:close={closeViewModal}
+    />
+
+    <EmptyDayModal
+        bind:show={showEmptyDayModal}
+        date={selectedDate}
+        accountId={$accountStore.currentAccount._id}
+        on:newTrade={handleNewTradeFromCalendar}
+    />
 {/if}
 
 <style lang="postcss">

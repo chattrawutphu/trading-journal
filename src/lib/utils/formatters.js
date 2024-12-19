@@ -23,3 +23,12 @@ export const formatDate = (date) => {
         minute: '2-digit'
     }).format(d);
 };
+
+export function formatPnL(pnl) {
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(pnl);
+}
