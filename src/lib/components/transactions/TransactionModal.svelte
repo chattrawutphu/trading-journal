@@ -14,8 +14,6 @@
     export let accountId = null; // Ensure accountId is initialized
     export let transaction = null; // Ensure transaction prop is handled
 
-    console.log("Account ID:", accountId); // Log accountId for debugging
-
     let transactionAmount = 0;
     let transactionDateInput;
 

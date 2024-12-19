@@ -253,59 +253,16 @@
         }
     }
 
-    // ปรับปรุงฟังก์ชัน handleDndConsider
+    // Replace the handleDndConsider function
     function handleDndConsider(e) {
         const { items } = e.detail;
-        const uniqueItems = Array.from(new Map(items.map(item => [item.id, item])).values());
-        widgets.update(currentWidgets => {
-            // สร้าง Map ของ widgets ปัจจุบันด้วย ID
-            const currentWidgetsMap = new Map(
-                currentWidgets.map(w => [w.id, w])
-            );
-
-            // อัพเดท items โดยรักษา widget data เดิม
-            return uniqueItems.map(item => {
-                // หากเป็น shadow item ให้คืนค่าเดิม
-                if (item.id.includes('dnd-shadow')) {
-                    return item;
-                }
-                
-                // หากมี widget เดิมให้ใช้ข้อมูลเดิม
-                const existingWidget = currentWidgetsMap.get(item.id);
-                if (existingWidget) {
-                    return { ...existingWidget };
-                }
-
-                // กรณีไม่พบ widget เดิม (ไม่ควรเกิดขึ้น)
-                console.warn(`Widget not found: ${item.id}`);
-                return item;
-            });
-        });
+        widgets.set(items);
     }
 
-    // ปรับปรุงฟังก์ชัน handleDndFinalize
+    // Replace the handleDndFinalize function
     function handleDndFinalize(e) {
         const { items } = e.detail;
-        const uniqueItems = Array.from(new Map(items.map(item => [item.id, item])).values());
-        widgets.update(currentWidgets => {
-            const currentWidgetsMap = new Map(
-                currentWidgets.map(w => [w.id, w])
-            );
-
-            return uniqueItems
-                .filter(item => !item.id.includes('dnd-shadow'))
-                .map(item => {
-                    const existingWidget = currentWidgetsMap.get(item.id);
-                    if (!existingWidget) {
-                        console.warn(`Widget not found: ${item.id}`);
-                        return item;
-                    }
-                    return {
-                        ...existingWidget,
-                        props: getWidgetProps(existingWidget.id.split('_')[0])
-                    };
-                });
-        });
+        widgets.set(items);
     }
 
     // เพิ่มฟังก์ชัน openWidgetConfig
