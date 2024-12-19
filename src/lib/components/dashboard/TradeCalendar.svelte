@@ -275,21 +275,57 @@
         dispatch("newTrade", selectedDate);
     }
 
+    function previousMonth() {
+        if (selectedMonth === 0) {
+            selectedMonth = 11;
+            selectedYear--;
+        } else {
+            selectedMonth--;
+        }
+    }
+
+    function nextMonth() {
+        if (selectedMonth === 11) {
+            selectedMonth = 0;
+            selectedYear++;
+        } else {
+            selectedMonth++;
+        }
+    }
+
 </script>
 
 <!-- Rest of the template remains the same as in the previous version -->
 <div class="card h-full flex flex-col">
     <div class="p-4 border-b border-light-border dark:border-dark-border">
         <div class="flex justify-between items-center relative">
-            <span
-                class="text-xl font-semibold cursor-pointer text-light-text-muted dark:text-dark-text"
-                on:click={() => showDatePicker = !showDatePicker}
-            >
-                {months[selectedMonth]} {selectedYear}
-                <svg class="w-5 h-5 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            </span>
+            <div class="flex items-center justify-between w-full gap-2">
+                <span
+                    class="text-xl font-semibold cursor-pointer text-light-text-muted dark:text-dark-text"
+                    on:click={() => showDatePicker = !showDatePicker}
+                >
+                    {months[selectedMonth]} {selectedYear}
+                    <svg class="w-5 h-5 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </span>
+                <div class="flex items-center">
+                    <button
+                        class="p-1 hover:bg-light-hover/10 dark:hover:bg-dark-hover/10 rounded-full transition-colors"
+                        on:click={previousMonth}
+                        aria-label="Previous month"
+                    >
+                    <svg class="h-6 w-6 text-purple-500"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <polyline points="11 7 6 12 11 17" />  <polyline points="17 7 12 12 17 17" /></svg>
+                    </button>
+                    <button
+                        class="p-1 hover:bg-light-hover/10 dark:hover:bg-dark-hover/10 rounded-full transition-colors"
+                        on:click={nextMonth}
+                        aria-label="Next month"
+                    >
+                    <svg class="h-6 w-6 text-purple-500"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <polyline points="13 17 18 12 13 7" />  <polyline points="6 17 11 12 6 7" /></svg>
+                    </button>
+                </div>
+            </div>
             {#if showDatePicker}
                 <DatePicker
                     bind:selectedMonth

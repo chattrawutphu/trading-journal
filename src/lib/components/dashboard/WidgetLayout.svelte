@@ -452,7 +452,7 @@
             }}
             on:consider={handleDndConsider}
             on:finalize={handleDndFinalize}
-            class="grid grid-cols-12 gap-4 p-4"
+            class="grid grid-cols-12 gap-4 p-4 {editMode ? ' opacity-70' : ''}"
         >
             {#each widgets as widget (widget.id)}
                 <div 
