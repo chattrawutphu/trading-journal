@@ -78,6 +78,7 @@
     let deleteContext = ''; 
     let selectedItems = [];
     let dayTradesLoading = false;
+    let editMode = false;
 
     // Layout management
     let layouts = [{
@@ -571,5 +572,10 @@
     /* Optional: Rotate the dropdown icon when open */
     .rotate-180 {
         transform: rotate(180deg);
+    }
+
+    /* Add border indication for edit mode */
+    .edit-mode-background {
+        border: 2px dashed #1E90FF; /* DodgerBlue color */
     }
 </style>

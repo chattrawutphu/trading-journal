@@ -336,7 +336,7 @@
 </script>
 
 <!-- เพิ่มคลาส 'edit-mode' ให้กับ container เมื่อ editMode เป็นจริง -->
-<div class="relative w-full {editMode ? 'edit-mode' : ''}">
+<div class="relative w-full {editMode ? 'edit-mode edit-mode-background' : ''}">
     <div class="absolute top-2 right-2 z-10 flex gap-2">
         {#if editMode}
             <Button 
@@ -561,5 +561,10 @@
     /* ใช้อนิเมชันเมื่ออยู่ในโหมดแก้ไข */
     :global(.edit-mode) .widget {
         animation: shake 0.3s infinite;
+    }
+
+    /* Add border indication for edit mode */
+    .edit-mode-background {
+        border: 2px dashed #1E90FF; /* DodgerBlue color */
     }
 </style>
