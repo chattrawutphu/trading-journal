@@ -207,12 +207,10 @@
         const monthName = months[month];
         if (!stats?.trades.length && !stats?.transactions?.length) return;
 
-        selectedMonthTrades = [...(stats.trades || [])].sort((a, b) => {
-            if (a.status !== b.status) {
-                return a.status === "OPEN" ? -1 : 1;
-            }
-            return (b.pnl || 0) - (a.pnl || 0);
-        });
+        selectedMonthTrades = [...(stats.trades || [])].map((trade, index) => ({
+            ...trade,
+            uniqueKey: `${trade._id}-${index}`
+        }));
         selectedMonthTransactions = stats.transactions || [];
         selectedDisplayDate = `${monthName} ${selectedYear}`;
         selectedMonthSummary = {
@@ -223,7 +221,7 @@
             pnl: stats.pnl,
             openTrades: stats.openTrades
         };
-        showMonthModal = true;
+        showMonthModal = true; // Ensure modal is shown
     }
 
     function previousYear() {
@@ -287,7 +285,7 @@
     <!-- Month Grid -->
     <div class="flex-1 p-4">
         <div class="grid grid-cols-3 gap-4 h-full">
-            {#each months as month, i}
+            {#each months as month, i (i)}
                 {@const stats = getMonthStats(i)}
                 <div class="relative">
                     <div

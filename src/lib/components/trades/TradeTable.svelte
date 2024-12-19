@@ -170,7 +170,7 @@
             </tr>
         </thead>
         <tbody class="divide-y divide-light-border dark:divide-dark-border">
-            {#each paginatedTrades as trade}
+            {#each paginatedTrades as trade (trade.uniqueKey)}
                 <tr class="hover:bg-light-hover dark:hover:bg-dark-hover ">
                     <td class="w-8 py-2 px-4 text-right">
                         <input 

@@ -1,8 +1,12 @@
 <script>
     import { createEventDispatcher } from "svelte";
-    import Modal from "../common/Modal.svelte";
+    import { fade } from "svelte/transition";
     import Button from "../common/Button.svelte";
-    import { theme } from "$lib/stores/themeStore";
+    import TradeTable from "../trades/TradeTable.svelte";
+    import TransactionTable from "../transactions/TransactionTable.svelte";
+    import TransactionModal from "../transactions/TransactionModal.svelte";
+    import { transactionStore } from "$lib/stores/transactionStore";
+    import Loading from "$lib/components/common/Loading.svelte";
     import { formatPnL } from "$lib/utils/formatters";
 
     const dispatch = createEventDispatcher();
@@ -19,6 +23,11 @@
         pnl: 0,
         openTrades: 0
     };
+    export let loading = false;
+
+    let showTransactionModal = false;
+    let selectedTransaction = null;
+    let error = null;
 
     function handleView(trade) {
         dispatch("view", trade);
@@ -40,137 +49,169 @@
         }
     }
 
-    function getStatusClass(status) {
-        return status === "OPEN" ? "text-yellow-500" : "";
+    function close() {
+        show = false;
+        dispatch("close");
     }
 
-    function getPnLClass(pnl) {
-        if (pnl === 0) return "";
-        if ($theme === "dark") {
-            return pnl > 0 ? "text-green-300" : "text-red-300";
-        }
-        return pnl > 0 ? "text-green-600" : "text-red-600";
+    function handleEditTransaction(event) {
+        selectedTransaction = event.detail;
+        showTransactionModal = true;
     }
+
+    function handleTransactionSubmit(event) {
+        dispatch("editTransaction", event.detail);
+        showTransactionModal = false;
+    }
+
+    $: openTrades = trades.filter((trade) => trade.status === "OPEN").map((trade, index) => ({ ...trade, uniqueKey: `${trade._id}-${index}` })); // Ensure unique keys
+    $: closedTrades = trades.filter((trade) => trade.status === "CLOSED").map((trade, index) => ({ ...trade, uniqueKey: `${trade._id}-${index}` })); // Ensure unique keys
+    $: processedTransactions = transactions.map((transaction, index) => ({
+        ...transaction,
+        uniqueKey: `${transaction._id}-${index}`
+    })); // Ensure unique keys
 </script>
 
-<Modal bind:show title="Monthly Summary - {displayDate}">
-    <!-- Summary Section -->
-    <div class="mb-6 p-4 bg-light-hover/10 dark:bg-dark-hover/10 rounded-lg">
-        <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">Monthly Statistics</h3>
-        <div class="grid grid-cols-3 gap-4">
-            <div>
-                <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Total Trades</div>
-                <div class="text-lg font-medium text-light-text dark:text-dark-text">{summary.totalTrades}</div>
+{#if loading}
+    <Loading message="Loading..." overlay={true} />
+{:else if error}
+    <div class="text-red-500">{error}</div>
+{:else if show}
+    <div
+        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+        transition:fade={{ duration: 150 }}
+    >
+        <div class="card w-full max-w-4xl mx-auto relative transform ease-out">
+            <!-- Header -->
+            <div
+                class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10"
+            >
+                <h2
+                    class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent"
+                >
+                    {displayDate}
+                </h2>
+                <button
+                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
+                    on:click={close}
+                >
+                    <svg
+                        class="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
+                </button>
             </div>
-            <div>
-                <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Win Rate</div>
-                <div class="text-lg font-medium text-light-text dark:text-dark-text">{summary.winRate}%</div>
+
+
+
+            <!-- Content -->
+            <div class="px-8 py-6 max-h-[calc(100vh-16rem)] overflow-y-auto">
+                            <!-- Summary Section -->
+            <div class="mb-6 p-4 bg-light-hover/10 dark:bg-dark-hover/10 rounded-lg">
+                <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">Monthly Statistics</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Total Trades</div>
+                        <div class="text-lg font-medium text-light-text dark:text-dark-text">{summary.totalTrades}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Win Rate</div>
+                        <div class="text-lg font-medium text-light-text dark:text-dark-text">{summary.winRate}%</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Total P&L</div>
+                        <div class="text-lg font-medium {summary.pnl > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">{formatPnL(summary.pnl)}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Wins</div>
+                        <div class="text-lg font-medium text-green-600 dark:text-green-400">{summary.wins}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Losses</div>
+                        <div class="text-lg font-medium text-red-600 dark:text-red-400">{summary.losses}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Open Trades</div>
+                        <div class="text-lg font-medium text-yellow-600 dark:text-yellow-400">{summary.openTrades}</div>
+                    </div>
+                </div>
             </div>
-            <div>
-                <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Total P&L</div>
-                <div class="text-lg font-medium {getPnLClass(summary.pnl)}">{formatPnL(summary.pnl)}</div>
-            </div>
-            <div>
-                <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Wins</div>
-                <div class="text-lg font-medium text-green-600 dark:text-green-400">{summary.wins}</div>
-            </div>
-            <div>
-                <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Losses</div>
-                <div class="text-lg font-medium text-red-600 dark:text-red-400">{summary.losses}</div>
-            </div>
-            <div>
-                <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Open Trades</div>
-                <div class="text-lg font-medium text-yellow-600 dark:text-yellow-400">{summary.openTrades}</div>
+                {#if openTrades.length > 0}
+                    <div class="mb-6">
+                        <h3
+                            class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
+                        >
+                            Open Trades
+                        </h3>
+                        <TradeTable
+                            trades={openTrades}
+                            type="open"
+                            on:view
+                            on:edit
+                            on:delete
+                        />
+                    </div>
+                {/if}
+
+                {#if closedTrades.length > 0}
+                    <div class="mb-6">
+                        <h3
+                            class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
+                        >
+                            Closed Trades
+                        </h3>
+                        <TradeTable
+                            trades={closedTrades}
+                            type="closed"
+                            on:view
+                            on:edit
+                            on:delete
+                        />
+                    </div>
+                {/if}
+
+                <div class="mb-6"></div>
+                    <h3
+                        class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
+                    >
+                        Transactions
+                    </h3>
+                    <TransactionTable
+                        transactions={processedTransactions}
+                        readOnly={false}
+                        on:edit={handleEditTransaction}
+                        on:delete={handleDeleteTransaction}
+                    />
+                {#if trades.length === 0 && transactions?.length === 0}
+                    <div
+                        class="text-center py-8 text-light-text-muted dark:text-dark-text-muted"
+                    >
+                        No trades or transactions found for this month
+                    </div>
+                {/if}
             </div>
         </div>
     </div>
+{/if}
 
-    <!-- Trades Section -->
-    {#if trades.length > 0}
-        <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-light-text dark:text-dark-text">Trades</h3>
-            <div class="space-y-2">
-                {#each trades as trade}
-                    <div class="flex items-center justify-between p-3 bg-light-background dark:bg-dark-background rounded-lg">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2">
-                                <span class="font-medium text-light-text dark:text-dark-text">
-                                    {trade.symbol}
-                                </span>
-                                <span class="text-sm {getStatusClass(trade.status)}">
-                                    {trade.status}
-                                </span>
-                            </div>
-                            {#if trade.status === "CLOSED"}
-                                <div class="text-sm font-medium {getPnLClass(trade.pnl)}">
-                                    {formatPnL(trade.pnl)}
-                                </div>
-                            {/if}
-                        </div>
-                        <div class="flex gap-2">
-                            <button
-                                class="p-1.5 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover text-light-text-muted dark:text-dark-text-muted transition-colors"
-                                on:click={() => handleView(trade)}
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                            </button>
-                            <button
-                                class="p-1.5 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover text-light-text-muted dark:text-dark-text-muted transition-colors"
-                                on:click={() => handleEdit(trade)}
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                            </button>
-                            <button
-                                class="p-1.5 rounded-lg hover:bg-red-500 hover:text-white text-light-text-muted dark:text-dark-text-muted transition-colors"
-                                on:click={() => handleDelete(trade._id)}
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                {/each}
-            </div>
-        </div>
-    {/if}
+<TransactionModal
+    show={showTransactionModal}
+    transaction={selectedTransaction}
+    on:submit={handleTransactionSubmit}
+    on:close={() => (showTransactionModal = false)}
+/>
 
-    <!-- Transactions Section -->
-    {#if transactions.length > 0}
-        <div class="mt-6 space-y-4">
-            <h3 class="text-lg font-semibold text-light-text dark:text-dark-text">Transactions</h3>
-            <div class="space-y-2">
-                {#each transactions as transaction}
-                    <div class="flex items-center justify-between p-3 bg-light-background dark:bg-dark-background rounded-lg">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2">
-                                <span class="font-medium text-light-text dark:text-dark-text">
-                                    {transaction.type === "deposit" ? "Deposit" : "Withdrawal"}
-                                </span>
-                                <span class="text-sm font-medium {transaction.type === 'deposit' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
-                                    {formatPnL(transaction.amount)}
-                                </span>
-                            </div>
-                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
-                                {new Date(transaction.date).toLocaleDateString()}
-                            </div>
-                        </div>
-                        <button
-                            class="p-1.5 rounded-lg hover:bg-red-500 hover:text-white text-light-text-muted dark:text-dark-text-muted transition-colors"
-                            on:click={() => handleDeleteTransaction(transaction._id)}
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
-                {/each}
-            </div>
-        </div>
-    {/if}
-</Modal>
+<style lang="postcss">
+    .card {
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl;
+    }
+</style>
