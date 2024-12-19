@@ -87,6 +87,7 @@
     let activeLayoutIndex = 0;
     let showNewLayoutModal = false;
     let newLayoutName = '';
+    let showLayoutDropdown = false;
 
     onMount(async () => {
         try {
@@ -358,11 +359,63 @@
 
     <!-- Header -->
     <div class="flex justify-between items-center">
-        <h1
-            class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent"
-        >
-            Dashboard
-        </h1>
+        <!-- Replace the h1 title with this button -->
+        <div class="relative">
+            <button 
+                class="flex items-center text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent focus:outline-none"
+                on:click={() => showLayoutDropdown = !showLayoutDropdown}
+            >
+                Dashboard
+                <svg class="w-6 h-6 ml-2 text-theme-500 transform transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20"
+                    class:rotate-180={showLayoutDropdown}>
+                    <path fill-rule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 011.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clip-rule="evenodd" />
+                </svg>
+            </button>
+
+            <!-- Layout Dropdown Menu -->
+            {#if showLayoutDropdown}
+                <div class="absolute left-0 mt-2 w-48 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg z-50">
+                    <div class="py-1">
+                        {#each layouts as layout, i}
+                            <button
+                                class="flex items-center justify-between w-full px-4 py-2 text-sm hover:bg-light-hover dark:hover:bg-dark-hover {i === activeLayoutIndex ? 'text-theme-500 bg-theme-500/10' : 'text-light-text dark:text-dark-text'}"
+                                on:click={() => {
+                                    activeLayoutIndex = i;
+                                    showLayoutDropdown = false;
+                                }}
+                            >
+                                <span>{layout.name}</span>
+                                {#if layouts.length > 1}
+                                    <button
+                                        class="p-1 rounded-full hover:bg-red-500 hover:text-white"
+                                        on:click|stopPropagation={() => deleteLayout(i)}
+                                    >
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                {/if}
+                            </button>
+                        {/each}
+
+                        <!-- Add New Layout Button -->
+                        <button
+                            class="flex items-center w-full px-4 py-2 text-sm text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover border-t border-light-border dark:border-dark-border"
+                            on:click={() => {
+                                showNewLayoutModal = true;
+                                showLayoutDropdown = false;
+                            }}
+                        >
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            New Layout
+                        </button>
+                    </div>
+                </div>
+            {/if}
+        </div>
+
         {#if $accountStore.currentAccount}
             <div class="flex items-center gap-4">
                 <Button variant="primary" size="sm" on:click={handleNewTrade}>
@@ -388,40 +441,6 @@
     {#if $loadingStore}
         <Loading message="Loading..." overlay={true} />
     {:else if $accountStore.currentAccount}
-        <!-- Layout Tabs -->
-        <div class="border-b border-light-border dark:border-dark-border">
-            <nav class="-mb-px flex items-center">
-                {#each layouts as layout, i}
-                    <div class="group relative">
-                        <button
-                            class="py-4 px-6 border-b-2 font-medium text-sm {i === activeLayoutIndex ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
-                            on:click={() => activeLayoutIndex = i}
-                        >
-                            {layout.name}
-                        </button>
-                        {#if layouts.length > 1}
-                            <button
-                                class="hidden group-hover:block absolute -right-2 top-1 p-1 text-light-text-muted hover:text-red-500"
-                                on:click={() => deleteLayout(i)}
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        {/if}
-                    </div>
-                {/each}
-                <button
-                    class="py-4 px-6 text-theme-500 hover:text-theme-600"
-                    on:click={() => showNewLayoutModal = true}
-                >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                </button>
-            </nav>
-        </div>
-
         <!-- Widget Layout with null check -->
         <WidgetLayout 
             {openTrades} 
@@ -489,34 +508,37 @@
 {#if showNewLayoutModal}
     <Modal 
         bind:show={showNewLayoutModal}
-        title="Add New Layout"
+        title="Create New Layout"
     >
         <div class="space-y-4">
             <div>
-                <label class="block mb-2">Layout Name</label>
+                <label class="block mb-2 text-sm font-medium text-light-text dark:text-dark-text">Layout Name</label>
                 <input 
                     type="text"
                     bind:value={newLayoutName}
-                    class="w-full border rounded p-2"
+                    class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent"
                     placeholder="Enter layout name..."
                 />
             </div>
-            <div class="flex justify-end space-x-2">
-                <button 
-                    class="btn btn-secondary"
+            <div class="flex justify-end gap-2 mt-4">
+                <Button 
+                    variant="secondary" 
+                    size="sm"
                     on:click={() => {
                         showNewLayoutModal = false;
                         newLayoutName = '';
                     }}
                 >
                     Cancel
-                </button>
-                <button 
-                    class="btn btn-primary"
+                </Button>
+                <Button 
+                    variant="primary"
+                    size="sm"
+                    disabled={!newLayoutName.trim()}
                     on:click={addNewLayout}
                 >
-                    Create
-                </button>
+                    Create Layout
+                </Button>
             </div>
         </div>
     </Modal>
@@ -535,5 +557,19 @@
 <style lang="postcss">
     .card {
         @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg;
+    }
+    
+    /* Add these new styles */
+    .group:hover .group-hover\:visible {
+        visibility: visible;
+    }
+    
+    .group:hover .group-hover\:opacity-100 {
+        opacity: 1;
+    }
+
+    /* Optional: Rotate the dropdown icon when open */
+    .rotate-180 {
+        transform: rotate(180deg);
     }
 </style>
