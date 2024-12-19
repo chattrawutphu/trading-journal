@@ -14,6 +14,48 @@
     import { api } from "$lib/utils/api";
     import { loadingStore } from '$lib/stores/loadingStore';
 
+    // Add widget configurations
+    const defaultWidgetConfigs = {
+        TradingStats: { cols: 12, rows: 2, height: 140 },
+        StatsCards: { cols: 2, rows: 8, height: 560 },
+        TradeCalendar: { cols: 6, rows: 8, height: 560 },
+        TradeChart: { cols: 4, rows: 8, height: 560 }
+    };
+
+    // Add helper functions
+    function createUniqueId(baseType) {
+        return `${baseType}_${generateUUID()}`;
+    }
+
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    function getDefaultWidgets() {
+        return [
+            { 
+                id: createUniqueId('TradingStats'),
+                config: {...defaultWidgetConfigs.TradingStats}
+            },
+            { 
+                id: createUniqueId('StatsCards'),
+                config: {...defaultWidgetConfigs.StatsCards}
+            },
+            { 
+                id: createUniqueId('TradeCalendar'),
+                config: {...defaultWidgetConfigs.TradeCalendar}
+            },
+            { 
+                id: createUniqueId('TradeChart'),
+                config: {...defaultWidgetConfigs.TradeChart}
+            }
+        ];
+    }
+
     // Rest of the existing script remains the same...
     let error = "";
     let openTrades = [];
@@ -37,6 +79,15 @@
     let selectedItems = [];
     let dayTradesLoading = false;
 
+    // Layout management
+    let layouts = [{
+        name: 'Default',
+        widgets: []  // Initialize empty, will be populated after data loads
+    }];
+    let activeLayoutIndex = 0;
+    let showNewLayoutModal = false;
+    let newLayoutName = '';
+
     onMount(async () => {
         try {
             loadingStore.set(true);
@@ -46,6 +97,8 @@
                     loadTrades(),
                     transactionStore.fetchTransactions($accountStore.currentAccount._id),
                 ]);
+                // Load layouts from localStorage
+                loadLayouts();
             }
         } catch (err) {
             error = err.message;
@@ -53,6 +106,69 @@
             loadingStore.set(false);
         }
     });
+
+    // Modified loadLayouts function with better error handling
+    function loadLayouts() {
+        try {
+            const savedLayouts = localStorage.getItem('dashboardLayouts');
+            if (savedLayouts) {
+                layouts = JSON.parse(savedLayouts);
+                // Ensure there's always at least one layout
+                if (!layouts || layouts.length === 0) {
+                    layouts = [{
+                        name: 'Default',
+                        widgets: getDefaultWidgets()
+                    }];
+                }
+            } else {
+                // Create default layout
+                layouts = [{
+                    name: 'Default',
+                    widgets: getDefaultWidgets()
+                }];
+            }
+            // Ensure active index is valid
+            if (activeLayoutIndex >= layouts.length) {
+                activeLayoutIndex = 0;
+            }
+            saveLayouts();
+        } catch (error) {
+            console.error('Error loading layouts:', error);
+            // Reset to default if there's an error
+            layouts = [{
+                name: 'Default',
+                widgets: getDefaultWidgets()
+            }];
+            activeLayoutIndex = 0;
+        }
+    }
+
+    function saveLayouts() {
+        localStorage.setItem('dashboardLayouts', JSON.stringify(layouts));
+    }
+
+    function addNewLayout() {
+        if (newLayoutName.trim()) {
+            layouts = [...layouts, {
+                name: newLayoutName.trim(),
+                widgets: []
+            }];
+            saveLayouts();
+            activeLayoutIndex = layouts.length - 1;
+            showNewLayoutModal = false;
+            newLayoutName = '';
+        }
+    }
+
+    function deleteLayout(index) {
+        if (layouts.length > 1 && confirm('Are you sure you want to delete this layout?')) {
+            layouts = layouts.filter((_, i) => i !== index);
+            saveLayouts();
+            if (activeLayoutIndex >= layouts.length) {
+                activeLayoutIndex = layouts.length - 1;
+            }
+        }
+    }
 
     async function loadTrades() {
         if (!$accountStore.currentAccount) return;
@@ -272,13 +388,54 @@
     {#if $loadingStore}
         <Loading message="Loading..." overlay={true} />
     {:else if $accountStore.currentAccount}
-        <!-- Widget Layout -->
+        <!-- Layout Tabs -->
+        <div class="border-b border-light-border dark:border-dark-border">
+            <nav class="-mb-px flex items-center">
+                {#each layouts as layout, i}
+                    <div class="group relative">
+                        <button
+                            class="py-4 px-6 border-b-2 font-medium text-sm {i === activeLayoutIndex ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
+                            on:click={() => activeLayoutIndex = i}
+                        >
+                            {layout.name}
+                        </button>
+                        {#if layouts.length > 1}
+                            <button
+                                class="hidden group-hover:block absolute -right-2 top-1 p-1 text-light-text-muted hover:text-red-500"
+                                on:click={() => deleteLayout(i)}
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        {/if}
+                    </div>
+                {/each}
+                <button
+                    class="py-4 px-6 text-theme-500 hover:text-theme-600"
+                    on:click={() => showNewLayoutModal = true}
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Widget Layout with null check -->
         <WidgetLayout 
             {openTrades} 
             {closedTrades} 
             {totalPnL} 
-            {winRate} 
+            {winRate}
             accountId={$accountStore.currentAccount._id}
+            widgets={layouts[activeLayoutIndex]?.widgets || []}
+            on:updateWidgets={(e) => {
+                if (layouts[activeLayoutIndex]) {
+                    layouts[activeLayoutIndex].widgets = e.detail;
+                    saveLayouts();
+                }
+            }}
         />
     {:else}
         <div class="card p-16 text-center space-y-6">
@@ -327,6 +484,43 @@
         </div>
     {/if}
 </div>
+
+<!-- New Layout Modal -->
+{#if showNewLayoutModal}
+    <Modal 
+        bind:show={showNewLayoutModal}
+        title="Add New Layout"
+    >
+        <div class="space-y-4">
+            <div>
+                <label class="block mb-2">Layout Name</label>
+                <input 
+                    type="text"
+                    bind:value={newLayoutName}
+                    class="w-full border rounded p-2"
+                    placeholder="Enter layout name..."
+                />
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button 
+                    class="btn btn-secondary"
+                    on:click={() => {
+                        showNewLayoutModal = false;
+                        newLayoutName = '';
+                    }}
+                >
+                    Cancel
+                </button>
+                <button 
+                    class="btn btn-primary"
+                    on:click={addNewLayout}
+                >
+                    Create
+                </button>
+            </div>
+        </div>
+    </Modal>
+{/if}
 
 <!-- Existing Modals remain the same -->
 <NewAccountModal

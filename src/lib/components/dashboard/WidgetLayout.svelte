@@ -6,7 +6,8 @@
     import StatsCard from './StatsCard.svelte';
     import TradeChart from './TradeChart.svelte';
     import Modal from '../common/Modal.svelte';
-    import { onMount } from 'svelte';
+    import { onMount, createEventDispatcher } from 'svelte';
+    const dispatch = createEventDispatcher();
     let mounted = false;
 
     // เพิ่มตัวแปรสำหรับนับ sequence
@@ -21,7 +22,7 @@
     });
 
     // Widget configurations with predefined sizes
-    const defaultWidgetConfigs = {
+    export let defaultWidgetConfigs = {
         TradingStats: { cols: 12, rows: 2, height: 140 },
         StatsCards: { cols: 2, rows: 8, height: 560 },
         TradeCalendar: { cols: 6, rows: 8, height: 560 },
@@ -69,6 +70,7 @@
     export let totalPnL = 0;
     export let winRate = 0;
     export let accountId = null;
+    export let widgets = []; // Now receiving widgets as a prop instead of managing internally
 
     // Initialize widgets with saved layout from localStorage or default layout
     // ปรับปรุงฟังก์ชัน getInitialLayout เพื่อสร้าง unique IDs
@@ -166,7 +168,6 @@
         }));
     }
 
-    let widgets = writable(getInitialLayout());
     let tempWidgets; // Store temporary layout during edit mode
     let editMode = false;
     let showConfigModal = false;
@@ -175,14 +176,14 @@
     function toggleEditMode() {
         if (!editMode) {
             // Entering edit mode - store current layout without components
-            tempWidgets = backupLayout($widgets);
+            tempWidgets = backupLayout(widgets);
         }
         editMode = !editMode;
     }
 
     function saveLayout() {
         // Save to localStorage
-        const savableWidgets = $widgets.map(widget => ({
+        const savableWidgets = widgets.map(widget => ({
             id: widget.id,
             config: widget.config,
             props: widget.props
@@ -193,13 +194,13 @@
 
     function cancelEdit() {
         // Restore previous layout with components
-        widgets.set(restoreLayout(tempWidgets));
+        widgets = restoreLayout(tempWidgets);
         editMode = false;
     }
 
     function handleAddWidget(baseType) {
         // ตรวจสอบจำนวนที่เหลือ
-        const currentCount = getWidgetTypeCount($widgets, baseType);
+        const currentCount = getWidgetTypeCount(widgets, baseType);
         const maxCount = widgetLimits[baseType] || 1;
 
         if (currentCount >= maxCount) {
@@ -211,12 +212,12 @@
         const newWidget = createNewWidget(baseType);
         
         // ตรวจสอบว่า ID ไม่ซ้ำกับ widgets ที่มีอยู่
-        while ($widgets.some(w => w.id === newWidget.id)) {
+        while (widgets.some(w => w.id === newWidget.id)) {
             newWidget.id = createUniqueId(baseType);
         }
         
         // เพิ่ม widget และ force re-render
-        widgets.update(w => [...w, newWidget]);
+        dispatch('updateWidgets', [...widgets, newWidget]);
     }
 
     // แยกฟังก์ชันสร้าง widget ใหม่
@@ -238,13 +239,13 @@
     // คำนวณจำนวน widget ที่เหลือสำหรับแสดงใน widget bar
     $: availableWidgetsWithCount = availableWidgets.map(widget => ({
         ...widget,
-        remaining: (widgetLimits[widget.id] || 1) - getWidgetTypeCount($widgets, widget.id)
+        remaining: (widgetLimits[widget.id] || 1) - getWidgetTypeCount(widgets, widget.id)
     }));
 
     // ปรับปรุง reactive statements สำหรับการอัพเดท props
     $: {
-        if ($widgets) {
-            $widgets.forEach(widget => {
+        if (widgets) {
+            widgets.forEach(widget => {
                 if (!widget.id.includes('dnd-shadow')) {
                     const baseType = widget.id.split('_')[0];
                     widget.props = getWidgetProps(baseType);
@@ -256,13 +257,13 @@
     // Replace the handleDndConsider function
     function handleDndConsider(e) {
         const { items } = e.detail;
-        widgets.set(items);
+        dispatch('updateWidgets', items);
     }
 
     // Replace the handleDndFinalize function
     function handleDndFinalize(e) {
         const { items } = e.detail;
-        widgets.set(items);
+        dispatch('updateWidgets', items);
     }
 
     // เพิ่มฟังก์ชัน openWidgetConfig
@@ -277,25 +278,25 @@
             // Calculate height based on rows (70px per row)
             const height = selectedWidgetForConfig.config.rows * 70;
             
-            widgets.update(widgets => 
-                widgets.map(w => 
-                    w.id === selectedWidgetForConfig.id 
-                    ? {
-                        ...w, 
-                        config: {
-                            ...selectedWidgetForConfig.config,
-                            height
-                        }
-                    } 
-                    : w
-                )
+            const updatedWidgets = widgets.map(w => 
+                w.id === selectedWidgetForConfig.id 
+                ? {
+                    ...w, 
+                    config: {
+                        ...selectedWidgetForConfig.config,
+                        height
+                    }
+                } 
+                : w
             );
+            dispatch('updateWidgets', updatedWidgets);
             showConfigModal = false;
         }
     }
 
     function deleteWidget(widgetId) {
-        widgets.update(widgets => widgets.filter(widget => widget.id !== widgetId));
+        const updatedWidgets = widgets.filter(widget => widget.id !== widgetId);
+        dispatch('updateWidgets', updatedWidgets);
         showConfigModal = false;
     }
 </script>
@@ -352,7 +353,7 @@
     {#if mounted}
         <div 
             use:dndzone={{ 
-                items: $widgets, 
+                items: widgets, 
                 dragDisabled: !editMode,
                 dropFromOthersDisabled: true,
                 dropTargetStyle: {
@@ -366,7 +367,7 @@
             on:finalize={handleDndFinalize}
             class="grid grid-cols-12 gap-4 p-4"
         >
-            {#each $widgets as widget (widget.id)}
+            {#each widgets as widget (widget.id)}
                 <div 
                     class="widget relative" 
                     style="grid-column: span {widget.config?.cols || 1}; grid-row: span {widget.config?.rows || 1}; height: {widget.config?.height || 100}px;"
