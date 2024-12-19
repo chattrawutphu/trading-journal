@@ -337,11 +337,12 @@
 
 <!-- เพิ่มคลาส 'edit-mode' ให้กับ container เมื่อ editMode เป็นจริง -->
 <div class="relative w-full {editMode ? 'edit-mode edit-mode-background' : ''}">
-    <div class="absolute top-2 right-2 z-10 flex gap-2">
+    <div class="top-2 mt-2 mx-4 right-2 z-10 flex gap-2 justify-between">
         {#if editMode}
-            <Button 
-                variant="outline" 
-                size="sm"
+        <div>
+            <Button
+                variant="primary" 
+                size="xs"
                 on:click={() => showWidgetModal = true}
             >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -349,9 +350,11 @@
                 </svg>
                 Add Widget
             </Button>
+        </div>
+        <div class="flex gap-2">
             <Button 
                 variant="secondary" 
-                size="sm"
+                size="xs"
                 on:click={cancelEdit}
             >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -361,7 +364,7 @@
             </Button>
             <Button 
                 variant="primary" 
-                size="sm"
+                size="xs"
                 on:click={saveLayout}
             >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -369,12 +372,17 @@
                 </svg>
                 Save Layout
             </Button>
+        </div>
+            
+            
             
         {:else}
+        <div style="display: none;">
             <Button 
-                variant="outline" 
-                size="sm"
+                variant="primary" 
+                size="xs"
                 on:click={toggleEditMode}
+                
             >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -382,6 +390,7 @@
                 </svg>
                 Customize Layout
             </Button>
+        </div>
         {/if}
     </div>
 
