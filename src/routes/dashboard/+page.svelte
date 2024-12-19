@@ -19,6 +19,7 @@
         TradingStats: { cols: 12, rows: 2, height: 140 },
         StatsCards: { cols: 2, rows: 8, height: 560 },
         TradeCalendar: { cols: 6, rows: 8, height: 560 },
+        MonthTradeCalendar: { cols: 6, rows: 8, height: 560 },
         TradeChart: { cols: 4, rows: 8, height: 560 }
     };
 
@@ -380,10 +381,17 @@
                         {#each layouts as layout, i}
                             <button
                                 class="flex items-center justify-between w-full px-4 py-2 text-sm hover:bg-light-hover dark:hover:bg-dark-hover {i === activeLayoutIndex ? 'text-theme-500 bg-theme-500/10' : 'text-light-text dark:text-dark-text'}"
-                                on:click={() => {
-                                    activeLayoutIndex = i;
-                                    showLayoutDropdown = false;
-                                }}
+            on:click={() => {
+                editMode = false;
+                activeLayoutIndex = i;
+                showLayoutDropdown = false;
+                // Close any open modals when switching layouts
+                if (showDayModal) showDayModal = false;
+                if (showEditModal) showEditModal = false;
+                if (showViewModal) showViewModal = false;
+                if (showNewTradeModal) showNewTradeModal = false;
+                if (showEmptyDayModal) showEmptyDayModal = false;
+            }}
                             >
                                 <span>{layout.name}</span>
                                 {#if layouts.length > 1}
@@ -450,12 +458,14 @@
             {winRate}
             accountId={$accountStore.currentAccount._id}
             widgets={layouts[activeLayoutIndex]?.widgets || []}
+            bind:editMode
             on:updateWidgets={(e) => {
                 if (layouts[activeLayoutIndex]) {
                     layouts[activeLayoutIndex].widgets = e.detail;
                     saveLayouts();
                 }
             }}
+            on:editModeChange={(e) => editMode = e.detail}
         />
     {:else}
         <div class="card p-16 text-center space-y-6">

@@ -2,6 +2,7 @@
     import { writable } from 'svelte/store';
     import { dndzone } from 'svelte-dnd-action';
     import TradeCalendar from './TradeCalendar.svelte';
+    import MonthTradeCalendar from './MonthTradeCalendar.svelte';
     import TradingStats from './TradingStats.svelte';
     import StatsCard from './StatsCard.svelte';
     import TradeChart from './TradeChart.svelte';
@@ -27,12 +28,14 @@
         TradingStats: { cols: 12, rows: 2, height: 140 },
         StatsCards: { cols: 2, rows: 8, height: 560 },
         TradeCalendar: { cols: 6, rows: 8, height: 560 },
+        MonthTradeCalendar: { cols: 6, rows: 8, height: 560 },
         TradeChart: { cols: 4, rows: 8, height: 560 }
     };
 
     // เพิ่มการกำหนดจำนวนสูงสุดของแต่ละ widget
     const widgetLimits = {
         TradeCalendar: 3,
+        MonthTradeCalendar: 3,
         TradeChart: 3,
         StatsCards: 12,
         TradingStats: 1 // default limit
@@ -54,9 +57,15 @@
         },
         { 
             id: 'TradeCalendar',
-            title: 'Calendar',
+            title: 'Daily Calendar',
             icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
             config: {...defaultWidgetConfigs.TradeCalendar}
+        },
+        { 
+            id: 'MonthTradeCalendar',
+            title: 'Monthly Calendar',
+            icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+            config: {...defaultWidgetConfigs.MonthTradeCalendar}
         },
         { 
             id: 'TradeChart',
@@ -72,6 +81,7 @@
     export let winRate = 0;
     export let accountId = null;
     export let widgets = []; // Now receiving widgets as a prop instead of managing internally
+    export let editMode = false;
 
     // Initialize widgets with saved layout from localStorage or default layout
     // ปรับปรุงฟังก์ชัน getInitialLayout เพื่อสร้าง unique IDs
@@ -137,6 +147,7 @@
             'TradingStats': TradingStats,
             'StatsCards': StatsCard,
             'TradeCalendar': TradeCalendar,
+            'MonthTradeCalendar': MonthTradeCalendar,
             'TradeChart': TradeChart
         };
 
@@ -146,7 +157,7 @@
     function getWidgetProps(baseType) {
         if (baseType === 'StatsCards') {
             return { totalPnL, openTrades, closedTrades, winRate };
-        } else if (baseType === 'TradeCalendar') {
+        } else if (baseType === 'TradeCalendar' || baseType === 'MonthTradeCalendar') {
             return { trades: [...openTrades, ...closedTrades], accountId };
         } else if (baseType === 'TradeChart') {
             return { openTrades, closedTrades };
@@ -170,7 +181,6 @@
     }
 
     let tempWidgets; // Store temporary layout during edit mode
-    let editMode = false;
     let showConfigModal = false;
     let selectedWidgetForConfig = null;
     let showWidgetModal = false;
@@ -181,6 +191,7 @@
             tempWidgets = backupLayout(widgets);
         }
         editMode = !editMode;
+        dispatch('editModeChange', editMode);
     }
 
     function saveLayout() {
@@ -192,12 +203,14 @@
         }));
         localStorage.setItem('widgetLayout', JSON.stringify(savableWidgets));
         editMode = false;
+        dispatch('editModeChange', false);
     }
 
     function cancelEdit() {
         // Restore previous layout with components
         widgets = restoreLayout(tempWidgets);
         editMode = false;
+        dispatch('editModeChange', false);
     }
 
     function handleAddWidget(baseType) {
@@ -269,6 +282,9 @@
     function handleDndFinalize(e) {
         const { items } = e.detail;
         dispatch('updateWidgets', items);
+        // Turn off edit mode after layout change and dispatch event
+        editMode = false;
+        dispatch('editModeChange', false);
     }
 
     // เพิ่มฟังก์ชัน openWidgetConfig
@@ -338,7 +354,7 @@
     }
 </script>
 
-<!-- เพิ่มคลาส 'edit-mode' ให้กับ container เมื่อ editMode เป็นจริง -->
+<!-- Rest of the file remains unchanged -->
 <div class="relative w-full {editMode ? 'edit-mode edit-mode-background' : ''}">
     <div class="top-2 mt-2 mx-4 right-2 z-10 flex gap-2 justify-between">
         {#if editMode}
