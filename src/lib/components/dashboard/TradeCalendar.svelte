@@ -465,32 +465,24 @@
                                             <div
                                                 class="flex items-center gap-1"
                                             >
-                                                <span
-                                                    class="text-[10px] text-light-text-muted dark:text-dark-text-muted"
-                                                >
-                                                    {statsPerDay[day].trades.length} trade{statsPerDay[day]
-                                                        .trades.length !== 1
-                                                        ? "s"
-                                                        : ""}
-                                                </span>
-                                                <div
-                                                    class="flex gap-1 text-[10px]"
-                                                >
-                                                    {#if statsPerDay[day].wins > 0}
-                                                        <span
-                                                            class="text-green-600 dark:text-green-400"
-                                                        >
-                                                            {statsPerDay[day].wins} wins
+                                                
+                                                    {#if statsPerDay[day].openTrades > 0}
+                                                        <span class="text-[10px] text-yellow-600 dark:text-yellow-400">
+                                                            {statsPerDay[day].openTrades} open{statsPerDay[day].openTrades !== 1 ? "s" : ""}
                                                         </span>
                                                     {/if}
-                                                    {#if statsPerDay[day].losses > 0}
-                                                        <span
-                                                            class="text-red-600 dark:text-red-400"
-                                                        >
-                                                            {statsPerDay[day].losses} losses
-                                                        </span>
-                                                    {/if}
-                                                </div>
+                                                    <div class="flex gap-1 text-[10px]">
+                                                        {#if statsPerDay[day].wins > 0}
+                                                            <span class="text-green-600 dark:text-green-400">
+                                                                {statsPerDay[day].wins} win{statsPerDay[day].wins !== 1 ? "s" : ""}
+                                                            </span>
+                                                        {/if}
+                                                        {#if statsPerDay[day].losses > 0}
+                                                            <span class="text-red-600 dark:text-red-400">
+                                                                {statsPerDay[day].losses} loss{statsPerDay[day].losses !== 1 ? "es" : ""}
+                                                            </span>
+                                                        {/if}
+                                                    </div>
                                             </div>
                                         </div>
                                     {/if}
@@ -509,8 +501,8 @@
                                                 class=" text-[10px] {statsPerDay[day].pnl > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}"
                                                 >
                                                 {#if statsPerDay[day].pnlPercentage !== null}
-                                                        {statsPerDay[day].pnlPercentage.toFixed(2)}%
-                                                    {/if}
+                                                    {statsPerDay[day].pnlPercentage >= 0 ? '+' : ''}{statsPerDay[day].pnlPercentage.toFixed(2)}%
+                                                {/if}
                                             </span>
                                         </div>
                                     {/if}
