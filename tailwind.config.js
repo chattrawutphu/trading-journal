@@ -140,6 +140,9 @@ export default {
           },
         },
       }),
+      fontSize: {
+          xxs: '10px', // Custom class for 10px text size
+      },
     },
   },
   plugins: [

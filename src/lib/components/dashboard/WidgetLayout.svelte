@@ -25,11 +25,11 @@
 
     // Widget configurations with predefined sizes
     export let defaultWidgetConfigs = {
-        TradingStats: { cols: 12, rows: 2, height: 140 },
-        StatsCards: { cols: 2, rows: 8, height: 560 },
-        TradeCalendar: { cols: 6, rows: 8, height: 560 },
-        MonthTradeCalendar: { cols: 6, rows: 8, height: 560 },
-        TradeChart: { cols: 4, rows: 8, height: 560 }
+        TradingStats: { cols: 12, rows: 2, height: 140, textSize: 'medium' },
+        StatsCards: { cols: 2, rows: 8, height: 560, textSize: 'medium' },
+        TradeCalendar: { cols: 6, rows: 8, height: 560, textSize: 'medium' },
+        MonthTradeCalendar: { cols: 6, rows: 8, height: 560, textSize: 'medium' },
+        TradeChart: { cols: 4, rows: 8, height: 560, textSize: 'medium' }
     };
 
     // เพิ่มการกำหนดจำนวนสูงสุดของแต่ละ widget
@@ -485,7 +485,7 @@
         >
             {#each widgets as widget (widget.id)}
                 <div 
-                    class="widget relative" 
+                    class="widget relative {widget.config.textSize}" 
                     id={"widget-" + widget.id}
                     style="grid-column: span {widget.config?.cols || 1}; grid-row: span {widget.config?.rows || 1}; height: {widget.config?.height || 100}px;"
                     on:pointerdown={(event) => handleWidgetPointerDown(event, widget.id)}
@@ -518,6 +518,7 @@
                             this={getComponentByName(widget.id)} 
                             {...(widget.props || {})} 
                             height={widget.config?.height}
+                            textSize={widget.config?.textSize}
                             on:view
                             on:edit
                             on:delete
@@ -559,6 +560,15 @@
                         bind:value={selectedWidgetForConfig.config.rows} 
                         class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent"
                     />
+                </div>
+                <div>
+                    <label class="block mb-2 text-light-text dark:text-dark-text">Text Size</label>
+                    <select bind:value={selectedWidgetForConfig.config.textSize} class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent">
+                        <option value="small">Small</option>
+                        <option value="medium">Medium</option>
+                        <option value="large">Large</option>
+                        <option value="extra-large">Extra Large</option>
+                    </select>
                 </div>
             </div>
             <div class="flex justify-end space-x-2 mt-4">

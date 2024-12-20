@@ -9,6 +9,7 @@
     const dispatch = createEventDispatcher();
 
     export let trades = [];
+    export let textSize = 'medium';
     let currentAccountId = null;
     let monthlyTrades = {};
     let showMonthModal = false;
@@ -248,7 +249,7 @@
     }
 </script>
 
-<div class="card h-full flex flex-col">
+<div class="card h-full flex flex-col {textSize}">
     <div class="p-4 border-b border-light-border dark:border-dark-border">
         <div class="flex justify-between items-center relative">
             <div class="flex items-center justify-between w-full gap-2">

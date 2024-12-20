@@ -3,9 +3,10 @@
     export let openTrades;
     export let closedTrades;
     export let winRate;
+    export let textSize = 'medium';
 </script>
 
-<div class="card p-4 h-full flex flex-col gap-4">
+<div class="card p-4 h-full flex flex-col gap-4 {textSize}">
     <!-- Total P&L -->
     <div class="flex-1">
         <div class="flex items-center justify-between mb-2">

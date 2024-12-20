@@ -17,7 +17,7 @@
     let showDatePicker = false;
     let currentAccountId = null;
     let dailyTrades = {};
-    let dailyBalances = {}; // Add this line to store balances per day
+    let dailyBalances = {};
 
     onMount(async () => {
         try {
@@ -482,11 +482,11 @@
                                             >
                                                 
                                                     {#if statsPerDay[day].openTrades > 0}
-                                                        <span class="text-[10px] text-yellow-600 dark:text-yellow-400">
+                                                        <span class="text-xxs text-yellow-600 dark:text-yellow-400">
                                                             {statsPerDay[day].openTrades} open{statsPerDay[day].openTrades !== 1 ? "s" : ""}
                                                         </span>
                                                     {/if}
-                                                    <div class="flex gap-1 text-[10px]">
+                                                    <div class="flex gap-1 text-xxs">
                                                         {#if statsPerDay[day].wins > 0}
                                                             <span class="text-green-600 dark:text-green-400">
                                                                 {statsPerDay[day].wins} win{statsPerDay[day].wins !== 1 ? "s" : ""}
@@ -513,7 +513,7 @@
                                                 {formatPnL(statsPerDay[day].pnl)}
                                             </span>
                                             <span
-                                                class=" text-[10px] {statsPerDay[day].pnl > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}"
+                                                class=" text-xxs {statsPerDay[day].pnl > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}"
                                                 >
                                                 {#if statsPerDay[day].pnlPercentage !== null}
                                                     {statsPerDay[day].pnlPercentage >= 0 ? '+' : ''}{statsPerDay[day].pnlPercentage.toFixed(2)}%
