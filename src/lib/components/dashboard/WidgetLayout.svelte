@@ -629,7 +629,6 @@
         top: 0;
         background-color: var(--bg-color);
         z-index: 20;
-        padding: 0.5rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 0.2rem;
     }
 </style>

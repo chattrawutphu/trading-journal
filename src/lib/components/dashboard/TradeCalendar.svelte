@@ -386,13 +386,12 @@
 
 </script>
 
-<!-- Rest of the template remains the same as in the previous version -->
 <div class="card h-full flex flex-col">
     <div class="p-4 border-b border-light-border dark:border-dark-border">
         <div class="flex justify-between items-center relative">
             <div class="flex items-center justify-between w-full gap-2">
                 <span
-                    class="text-xl font-semibold cursor-pointer text-light-text-muted dark:text-dark-text"
+                    class="text-2xl font-semibold cursor-pointer text-light-text-muted dark:text-dark-text"
                     on:click={() => showDatePicker = !showDatePicker}
                 >
                     {months[selectedMonth]} {selectedYear}
@@ -429,20 +428,17 @@
         </div>
     </div>
 
-    <!-- Calendar Grid -->
     <div class="flex-1 p-4 flex flex-col">
-        <!-- Day headers -->
         <div class="grid grid-cols-7 gap-1">
             {#each ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as day}
                 <div
-                    class="text-center py-1 text-xs font-medium text-light-text-muted dark:text-dark-text-muted"
+                    class="text-center py-1 text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
                 >
                     {day}
                 </div>
             {/each}
         </div>
 
-        <!-- Calendar days -->
         <div class="grid grid-cols-7 gap-1 flex-1">
             {#each calendarDays as day, index (day !== null ? day : 'empty-' + index)}
                 {#if day !== null}
@@ -457,9 +453,8 @@
                             ) && 'transform hover:scale-[1.04] transition-transform duration-300 ease-in-out'} {isToday(day) ? ' bg-indigo-300/50 dark:bg-indigo-600/20' : ''}"
                             on:click={() => handleDayClick(day, statsPerDay[day])}
                         >
-                            <!-- Date in top right -->
                             <div
-                                class="pt-0.5 px-1 pb-0 {!isToday(day) ? 'float-end' : ''}  text-xs font-medium text-light-text-muted dark:text-dark-text-muted"
+                                class="pt-0.5 px-1 pb-0 {!isToday(day) ? 'float-end' : ''} text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
                             >
                             <div class="flex w-full justify-between">
                                 {#if isToday(day)}
@@ -474,19 +469,17 @@
                                     class="absolute inset-0 p-1.5 pt-5 flex flex-col"
                                 >
                                 <div class={`border-s border-s-2 border-transparent ${statsPerDay[day].pnl === 0 ? '' : statsPerDay[day].pnl < 0 ? 'dark:border-red-600 ps-1' : 'dark:border-green-600 ps-1'}`}>
-                                    <!-- Trade count & Win/Loss -->
                                     {#if statsPerDay[day].trades.length > 0}
                                         <div class="space-y-0.5">
                                             <div
                                                 class="flex items-center gap-1"
                                             >
-                                                
                                                     {#if statsPerDay[day].openTrades > 0}
-                                                        <span class="text-xxs text-yellow-600 dark:text-yellow-400">
+                                                        <span class="text-xs text-yellow-600 dark:text-yellow-400">
                                                             {statsPerDay[day].openTrades} open{statsPerDay[day].openTrades !== 1 ? "s" : ""}
                                                         </span>
                                                     {/if}
-                                                    <div class="flex gap-1 text-xxs">
+                                                    <div class="flex gap-1 text-xs">
                                                         {#if statsPerDay[day].wins > 0}
                                                             <span class="text-green-600 dark:text-green-400">
                                                                 {statsPerDay[day].wins} win{statsPerDay[day].wins !== 1 ? "s" : ""}
@@ -502,18 +495,17 @@
                                         </div>
                                     {/if}
 
-                                    <!-- P&L -->
                                     {#if statsPerDay[day].pnl !== 0}
                                         <div class="mt-auto flex justify-between items-center">
                                             <span
-                                                class="text-xs font-bold {getTextClass(
+                                                class="text-sm font-bold {getTextClass(
                                                     statsPerDay[day],
                                                 )}"
                                             >
                                                 {formatPnL(statsPerDay[day].pnl)}
                                             </span>
                                             <span
-                                                class=" text-xxs {statsPerDay[day].pnl > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}"
+                                                class="text-xs {statsPerDay[day].pnl > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}"
                                                 >
                                                 {#if statsPerDay[day].pnlPercentage !== null}
                                                     {statsPerDay[day].pnlPercentage >= 0 ? '+' : ''}{statsPerDay[day].pnlPercentage.toFixed(2)}%
@@ -522,7 +514,6 @@
                                         </div>
                                     {/if}
 
-                                    <!-- Transaction Icons -->
                                     {#if statsPerDay[day].transactions?.length > 0}
                                         <div
                                             class="absolute bottom-1 right-1 flex gap-0.5 items-center opacity-60 dark:opacity-80"
@@ -569,9 +560,7 @@
                         </div>
                     </div>
                 {:else}
-                    <!-- Empty day placeholder -->
                     <div class="relative aspect-square">
-                        <!-- ...existing code (if any) ... -->
                     </div>
                 {/if}
             {/each}
