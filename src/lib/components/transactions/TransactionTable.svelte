@@ -177,7 +177,7 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-light-border dark:divide-dark-border">
-        {#each paginatedTransactions as transaction (transaction.uniqueKey)}
+        {#each paginatedTransactions as transaction, index (transaction._id || index)}
           <tr class="hover:bg-light-hover dark:hover:bg-dark-hover ">
             <td class="w-8 py-2 px-4 text-right">
               <input 

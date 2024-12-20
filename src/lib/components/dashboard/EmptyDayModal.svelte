@@ -47,10 +47,10 @@
 
 {#if show}
     <div 
-        class="fixed inset-0 bg-black/50  z-50 flex items-center justify-center p-4 "
+        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
         transition:fade={{ duration: 150 }}>
         <div 
-            class="card w-full max-w-lg mx-auto relative transform  ease-out">
+            class="card w-full max-w-lg mx-auto relative transform ease-out">
             <!-- Header -->
             <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
                 <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">New Trade</h2>
@@ -70,7 +70,7 @@
                         </Button>
                     </div>
                     <button 
-                        class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
+                        class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
                         on:click={close}
                     >
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

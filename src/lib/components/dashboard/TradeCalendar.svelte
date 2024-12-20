@@ -353,7 +353,7 @@
 
         <!-- Calendar days -->
         <div class="grid grid-cols-7 gap-1 h-full">
-            {#each calendarDays as day}
+            {#each calendarDays as day, index (day !== null ? day : 'empty-' + index)}
                 {#if day !== null}
                     <div class="relative aspect-square">
                         <div
@@ -473,6 +473,11 @@
                             {/if}
                         </div>
                     </div>
+                {:else}
+                    <!-- Empty day placeholder -->
+                    <div class="relative aspect-square">
+                        <!-- ...existing code (if any) ... -->
+                    </div>
                 {/if}
             {/each}
         </div>
@@ -484,6 +489,7 @@
     date={selectedDate}
     accountId={$accountStore.currentAccount._id}
     on:newTrade={handleNewTrade}
+    key="empty-day-modal"
 />
 
 <style lang="postcss">
