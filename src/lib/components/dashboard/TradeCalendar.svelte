@@ -374,6 +374,16 @@
         }
     }
 
+    function isToday(day) {
+        const today = new Date();
+        const date = new Date(selectedYear, selectedMonth, day);
+        return (
+            date.getDate() === today.getDate() &&
+            date.getMonth() === today.getMonth() &&
+            date.getFullYear() === today.getFullYear()
+        );
+    }
+
 </script>
 
 <!-- Rest of the template remains the same as in the previous version -->
@@ -444,14 +454,19 @@
                                 day,
                             )} hover:shadow {!isFutureDate(
                                 day,
-                            ) && 'hover:scale-[1.02]'}"
+                            ) && 'transform hover:scale-[1.04] transition-transform duration-300 ease-in-out'} {isToday(day) ? ' bg-indigo-300/50 dark:bg-indigo-600/20' : ''}"
                             on:click={() => handleDayClick(day, statsPerDay[day])}
                         >
                             <!-- Date in top right -->
                             <div
-                                class="absolute top-1 right-1.5 text-xs font-medium text-light-text-muted dark:text-dark-text-muted"
+                                class="pt-0.5 px-1 pb-0 {!isToday(day) ? 'float-end' : ''}  text-xs font-medium text-light-text-muted dark:text-dark-text-muted"
                             >
-                                {day}
+                            <div class="flex w-full justify-between">
+                                {#if isToday(day)}
+                                    <span>to day!</span>
+                                {/if}
+                                <span>{day}</span>
+                            </div>
                             </div>
 
                             {#if statsPerDay[day]}
