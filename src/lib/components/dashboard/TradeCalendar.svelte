@@ -65,15 +65,15 @@
     }
 
     $: daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-    $: firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
+    $: firstDayOfWeek = (new Date(selectedYear, selectedMonth, 1).getDay() + 6) % 7;
     $: lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0).getDay();
 
     let calendarDays = [];
     let statsPerDay = {};
     $: calendarDays = Array.from(
-        { length: 56 }, // Always 6 rows (7 * 6 = 42)
+        { length: 42 }, // 7 days * 6 weeks
         (_, i) => {
-            const dayNumber = i - firstDayOfMonth + 1;
+            const dayNumber = i - firstDayOfWeek + 1;
             if (dayNumber < 1 || dayNumber > daysInMonth) return null;
             return dayNumber;
         },
@@ -339,7 +339,7 @@
     </div>
 
     <!-- Calendar Grid -->
-    <div class="flex-1 p-4 grid grid-rows-[auto_1fr]">
+    <div class="flex-1 p-4 flex flex-col">
         <!-- Day headers -->
         <div class="grid grid-cols-7 gap-1">
             {#each ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as day}
@@ -352,10 +352,10 @@
         </div>
 
         <!-- Calendar days -->
-        <div class="grid grid-cols-7 gap-1 h-full">
+        <div class="grid grid-cols-7 gap-1 flex-1">
             {#each calendarDays as day, index (day !== null ? day : 'empty-' + index)}
                 {#if day !== null}
-                    <div class="relative aspect-square">
+                    <div class="relative flex-1">
                         <div
                             class="absolute inset-0 border border-light-border dark:border-dark-border rounded-md
                                    {getCardClass(
