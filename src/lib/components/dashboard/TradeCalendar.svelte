@@ -17,6 +17,7 @@
     let showDatePicker = false;
     let currentAccountId = null;
     let dailyTrades = {};
+    let dailyBalances = {}; // Add this line to store balances per day
 
     onMount(async () => {
         try {
@@ -111,6 +112,7 @@
                     losses: 0,
                     openTrades: 0,
                     transactions: [],
+                    totalInvested: 0, // Ensure totalInvested is initialized
                 };
             }
 
@@ -119,15 +121,30 @@
                 acc[dateKey].pnl += trade.pnl || 0;
                 if (trade.pnl > 0) acc[dateKey].wins++;
                 else if (trade.pnl < 0) acc[dateKey].losses++;
+
+                // Calculate and accumulate invested amount per closed trade
+                const investedAmount = (trade.entryPrice * trade.quantity) || 0;
+                acc[dateKey].totalInvested += investedAmount;
             } else {
                 acc[dateKey].openTrades++;
             }
-            acc[dateKey].symbols.add(trade.symbol);
         } catch (err) {
             console.error("Error processing trade date:", err);
         }
         return acc;
     }, {});
+
+    // Calculate pnlPercentage for each day's stats
+    $: {
+        for (const dateKey in dailyTrades) {
+            const stats = dailyTrades[dateKey];
+            if (stats.totalInvested !== 0) {
+                stats.pnlPercentage = (stats.pnl / stats.totalInvested) * 100;
+            } else {
+                stats.pnlPercentage = null;
+            }
+        }
+    }
 
     // Process transactions into dailyTrades
     $: {
@@ -154,6 +171,70 @@
                     date: transDate.toISOString(), // Store normalized date
                 });
             });
+        }
+    }
+
+    // Compute daily balances based on transactions and trades
+    $: {
+        dailyBalances = {};
+        let cumulativeBalance = $accountStore.currentAccount.initialBalance || 0;
+
+        // Collect all relevant dates
+        let allDatesSet = new Set();
+
+        trades.forEach(trade => {
+            let date = trade.status === "CLOSED" ? trade.exitDate : trade.entryDate;
+            date = normalizeDate(date).toISOString().split("T")[0];
+            allDatesSet.add(date);
+        });
+
+        $transactionStore.transactions.forEach(transaction => {
+            let date = normalizeDate(transaction.date).toISOString().split("T")[0];
+            allDatesSet.add(date);
+        });
+
+        // Sort the dates in chronological order
+        let allDates = Array.from(allDatesSet).sort();
+
+        // Calculate cumulative balance for each date
+        allDates.forEach(dateKey => {
+            // Apply transactions on that date
+            const transactions = $transactionStore.transactions.filter(t => {
+                return normalizeDate(t.date).toISOString().split("T")[0] === dateKey;
+            });
+
+            transactions.forEach(transaction => {
+                if (transaction.type === "deposit") {
+                    cumulativeBalance += transaction.amount;
+                } else if (transaction.type === "withdrawal") {
+                    cumulativeBalance -= transaction.amount;
+                }
+            });
+
+            // Apply P&L from closed trades on that date
+            const dayTrades = trades.filter(trade => {
+                const tradeDate = normalizeDate(trade.exitDate).toISOString().split("T")[0];
+                return tradeDate === dateKey && trade.status === "CLOSED";
+            });
+
+            dayTrades.forEach(trade => {
+                cumulativeBalance += trade.pnl || 0;
+            });
+
+            dailyBalances[dateKey] = cumulativeBalance;
+        });
+    }
+
+    // Adjust pnlPercentage calculation to use daily balance
+    $: {
+        for (const dateKey in dailyTrades) {
+            const stats = dailyTrades[dateKey];
+            const balance = dailyBalances[dateKey];
+            if (balance && balance !== 0) {
+                stats.pnlPercentage = (stats.pnl / balance) * 100;
+            } else {
+                stats.pnlPercentage = null;
+            }
         }
     }
 
@@ -416,13 +497,20 @@
 
                                     <!-- P&L -->
                                     {#if statsPerDay[day].pnl !== 0}
-                                        <div class="mt-auto">
+                                        <div class="mt-auto flex justify-between items-center">
                                             <span
-                                                class="text-xs font-medium {getTextClass(
+                                                class="text-xs font-bold {getTextClass(
                                                     statsPerDay[day],
                                                 )}"
                                             >
                                                 {formatPnL(statsPerDay[day].pnl)}
+                                            </span>
+                                            <span
+                                                class=" text-[10px] {statsPerDay[day].pnl > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}"
+                                                >
+                                                {#if statsPerDay[day].pnlPercentage !== null}
+                                                        {statsPerDay[day].pnlPercentage.toFixed(2)}%
+                                                    {/if}
                                             </span>
                                         </div>
                                     {/if}
