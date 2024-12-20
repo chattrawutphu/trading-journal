@@ -366,7 +366,7 @@
 
 <!-- Rest of the file remains unchanged -->
 <div class="relative w-full {editMode ? 'edit-mode edit-mode-background' : ''}">
-    <div class="top-2 mt-2 mx-4 right-2 z-10 flex gap-2 justify-between">
+    <div class="top-bar top-2 mt-2 mx-4 right-2 z-10 flex gap-2 justify-between">
         {#if editMode}
         <div>
             <Button
@@ -500,7 +500,7 @@
                                 class="p-1.5 rounded-lg bg-light-background dark:bg-dark-background hover:bg-light-hover dark:hover:bg-dark-hover text-light-text dark:text-dark-text transition-colors duration-200"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c-.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                 </svg>
                             </button>
                             <button 
@@ -622,5 +622,14 @@
     /* Add border indication for edit mode */
     .edit-mode-background {
         border: 2px dashed #1E90FF; /* DodgerBlue color */
+    }
+
+    .top-bar {
+        position: sticky;
+        top: 0;
+        background-color: var(--bg-color);
+        z-index: 20;
+        padding: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 </style>
