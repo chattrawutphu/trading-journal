@@ -10,7 +10,7 @@
 
 {#if show}
     <div 
-        class="fixed inset-0 z-50 overflow-y-auto"
+        class="modal fixed inset-0 z-50 overflow-y-auto"
         transition:fade={{ duration: 150 }}
     >
         <div class="flex items-center align-middle content-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">

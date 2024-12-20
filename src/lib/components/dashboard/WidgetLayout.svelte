@@ -321,15 +321,27 @@
 
     let touchTimeout;
     let touchStartEvent;
+    let initialTouchX, initialTouchY;
 
     function handleWidgetPointerDown(event, widgetId) {
         if (editMode) return;
 
+        // Check if the event target is inside a modal
+        if (event.target.closest('.modal')) return;
+
+        initialTouchX = event.clientX;
+        initialTouchY = event.clientY;
         touchStartEvent = event;
         touchTimeout = setTimeout(() => {
             toggleEditMode();
             startDragging(widgetId, touchStartEvent);
         }, 500); // 2 วินาที
+    }
+
+    function handleWidgetPointerMove(event) {
+        if (Math.abs(event.clientX - initialTouchX) > 10 || Math.abs(event.clientY - initialTouchY) > 10) {
+            clearTimeout(touchTimeout);
+        }
     }
 
     function handleWidgetPointerUp() {
@@ -477,6 +489,7 @@
                     id={"widget-" + widget.id}
                     style="grid-column: span {widget.config?.cols || 1}; grid-row: span {widget.config?.rows || 1}; height: {widget.config?.height || 100}px;"
                     on:pointerdown={(event) => handleWidgetPointerDown(event, widget.id)}
+                    on:pointermove={handleWidgetPointerMove}
                     on:pointerup={handleWidgetPointerUp}
                     on:pointerleave={handleWidgetPointerUp}
                 >
