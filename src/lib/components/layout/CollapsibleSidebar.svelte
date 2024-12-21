@@ -43,6 +43,18 @@
     function getSubscriptionBadgeStyle(type) {
         return subscriptionBadgeStyles[formatSubscriptionType(type)] || subscriptionBadgeStyles['basic'];
     }
+
+    function getUserDisplayName(user) {
+        if (!user) return 'User';
+        // Format username from email (remove @domain.com)
+        if (user.email) {
+            return user.email.split('@')[0];
+        }
+        return 'User';
+    }
+
+    // Remove debug logs if no longer needed
+    // $: console.log('Auth store user:', $auth?.user);
 </script>
 
 <aside class="h-screen hidden sm:block p-3 pe-0">
@@ -89,7 +101,7 @@
             <div class="flex items-center gap-3">
                 <div class="flex-shrink-0">
                     <img
-                        src={$auth?.user?.avatar || 'https://ui-avatars.com/api/?name=' + ($auth?.user?.name || 'User')}
+                        src={$auth?.user?.avatar || 'https://ui-avatars.com/api/?name=' + getUserDisplayName($auth?.user)}
                         alt="Profile"
                         class="w-10 h-10 rounded-full border-2 border-theme-500"
                     />
@@ -98,7 +110,7 @@
                     <div class="flex-1 min-w-0 my-2">
                         <div class="flex items-center gap-2">
                             <p class="text-sm font-semibold text-light-text dark:text-dark-text truncate">
-                                {$auth?.user?.name || 'User'}
+                                {getUserDisplayName($auth?.user)}
                             </p>
                             <span class="px-2 py-0.5 text-xs font-semibold rounded-full {getSubscriptionBadgeStyle($subscriptionStore?.type)}">
                                 {formatSubscriptionType($subscriptionStore?.type)}

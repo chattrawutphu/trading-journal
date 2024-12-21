@@ -25,24 +25,24 @@ function createAuthStore() {
     return {
         subscribe,
         set,
-        login: async (email, password) => {
+        login: async (identifier, password) => {
             try {
                 update(state => ({ ...state, loading: true, error: null }));
-                const response = await api.login(email, password);
+                const response = await api.login(identifier, password);
                 
                 const authData = {
                     isAuthenticated: true,
-                    user: response.user,
+                    user: {
+                        ...response.user,
+                        // No need to add username since we'll format it from email in the component
+                    },
                     loading: false,
                     error: null,
-                    subscriptionType: subscriptionStore.type // Set subscriptionType
+                    subscriptionType: subscriptionStore.type
                 };
 
                 set(authData);
-
-                // Initialize subscription after successful login
                 await initializeSubscription();
-
                 return response;
             } catch (error) {
                 update(state => ({ 
