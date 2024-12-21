@@ -494,7 +494,9 @@
                     on:pointerleave={handleWidgetPointerUp}
                 >
                     {#if editMode && !widget.id.includes('dnd-shadow')}
-                        <div class="absolute -top-3 -right-3 z-10 flex gap-0.5">
+                        <!-- Add overlay to prevent interaction -->
+                        <div class="absolute inset-0 bg-transparent z-10"></div>
+                        <div class="absolute -top-3 -right-3 z-20 flex gap-0.5">
                             <button 
                                 on:click={() => openWidgetConfig(widget)}
                                 class="p-1 rounded-lg bg-light-hover dark:bg-dark-hover text-light-text dark:text-dark-text"
@@ -630,5 +632,19 @@
         background-color: var(--bg-color);
         z-index: 20;
         padding: 0.2rem;
+    }
+
+    /* Add styles to handle edit mode interaction */
+    .edit-mode .widget :global(*) {
+        pointer-events: none;
+    }
+
+    .edit-mode .widget > .absolute {
+        pointer-events: auto;
+    }
+
+    /* Make sure config buttons are still clickable */
+    .edit-mode .widget button {
+        pointer-events: auto;
     }
 </style>
