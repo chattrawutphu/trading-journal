@@ -476,12 +476,12 @@
                     outline: '2px dashed var(--theme-500)',
                     backgroundColor: 'var(--theme-500-10)'
                 },
-                flipDurationMs: 300,
+                flipDurationMs: 200,
                 morphDisabled: true
             }}
             on:consider={handleDndConsider}
             on:finalize={handleDndFinalize}
-            class="grid grid-cols-12 gap-4 p-4 {editMode ? ' opacity-70' : ''}"
+            class="grid grid-cols-12 gap-4 p-4"
         >
             {#each widgets as widget (widget.id)}
                 <div 
