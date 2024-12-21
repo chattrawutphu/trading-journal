@@ -9,6 +9,7 @@
     import Modal from '../common/Modal.svelte';
     import { onMount, createEventDispatcher } from 'svelte';
     import Button from '../common/Button.svelte';
+    import ProfitTargetWidget from './ProfitTargetWidget.svelte';
     const dispatch = createEventDispatcher();
     let mounted = false;
 
@@ -29,7 +30,8 @@
         StatsCards: { cols: 2, rows: 8, height: 560, textSize: 'medium' },
         TradeCalendar: { cols: 6, rows: 8, height: 560, textSize: 'medium' },
         MonthTradeCalendar: { cols: 6, rows: 8, height: 560, textSize: 'medium' },
-        TradeChart: { cols: 4, rows: 8, height: 560, textSize: 'medium' }
+        TradeChart: { cols: 4, rows: 8, height: 560, textSize: 'medium' },
+        ProfitTargetWidget: { cols: 4, rows: 2, height: 140, textSize: 'medium', period: 'daily', target: 1000 }
     };
 
     // เพิ่มการกำหนดจำนวนสูงสุดของแต่ละ widget
@@ -38,7 +40,8 @@
         MonthTradeCalendar: 3,
         TradeChart: 3,
         StatsCards: 12,
-        TradingStats: 1 // default limit
+        TradingStats: 1, // default limit
+        ProfitTargetWidget: 3
     };
 
     // ปรับปรุง availableWidgets เพื่อแสดงจำนวนที่เหลือ
@@ -72,6 +75,12 @@
             title: 'Chart',
             icon: 'M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z',
             config: {...defaultWidgetConfigs.TradeChart}
+        },
+        { 
+            id: 'ProfitTargetWidget',
+            title: 'Profit Target',
+            icon: 'M12 3v18m9-9H3',
+            config: {...defaultWidgetConfigs.ProfitTargetWidget}
         }
     ];
 
@@ -82,6 +91,7 @@
     export let accountId = null;
     export let widgets = []; // Now receiving widgets as a prop instead of managing internally
     export let editMode = false;
+    export let trades = [];
 
     // Initialize widgets with saved layout from localStorage or default layout
     // ปรับปรุงฟังก์ชัน getInitialLayout เพื่อสร้าง unique IDs
@@ -91,7 +101,7 @@
             const parsed = JSON.parse(savedLayout);
             return parsed.map(widget => ({
                 ...widget,
-                props: getWidgetProps(widget.id.split('_')[0])
+                props: getWidgetProps(widget.id.split('_')[0], widget.config)
             }));
         }
 
@@ -148,19 +158,26 @@
             'StatsCards': StatsCard,
             'TradeCalendar': TradeCalendar,
             'MonthTradeCalendar': MonthTradeCalendar,
-            'TradeChart': TradeChart
+            'TradeChart': TradeChart,
+            'ProfitTargetWidget': ProfitTargetWidget
         };
 
         return componentMap[baseType] || null;
     }
 
-    function getWidgetProps(baseType) {
+    function getWidgetProps(baseType, config) {
         if (baseType === 'StatsCards') {
             return { totalPnL, openTrades, closedTrades, winRate };
         } else if (baseType === 'TradeCalendar' || baseType === 'MonthTradeCalendar') {
             return { trades: [...openTrades, ...closedTrades], accountId };
         } else if (baseType === 'TradeChart') {
             return { openTrades, closedTrades };
+        } else if (baseType === 'ProfitTargetWidget') {
+            return {
+                trades,
+                period: config.period,
+                target: config.target
+            };
         }
         return {};
     }
@@ -176,7 +193,7 @@
     function restoreLayout(backupData) {
         return backupData.map(widget => ({
             ...widget,
-            props: getWidgetProps(widget.id.split('_')[0])
+            props: getWidgetProps(widget.id.split('_')[0], widget.config)
         }));
     }
 
@@ -244,7 +261,7 @@
         const newWidget = {
             id: uniqueId,
             config: {...defaultWidgetConfigs[baseType]},
-            props: getWidgetProps(baseType)
+            props: getWidgetProps(baseType, defaultWidgetConfigs[baseType])
         };
         return newWidget;
     }
@@ -266,7 +283,7 @@
             widgets.forEach(widget => {
                 if (!widget.id.includes('dnd-shadow')) {
                     const baseType = widget.id.split('_')[0];
-                    widget.props = getWidgetProps(baseType);
+                    widget.props = getWidgetProps(baseType, widget.config);
                 }
             });
         }
@@ -304,7 +321,8 @@
                     config: {
                         ...selectedWidgetForConfig.config,
                         height
-                    }
+                    },
+                    props: getWidgetProps(w.id.split('_')[0], selectedWidgetForConfig.config)
                 } 
                 : w
             );
@@ -569,6 +587,25 @@
                         <option value="extra-large">Extra Large</option>
                     </select>
                 </div>
+                {#if selectedWidgetForConfig.id.startsWith('ProfitTargetWidget')}
+                    <div>
+                        <label>Goal Type</label>
+                        <select bind:value={selectedWidgetForConfig.config.period}>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Goal Amount</label>
+                        <input
+                            type="number"
+                            bind:value={selectedWidgetForConfig.config.target}
+                        />
+                    </div>
+                {/if}
             </div>
             <div class="flex justify-end space-x-2 mt-4">
                 <Button 

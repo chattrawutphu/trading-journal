@@ -90,6 +90,7 @@
     let showNewLayoutModal = false;
     let newLayoutName = '';
     let showLayoutDropdown = false;
+    let trades = [];
 
     onMount(async () => {
         try {
@@ -181,6 +182,7 @@
         try {
             error = "";
             const response = await api.getTrades(accountId);
+            trades = response;
             openTrades = response.filter((trade) => trade.status === "OPEN");
             closedTrades = response.filter((trade) => trade.status === "CLOSED");
         } catch (err) {
@@ -459,11 +461,12 @@
     {:else if $accountStore.currentAccount}
         <!-- Widget Layout with null check -->
         <WidgetLayout 
+            {trades}
+            accountId={$accountStore.currentAccount._id}
             {openTrades} 
             {closedTrades} 
             {totalPnL} 
             {winRate}
-            accountId={$accountStore.currentAccount._id}
             widgets={layouts[activeLayoutIndex]?.widgets || []}
             bind:editMode
             on:updateWidgets={(e) => {
