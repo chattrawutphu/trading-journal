@@ -366,60 +366,57 @@
 
 <!-- Rest of the file remains unchanged -->
 <div class="relative w-full {editMode ? 'edit-mode edit-mode-background' : ''}">
-    <div class="top-bar top-2 mt-2 mx-4 right-2 z-10 flex gap-2 justify-between">
+    <div class="top-bar top-2 p-2 mb-3 right-2 z-10 flex gap-2 justify-between {editMode ? '' : 'hidden'}">
         {#if editMode}
-        <div>
-            <Button
-                variant="primary" 
-                size="xs"
-                on:click={() => showWidgetModal = true}
-            >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Add Widget
-            </Button>
-        </div>
-        <div class="flex gap-2">
-            <Button 
-                variant="secondary" 
-                size="xs"
-                on:click={cancelEdit}
-            >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Cancel
-            </Button>
-            <Button 
-                variant="primary" 
-                size="xs"
-                on:click={saveLayout}
-            >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Save Layout
-            </Button>
-        </div>
-            
-            
-            
+            <div>
+                <Button
+                    variant="primary" 
+                    size="xs"
+                    on:click={() => showWidgetModal = true}
+                >
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Widget
+                </Button>
+            </div>
+            <div class="flex gap-2">
+                <Button 
+                    variant="secondary" 
+                    size="xs"
+                    on:click={cancelEdit}
+                >
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Cancel
+                </Button>
+                <Button 
+                    variant="primary" 
+                    size="xs"
+                    on:click={saveLayout}
+                >
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Layout
+                </Button>
+            </div>
         {:else}
-        <div style="display: none;">
-            <Button 
-                variant="primary" 
-                size="xs"
-                on:click={toggleEditMode}
-                
-            >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-                Customize Layout
-            </Button>
-        </div>
+            <div style="display: none;">
+                <Button 
+                    variant="primary" 
+                    size="xs"
+                    on:click={toggleEditMode}
+                    
+                >
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    Customize Layout
+                </Button>
+            </div>
         {/if}
     </div>
 
@@ -481,7 +478,7 @@
             }}
             on:consider={handleDndConsider}
             on:finalize={handleDndFinalize}
-            class="grid grid-cols-12 gap-4 p-4"
+            class="grid grid-cols-12 gap-4"
         >
             {#each widgets as widget (widget.id)}
                 <div 
@@ -631,7 +628,6 @@
         top: 0;
         background-color: var(--bg-color);
         z-index: 20;
-        padding: 0.2rem;
     }
 
     /* Add styles to handle edit mode interaction */

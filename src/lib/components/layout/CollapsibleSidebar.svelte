@@ -65,7 +65,7 @@
     >
         <!-- Header -->
         <div
-            class="p-4 border-b border-light-border dark:border-dark-border flex items-center justify-between"
+            class="p-4 border-b border-light-border dark:border-dark-border flex items-center {$isCollapsed ? 'justify-center' : 'justify-between'} "
         >
             {#if !$isCollapsed}
                 <h1
@@ -75,7 +75,7 @@
                 </h1>
             {/if}
             <button
-                class="text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 p-2 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover"
+                class="text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400 p-2 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover"
                 on:click={toggleCollapse}
             >
                 <svg
@@ -98,7 +98,7 @@
 
         <!-- User Profile Section -->
         <div class="p-4 border-b border-light-border dark:border-dark-border">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 {$isCollapsed ? 'justify-center' : ''}">
                 <div class="flex-shrink-0">
                     <img
                         src={$auth?.user?.avatar || 'https://ui-avatars.com/api/?name=' + getUserDisplayName($auth?.user)}
@@ -139,7 +139,7 @@
                     <li>
                         <a
                             href={item.path}
-                            class="flex items-center px-3 py-2 rounded-lg
+                            class="flex items-center {$isCollapsed ? 'justify-center' : ''} px-3 py-2 rounded-lg
                             {active
                                 ? 'bg-gradient-purple text-white font-medium shadow-lg shadow-theme-500/25'
                                 : 'text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover hover:text-light-text dark:hover:text-dark-text'}"
@@ -157,32 +157,38 @@
         </nav>
 
         <!-- Footer -->
-        <div class="p-4 border-t border-light-border dark:border-dark-border flex items-center justify-between">
-            <!-- Theme Toggle -->
-            <ThemeToggle />
+        <div class="p-4 border-t border-light-border dark:border-dark-border">
+            <div class="{$isCollapsed ? 'flex flex-col gap-4' : 'flex items-center justify-between'}">
+                <!-- Theme Toggle -->
+                <div class="{$isCollapsed ? 'mx-auto' : ''}">
+                    <ThemeToggle />
+                </div>
 
-            <!-- Logout Button -->
-            <button
-                class="w-full flex items-center justify-center px-3 py-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover hover:text-light-text dark:hover:text-dark-text"
-                on:click={handleLogout}
-            >
-                <svg
-                    class="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <!-- Logout Button -->
+                <button
+                    class="{$isCollapsed 
+                        ? 'w-full flex items-center justify-center p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover hover:text-light-text dark:hover:text-dark-text'
+                        : 'flex items-center justify-center px-3 py-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover hover:text-light-text dark:hover:text-dark-text'}"
+                    on:click={handleLogout}
                 >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                    />
-                </svg>
-                {#if !$isCollapsed}
-                    <span class="ml-3">Logout</span>
-                {/if}
-            </button>
+                    <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                        />
+                    </svg>
+                    {#if !$isCollapsed}
+                        <span class="ml-3">Logout</span>
+                    {/if}
+                </button>
+            </div>
         </div>
     </div>
 </aside>
