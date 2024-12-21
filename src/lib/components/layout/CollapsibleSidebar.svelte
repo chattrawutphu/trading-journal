@@ -2,8 +2,18 @@
     import { page } from "$app/stores";
     import { createEventDispatcher } from "svelte";
     import { writable } from "svelte/store";
+    import { auth } from '$lib/stores/authStore';
+    import { subscriptionStore } from '$lib/stores/subscriptionStore';
+    import { goto } from '$app/navigation';
     import ThemeToggle from '../common/ThemeToggle.svelte';
-    import { menuItems } from '../../data/menuItems.js'; // Import menuItems
+    import { menuItems } from '../../data/menuItems.js';
+    
+    // Add subscription badge styles
+    const subscriptionBadgeStyles = {
+        'basic': 'bg-gray-200 text-gray-800',
+        'pro': 'bg-blue-200 text-blue-800',
+        'pro_plus': 'bg-purple-200 text-purple-800'
+    };
 
     const dispatch = createEventDispatcher();
     export let collapsed = false;
@@ -19,6 +29,20 @@
     $: $isCollapsed = collapsed;
 
     $: isActive = (path) => $page.url.pathname === path;
+
+    function handleLogout() {
+        auth.logout();
+        goto('/login');
+    }
+
+    function formatSubscriptionType(type) {
+        if (!type) return 'basic';
+        return type.toLowerCase();
+    }
+
+    function getSubscriptionBadgeStyle(type) {
+        return subscriptionBadgeStyles[formatSubscriptionType(type)] || subscriptionBadgeStyles['basic'];
+    }
 </script>
 
 <aside class="h-screen hidden sm:block p-3 pe-0">
@@ -33,7 +57,7 @@
         >
             {#if !$isCollapsed}
                 <h1
-                    class="text-xl font-bold bg-gradient-purple bg-clip-text text-transparent"
+                    class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent"
                 >
                     Trading Journal
                 </h1>
@@ -58,6 +82,41 @@
                     />
                 </svg>
             </button>
+        </div>
+
+        <!-- User Profile Section -->
+        <div class="p-4 border-b border-light-border dark:border-dark-border">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0">
+                    <img
+                        src={$auth?.user?.avatar || 'https://ui-avatars.com/api/?name=' + ($auth?.user?.name || 'User')}
+                        alt="Profile"
+                        class="w-10 h-10 rounded-full border-2 border-theme-500"
+                    />
+                </div>
+                {#if !$isCollapsed}
+                    <div class="flex-1 min-w-0 my-2">
+                        <div class="flex items-center gap-2">
+                            <p class="text-sm font-semibold text-light-text dark:text-dark-text truncate">
+                                {$auth?.user?.name || 'User'}
+                            </p>
+                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full {getSubscriptionBadgeStyle($subscriptionStore?.type)}">
+                                {formatSubscriptionType($subscriptionStore?.type)}
+                            </span>
+                        </div>
+                        <button
+                            class="mt-1 flex items-center gap-1 text-xs text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400"
+                            on:click={() => goto('/profile')}
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <span>Profile Settings</span>
+                        </button>
+                    </div>
+                {/if}
+            </div>
         </div>
 
         <!-- Navigation -->
@@ -93,7 +152,7 @@
             <!-- Logout Button -->
             <button
                 class="w-full flex items-center justify-center px-3 py-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:bg-light-hover dark:hover:bg-dark-hover hover:text-light-text dark:hover:text-dark-text"
-                on:click={() => dispatch("logout")}
+                on:click={handleLogout}
             >
                 <svg
                     class="w-5 h-5"

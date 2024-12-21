@@ -401,18 +401,18 @@
                 </span>
                 <div class="flex items-center">
                     <button
-                        class="p-1 hover:bg-light-hover/10 dark:hover:bg-dark-hover/10 rounded-full transition-colors"
+                        class="p-1"
                         on:click={previousMonth}
                         aria-label="Previous month"
                     >
-                    <svg class="h-6 w-6 text-purple-500"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <polyline points="11 7 6 12 11 17" />  <polyline points="17 7 12 12 17 17" /></svg>
+                    <svg class="h-6 w-6 text-white bg-purple-500 hover:bg-purple-700  rounded-md"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <polyline points="11 7 6 12 11 17" />  <polyline points="17 7 12 12 17 17" /></svg>
                     </button>
                     <button
-                        class="p-1 hover:bg-light-hover/10 dark:hover:bg-dark-hover/10 rounded-full transition-colors"
+                        class="p-1"
                         on:click={nextMonth}
                         aria-label="Next month"
                     >
-                    <svg class="h-6 w-6 text-purple-500"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <polyline points="13 17 18 12 13 7" />  <polyline points="6 17 11 12 6 7" /></svg>
+                    <svg class="h-6 w-6 text-white bg-purple-500 hover:bg-purple-700 rounded-md"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <polyline points="13 17 18 12 13 7" />  <polyline points="6 17 11 12 6 7" /></svg>
                     </button>
                 </div>
             </div>
@@ -468,7 +468,7 @@
                                 <div
                                     class="absolute inset-0 p-1.5 pt-5 flex flex-col"
                                 >
-                                <div class={`border-s border-s-2 border-transparent ${statsPerDay[day].pnl === 0 ? '' : statsPerDay[day].pnl < 0 ? 'dark:border-red-600 ps-1' : 'dark:border-green-600 ps-1'}`}>
+                                <div class={`border-s border-s-[2.25px] border-transparent ${statsPerDay[day].pnl === 0 ? '' : statsPerDay[day].pnl < 0 ? 'dark:border-red-600 ps-1' : 'dark:border-green-600 ps-1'}`}>
                                     {#if statsPerDay[day].trades.length > 0}
                                         <div class="space-y-0.5">
                                             <div

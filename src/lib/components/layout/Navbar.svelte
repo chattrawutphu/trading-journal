@@ -10,9 +10,7 @@
     import { onMount } from 'svelte';
   
     let showAccountMenu = false;
-    let showUserMenu = false;
     let accountMenuRef;
-    let userMenuRef;
     let showSubscriptionWarning = false;
     let warningDismissed = false;
     let showDepositModal = false; // Added for deposit modal
@@ -26,9 +24,6 @@
     function handleClickOutside(event) {
       if (accountMenuRef && !accountMenuRef.contains(event.target)) {
         showAccountMenu = false;
-      }
-      if (userMenuRef && !userMenuRef.contains(event.target)) {
-        showUserMenu = false;
       }
     }
 
@@ -123,10 +118,35 @@
   
 <nav class>
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between gap-x-4 h-16">
+        <div class="flex justify-end gap-x-4 h-12">
             <!-- Account Selector -->
             <div class="flex gap-4">
+                <!-- Balance Display and Deposit/Withdraw Buttons -->
                 <div class="flex items-center space-x-4">
+                    {#if $auth?.isAuthenticated && $accountStore?.currentAccount}
+                        <div class="flex items-center gap-2">
+
+                            <div class="text-light-text dark:text-dark-text">
+                                <span class="text-light-text-muted text-sm dark:text-dark-text-muted mr-2">Balance:</span>
+                                <span class="font-semibold text-theme-500">{formatBalance($accountStore.currentAccount.actualBalance)}</span>
+                            </div>
+                            <!-- Added Deposit and Withdraw Buttons -->
+                            <div class="flex items-center gap-1">
+                                <Button variant="secondary" size="xs" on:click={() => showDepositModal = true}>
+                                    <svg class="w-3 h-3 " fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                </Button>
+                                <Button variant="secondary" size="xs" on:click={() => showWithdrawModal = true}>
+                                    <svg class="w-3 h-3 " fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                                    </svg>
+                                </Button>
+                            </div>
+                        </div>
+                    {/if}
+                </div>
+                <div class="flex items-center space-x-4 gap-4">
                     {#if $auth?.isAuthenticated}
                         <div class="relative" bind:this={accountMenuRef}>
                             <button 
@@ -140,82 +160,13 @@
                             </button>
     
                             {#if showAccountMenu}
-                                <div class="absolute left-0 mt-2 w-64 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 ">
+                                <div class="absolute right-0 mt-2 w-64 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 ">
                                     <AccountManager on:close={() => showAccountMenu = false} />
                                 </div>
                             {/if}
                         </div>
                     {/if}
                 </div>
-
-                <!-- Balance Display and Deposit/Withdraw Buttons -->
-                <div class="flex items-center space-x-4">
-                    {#if $auth?.isAuthenticated && $accountStore?.currentAccount}
-                        <div class="flex items-center">
-                            <div class="text-light-text dark:text-dark-text">
-                                <span class="text-light-text-muted dark:text-dark-text-muted mr-2">Balance:</span>
-                                <span class="font-semibold text-theme-500">{formatBalance($accountStore.currentAccount.actualBalance)}</span>
-                            </div>
-                            <!-- Added Deposit and Withdraw Buttons -->
-                            <div class="flex items-center gap-1 ml-4">
-                                <Button variant="secondary" size="xs" on:click={() => showDepositModal = true}>
-                                    <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                    </svg>
-                                    Deposit
-                                </Button>
-                                <Button variant="secondary" size="xs" on:click={() => showWithdrawModal = true}>
-                                    <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
-                                    </svg>
-                                    Withdraw
-                                </Button>
-                            </div>
-                        </div>
-                    {/if}
-                </div>
-            </div>
-
-            <!-- User Menu -->
-            <div class="flex items-center space-x-4">
-                {#if $auth?.isAuthenticated}
-                    <div class="relative" bind:this={userMenuRef}>
-                        <button class="flex items-center space-x-2 text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400 "
-                            on:click|stopPropagation={() => showUserMenu = !showUserMenu}
-                        >
-                            <span>{$auth?.user?.name || 'User'}</span>
-                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full {getSubscriptionBadgeStyle($subscriptionStore?.type)}">
-                                {formatSubscriptionType($subscriptionStore?.type)}
-                            </span>
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
-                        </button>
-  
-                        {#if showUserMenu}
-                            <div class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 ">
-                                <button
-                                    class="block w-full text-left px-4 py-2 text-sm text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover "
-                                    on:click={() => goto('/profile')}
-                                >
-                                    Profile Settings
-                                </button>
-                                <button
-                                    class="block w-full text-left px-4 py-2 text-sm text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover "
-                                    on:click={() => goto('/subscription')}
-                                >
-                                    Subscription
-                                </button>
-                                <button
-                                    class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-light-hover dark:hover:bg-dark-hover "
-                                    on:click={handleLogout}
-                                >
-                                    Logout
-                                </button>
-                            </div>
-                        {/if}
-                    </div>
-                {/if}
             </div>
         </div>
     </div>
