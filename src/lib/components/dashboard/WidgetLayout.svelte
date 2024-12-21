@@ -31,7 +31,7 @@
         TradeCalendar: { cols: 6, rows: 8, height: 560, textSize: 'medium' },
         MonthTradeCalendar: { cols: 6, rows: 8, height: 560, textSize: 'medium' },
         TradeChart: { cols: 4, rows: 8, height: 560, textSize: 'medium' },
-        ProfitTargetWidget: { cols: 4, rows: 2, height: 140, textSize: 'medium', period: 'daily', target: 1000 }
+        ProfitTargetWidget: { cols: 4, rows: 0.75, height: 52.5, textSize: 'medium', period: 'daily', target: 1000 }
     };
 
     // เพิ่มการกำหนดจำนวนสูงสุดของแต่ละ widget
@@ -39,7 +39,7 @@
         TradeCalendar: 3,
         MonthTradeCalendar: 3,
         TradeChart: 3,
-        StatsCards: 12,
+        StatsCards: 1,
         TradingStats: 1, // default limit
         ProfitTargetWidget: 3
     };

@@ -69,7 +69,7 @@
 <div class="" style="height: {height || 140}px;">
     <div class="flex justify-between items-center mb-2 text-sm text-light-text dark:text-dark-text">
         <span>Your Goal ({period}):</span>
-        <span>{daysLeft} {daysLeft === 1 ? 'day' : 'days'} left</span>
+        <span class="text-xs">{daysLeft} {daysLeft === 1 ? 'day' : 'days'} left</span>
     </div>
     <div class="w-full bg-light-border dark:bg-dark-border rounded-full h-5 relative">
         <div 
@@ -83,18 +83,3 @@
         </div>
     </div>
 </div>
-
-<style>
-    .small {
-        font-size: 0.875rem;
-    }
-    .medium {
-        font-size: 1rem;
-    }
-    .large {
-        font-size: 1.25rem;
-    }
-    .extra-large {
-        font-size: 1.5rem;
-    }
-</style>
