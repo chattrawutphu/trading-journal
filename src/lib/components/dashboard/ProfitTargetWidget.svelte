@@ -67,7 +67,7 @@
 </script>
 
 <div class="" style="height: {height || 140}px;">
-    <div class="flex justify-between items-center mb-2 text-sm text-light-text dark:text-dark-text">
+    <div class="flex justify-between items-center mb-2 text-sm text-light-text-muted dark:text-dark-text-muted">
         <span>Your Goal ({period}):</span>
         <span class="text-xs">{daysLeft} {daysLeft === 1 ? 'day' : 'days'} left</span>
     </div>
