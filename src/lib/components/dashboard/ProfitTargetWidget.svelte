@@ -5,17 +5,21 @@
     export let target = 1000;
     export let height;
     export let textSize;
+    export let isPreview = false;
 
     let currentPnL = 0;
     let progress = 0;
     let daysLeft = 0;
 
     onMount(() => {
+        if (isPreview) return;
         calculatePnL();
     });
 
     $: if (trades || period || target) {
-        calculatePnL();
+        if (!isPreview) {
+            calculatePnL();
+        }
     }
 
     function calculatePnL() {

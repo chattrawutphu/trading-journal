@@ -4,6 +4,7 @@
     export let closedTrades;
     export let winRate;
     export let textSize = 'medium';
+    export let isPreview = false;
 </script>
 
 <div class="card p-4 h-full flex flex-col gap-4 {textSize}">

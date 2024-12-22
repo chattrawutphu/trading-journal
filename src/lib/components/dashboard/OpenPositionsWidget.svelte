@@ -4,15 +4,19 @@
     export let trades = [];
     export let height;
     export let textSize;
+    export let isPreview = false;
 
     let openPositions = [];
     let currentIndex = 0;
     let cardsPerView = 1;
     let containerId = `container-${Math.random().toString(36).substr(2, 9)}`;
 
-
     $: if (trades) {
-        calculateOpenPositions();
+        if (!isPreview) {
+            calculateOpenPositions();
+        } else {
+            openPositions = trades.filter(t => t.status === 'OPEN');
+        }
     }
 
     function calculateOpenPositions() {
@@ -46,6 +50,10 @@
     }
 
     onMount(() => {
+        if (isPreview) {
+            openPositions = trades.filter(t => t.status === 'OPEN');
+            return;
+        }
         calculateOpenPositions();
         updateCardsPerView();
         window.addEventListener('resize', updateCardsPerView);

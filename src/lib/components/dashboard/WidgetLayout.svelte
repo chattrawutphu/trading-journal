@@ -30,7 +30,7 @@
     export let defaultWidgetConfigs = {
         TradingStats: { cols: 12, rows: 2, height: 140, textSize: 'medium' },
         StatsCards: { cols: 2, rows: 8, height: 560, textSize: 'medium' },
-        TradeCalendar: { cols: 6, rows: 8, height: 560, textSize: 'medium' },
+        TradeCalendar: { cols: 10, rows: 8, height: 560, textSize: 'medium' },
         MonthTradeCalendar: { cols: 6, rows: 8, height: 560, textSize: 'medium' },
         TradeChart: { cols: 4, rows: 8, height: 560, textSize: 'medium' },
         ProfitTargetWidget: { cols: 4, rows: 0.75, height: 52.5, textSize: 'medium', period: 'daily', target: 1000 },
@@ -374,7 +374,7 @@
     }
 
     function startDragging(widgetId, event) {
-        // เริ่มการลากวิดเจอหุการลาก
+        // เริ่มการลากว��ดเจอ���ุารลาก
         const widgetElement = document.getElementById(`widget-${widgetId}`);
         if (widgetElement && event) {
             const dragEvent = new DragEvent('dragstart', {
@@ -509,82 +509,138 @@
 
     function generateSampleProps(widgetId) {
         const now = new Date();
-        // สร้างข้อมูล trades สำหรับใช้ร่วมกัน
-        const sampleTrades = Array.from({ length: 10 }, (_, i) => {
+        // สร้างข้อมูลสำหรับ TradingStats
+        const periodStats = {
+            daily: [],
+            weekly: [],
+            monthly: [],
+            quarterly: [],
+            yearly: []
+        };
+
+        // สร้างข้อมูล trades ที่หลากหลายสำหรับ 30 วันย้อนหลัง
+        const sampleTrades = Array.from({ length: 30 }, (_, i) => {
             const date = new Date(now);
             date.setDate(date.getDate() - i);
-            return {
+            
+            // สร้างข้อมูลที่หลากหลาย
+            const isWin = Math.random() > 0.4;  // 60% win rate
+            const pnlValue = isWin ? 
+                Math.floor(Math.random() * 2000) + 100 : 
+                -(Math.floor(Math.random() * 1000) + 50);
+            
+            // สุ่มสถานะ trade (70% closed, 30% open)
+            const isClosed = Math.random() > 0.3;
+            
+            // สุ่มข้อมูลการเทรด
+            const entryPrice = Math.floor(Math.random() * 500) + 100;
+            const quantity = Math.floor(Math.random() * 100) + 10;
+            const leverage = [1, 2, 5, 10][Math.floor(Math.random() * 4)];
+            
+            // เพิ่มข้อมูลสำหรับแต่ละช่วงเวลา
+            const trade = {
                 id: `sample-${i}`,
-                symbol: ['AAPL', 'TSLA', 'GOOGL'][i % 3],
+                symbol: ['AAPL', 'TSLA', 'GOOGL', 'META', 'NVDA', 'AMD', 'MSFT', 'AMZN'][Math.floor(Math.random() * 8)],
                 entryDate: date.toISOString(),
-                exitDate: i % 2 === 0 ? date.toISOString() : null,
-                entryPrice: 100 + (i * 10),
-                exitPrice: i % 2 === 0 ? 110 + (i * 10) : null,
-                quantity: 100,
-                pnl: i % 2 === 0 ? 1000 - (i * 100) : null,
-                status: i % 2 === 0 ? 'CLOSED' : 'OPEN',
-                type: 'LONG'
+                exitDate: isClosed ? date.toISOString() : null,
+                entryPrice,
+                exitPrice: isClosed ? entryPrice * (isWin ? 1.1 : 0.9) : null,
+                quantity,
+                pnl: isClosed ? pnlValue : null,
+                status: isClosed ? 'CLOSED' : 'OPEN',
+                type: ['LONG', 'SHORT'][Math.floor(Math.random() * 2)],
+                leverage,
+                fees: (quantity * entryPrice * 0.001),
+                date: date.toISOString(),
+                high: entryPrice * 1.1,
+                low: entryPrice * 0.9,
+                close: isClosed ? entryPrice * (isWin ? 1.1 : 0.9) : entryPrice,
+                volume: quantity,
+                notes: isClosed ? 
+                    (isWin ? 'Good trend following trade' : 'Stopped out by market volatility') : 
+                    'Monitoring price action'
+            };
+
+            // Add trade to appropriate period stats
+            if (i < 1) periodStats.daily.push(trade);
+            if (i < 7) periodStats.weekly.push(trade);
+            if (i < 30) periodStats.monthly.push(trade);
+            if (i < 90) periodStats.quarterly.push(trade);
+            periodStats.yearly.push(trade);
+
+            return trade;
+        });
+
+        // สร้าง transactions ที่หลากหลาย
+        const sampleTransactions = Array.from({ length: 15 }, (_, i) => {
+            const date = new Date(now);
+            date.setDate(date.getDate() - (i * 2));  // กระจายทุกๆ 2 วัน
+            
+            const isDeposit = Math.random() > 0.3;  // 70% เป็น deposits
+            const amount = Math.floor(Math.random() * 10000) + 1000;
+            
+            return {
+                id: `trans-${i}`,
+                type: isDeposit ? 'deposit' : 'withdrawal',
+                amount: isDeposit ? amount : amount * 0.5,
+                date: date.toISOString(),
+                description: isDeposit ? 
+                    ['Monthly deposit', 'Additional capital', 'Investment funds'][Math.floor(Math.random() * 3)] :
+                    ['Profit taking', 'Monthly withdrawal', 'Emergency funds'][Math.floor(Math.random() * 3)]
             };
         });
 
+        // คำนวณ stats ต่างๆ
+        const closedTrades = sampleTrades.filter(t => t.status === 'CLOSED');
+        const totalPnL = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+        const winningTrades = closedTrades.filter(t => t.pnl > 0);
+        const winRate = (winningTrades.length / closedTrades.length) * 100;
+
         const sampleData = {
             TradingStats: {
-                trades: sampleTrades
+                daily: periodStats.daily,
+                weekly: periodStats.weekly,
+                monthly: periodStats.monthly,
+                quarterly: periodStats.quarterly,
+                yearly: periodStats.yearly
             },
             StatsCards: {
-                totalPnL: 15000,
+                totalPnL,
                 openTrades: sampleTrades.filter(t => t.status === 'OPEN'),
                 closedTrades: sampleTrades.filter(t => t.status === 'CLOSED'),
-                winRate: 65
+                winRate
             },
             TradeCalendar: {
                 trades: sampleTrades,
                 accountId: 'preview-account',
-                totalPnL: 1500,
-                winRate: 65,
-                transactions: [
-                    {
-                        type: 'deposit',
-                        amount: 10000,
-                        date: new Date(now - 86400000 * 30).toISOString()
-                    }
-                ]
+                totalPnL,
+                winRate,
+                transactions: sampleTransactions,
+                initialBalance: 50000,
+                currentBalance: 50000 + totalPnL
             },
             MonthTradeCalendar: {
                 trades: sampleTrades,
                 accountId: 'preview-account',
-                totalPnL: 1200,
-                winRate: 100,
-                transactions: [
-                    {
-                        type: 'deposit',
-                        amount: 10000,
-                        date: new Date(now - 86400000 * 30).toISOString()
-                    }
-                ]
+                totalPnL,
+                winRate,
+                transactions: sampleTransactions,
+                initialBalance: 50000,
+                currentBalance: 50000 + totalPnL
             },
             TradeChart: {
                 openTrades: sampleTrades.filter(t => t.status === 'OPEN'),
-                closedTrades: sampleTrades.filter(t => t.status === 'CLOSED')
+                closedTrades: sampleTrades.filter(t => t.status === 'CLOSED'),
             },
             ProfitTargetWidget: {
                 trades: sampleTrades,
                 period: 'daily',
-                target: 1000
+                target: 5000,
             },
             OpenPositionsWidget: {
                 trades: sampleTrades.filter(t => t.status === 'OPEN')
             }
         };
-
-        // Add common props for calendar widgets
-        if (widgetId === 'TradeCalendar' || widgetId === 'MonthTradeCalendar') {
-            sampleData[widgetId] = {
-                ...sampleData[widgetId],
-                initialBalance: 10000,
-                currentBalance: 11500
-            };
-        }
 
         return sampleData[widgetId] || {};
     }
@@ -697,7 +753,7 @@
             show={showWidgetModal}
             on:close={toggleWidgetModal}
             title="Available Widgets" 
-            maxWidth="max-w-3xl"
+            maxWidth="max-w-4xl"
         >
             <!-- Close button -->
             <button
@@ -745,11 +801,11 @@
                 <div class="w-4/6 preview-area">
                     {#if previewWidget}
                         <div 
-                            class="rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border h-[480px] flex flex-col"
+                            class="rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border max-h-[480px] flex flex-col"
                             transition:fly={{ x: 20, duration: 200 }}
                         >
                             <!-- Widget Preview with scroll -->
-                            <div class="bg-light-background h-auto max-h-3/4 dark:bg-dark-background rounded-t-lg border-b overflow-hidden border-light-border dark:border-dark-border flex-shrink-0">
+                            <div class="h-auto max-h-3/4 bg-white dark:bg-black rounded-t-lg border-b overflow-hidden border-light-border dark:border-dark-border flex-shrink-0">
                                 <div class="p-4 overflow-auto">
                                     <!-- Add pointer-events-none to prevent interactions -->
                                     <div 

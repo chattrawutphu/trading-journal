@@ -13,7 +13,12 @@
     let isHovering = false;
     let currentAccountId = null;
 
+    export let height;
+    export let textSize;
+    export let isPreview = false;
+
     onMount(async () => {
+        if (isPreview) return;
         if ($accountStore.currentAccount) {
             await loadStats();
         }
@@ -53,7 +58,7 @@
     }
 
     // Watch for account changes
-    $: if ($accountStore.currentAccount?._id !== currentAccountId) {
+    $: if ($accountStore.currentAccount?._id !== currentAccountId && !isPreview) {
         currentAccountId = $accountStore.currentAccount?._id;
         if (currentAccountId) {
             loadStats();
