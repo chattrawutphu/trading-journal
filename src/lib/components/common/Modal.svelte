@@ -6,33 +6,66 @@
     export let show = false;
     export let closeOnClickOutside = true;
     export let title = '';
+    export let maxWidth = 'max-w-lg';
 </script>
 
 {#if show}
     <div 
-        class="modal fixed inset-0 z-50 overflow-y-auto"
-        transition:fade={{ duration: 150 }}
+        class="fixed inset-0 z-50 overflow-y-auto"
+        transition:fade={{ duration: 200 }}
     >
-        <div class="flex items-center align-middle content-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <!-- Background overlay -->
-            <div 
-                class="fixed inset-0 transition-opacity bg-black bg-opacity-50" 
-                on:click={() => closeOnClickOutside && (dispatch('close'))}
-                aria-hidden="true"
-            ></div>
+        <!-- Backdrop -->
+        <div 
+            class="fixed inset-0 bg-black/50 dark:bg-black/70"
+            on:click={() => closeOnClickOutside && (dispatch('close'))}
+        ></div>
 
-            <!-- Modal panel -->
-            <button 
-                type="button"
-                class="relative inline-block p-4 overflow-hidden text-left align-middle transition-all transform bg-light-card dark:bg-dark-card rounded-lg shadow-xl sm:my-8 sm:max-w-lg sm:w-full"
+        <!-- Modal Container -->
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <!-- Modal Content -->
+            <div 
+                class="relative w-full {maxWidth} bg-light-card dark:bg-dark-card rounded-lg shadow-xl"
                 on:click|stopPropagation
-                on:keydown|stopPropagation
             >
-                <div class="modal-header">
-                    <h2>{title}</h2>
-                    <slot />
+                <!-- Header -->
+                {#if title}
+                    <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                        <h3 class="text-lg font-medium text-light-text dark:text-dark-text">
+                            {title}
+                        </h3>
+                    </div>
+                {/if}
+
+                <!-- Body -->
+                <div class="p-6">
+                    <slot></slot>
                 </div>
-            </button>
+            </div>
         </div>
     </div>
 {/if}
+
+<style>
+    /* Add smooth transitions */
+    .fixed {
+        transition: all 0.2s ease-in-out;
+    }
+
+    /* Ensure modal is always centered */
+    .min-h-screen {
+        min-height: 100vh;
+    }
+
+    /* Add responsive padding */
+    @media (min-width: 640px) {
+        .p-4 {
+            padding: 1.5rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .p-4 {
+            padding: 2rem;
+        }
+    }
+</style>

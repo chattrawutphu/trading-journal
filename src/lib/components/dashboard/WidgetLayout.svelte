@@ -1,6 +1,7 @@
 <script>
     import { writable } from 'svelte/store';
     import { dndzone } from 'svelte-dnd-action';
+    import { fly } from 'svelte/transition';
     import TradeCalendar from './TradeCalendar.svelte';
     import MonthTradeCalendar from './MonthTradeCalendar.svelte';
     import TradingStats from './TradingStats.svelte';
@@ -277,7 +278,7 @@
         return widgets.filter(w => w.id.startsWith(baseType)).length;
     }
 
-    // คำนวณจำนวน widget ที่เหลือสำหรับแสดงใน widget bar
+    // คำนวณจำนวน widget ที่เหลือสำหรับสดงใน widget bar
     $: availableWidgetsWithCount = availableWidgets.map(widget => ({
         ...widget,
         remaining: (widgetLimits[widget.id] || 1) - getWidgetTypeCount(widgets, widget.id)
@@ -373,7 +374,7 @@
     }
 
     function startDragging(widgetId, event) {
-        // เริ่มการลากวิดเจ็ตโดยจำลองเหตุการณ์การลาก
+        // เริ่มการลากวิดเจโดอหตุการลาก
         const widgetElement = document.getElementById(`widget-${widgetId}`);
         if (widgetElement && event) {
             const dragEvent = new DragEvent('dragstart', {
@@ -385,6 +386,198 @@
             });
             widgetElement.dispatchEvent(dragEvent);
         }
+    }
+
+    // Add widget descriptions
+    function getWidgetDescription(widgetId) {
+        const descriptions = {
+            TradingStats: {
+                title: "Trading Statistics Overview",
+                description: "Displays key trading metrics across different time periods. Shows profit/loss, number of trades, and performance percentages for daily, weekly, monthly, and yearly periods.",
+                features: [
+                    "Multiple time period views",
+                    "Real-time P&L tracking",
+                    "Performance percentage calculations",
+                    "Trade count statistics"
+                ]
+            },
+            
+            StatsCards: {
+                title: "Trading Performance Cards",
+                description: "A comprehensive view of your trading performance metrics in an easy-to-read card format.",
+                features: [
+                    "Total profit/loss display",
+                    "Open positions counter",
+                    "Total trades tracker",
+                    "Win rate percentage"
+                ]
+            },
+            
+            TradeCalendar: {
+                title: "Daily Trading Calendar",
+                description: "A detailed calendar view showing your daily trading activity with color-coded performance indicators.",
+                features: [
+                    "Daily profit/loss tracking",
+                    "Trade entry/exit visualization",
+                    "Transaction history integration",
+                    "Color-coded performance indicators"
+                ]
+            },
+            
+            MonthTradeCalendar: {
+                title: "Monthly Trading Overview",
+                description: "Aggregated monthly view of your trading performance with detailed statistics for each month.",
+                features: [
+                    "Monthly performance summary",
+                    "Win rate statistics",
+                    "Total P&L per month",
+                    "Trade volume tracking"
+                ]
+            },
+            
+            TradeChart: {
+                title: "Performance Chart",
+                description: "Interactive chart displaying your trading performance over time with detailed analytics.",
+                features: [
+                    "Performance trend visualization",
+                    "Profit/loss tracking over time",
+                    "Interactive data points",
+                    "Custom date range selection"
+                ]
+            },
+            
+            ProfitTargetWidget: {
+                title: "Profit Goal Tracker",
+                description: "Visual progress tracker for your trading profit goals with customizable time periods.",
+                features: [
+                    "Customizable profit targets",
+                    "Multiple timeframe options",
+                    "Progress visualization",
+                    "Real-time goal tracking"
+                ]
+            },
+            
+            OpenPositionsWidget: {
+                title: "Active Trades Monitor",
+                description: "Real-time monitor for your currently open trading positions with key position details.",
+                features: [
+                    "Live position tracking",
+                    "Key position metrics",
+                    "Scrollable position list",
+                    "Quick position overview"
+                ]
+            }
+        };
+
+        const widgetInfo = descriptions[widgetId];
+        if (!widgetInfo) return "No description available.";
+
+        return `
+            <div class="space-y-2">
+                <p class="font-medium">${widgetInfo.title}</p>
+                <p>${widgetInfo.description}</p>
+                <div class="mt-2">
+                    <p class="font-medium mb-1">Key Features:</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        ${widgetInfo.features.map(feature => `<li>${feature}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        `;
+    }
+
+    // Add preview functionality
+    let previewTimeout;
+    let previewWidget = null;
+    let activeWidget = null;
+
+    function showPreview(widget) {
+        clearTimeout(previewTimeout);
+        previewTimeout = setTimeout(() => {
+            previewWidget = {
+                ...widget,
+                props: generateSampleProps(widget.id)
+            };
+        }, 100);
+    }
+
+    function hidePreview() {
+        clearTimeout(previewTimeout);
+        previewWidget = null;
+    }
+
+    function generateSampleProps(widgetId) {
+        const now = new Date();
+        const sampleData = {
+            TradingStats: {
+                trades: [
+                    { pnl: 1500, date: now },
+                    { pnl: -300, date: new Date(now - 86400000) },
+                    { pnl: 800, date: new Date(now - 172800000) }
+                ]
+            },
+            StatsCards: {
+                totalPnL: 15000,
+                openTrades: Array(3).fill().map((_, i) => ({ 
+                    symbol: ['AAPL', 'TSLA', 'GOOGL'][i], 
+                    quantity: [100, 50, 25][i] 
+                })),
+                closedTrades: Array(5).fill().map(() => ({ 
+                    symbol: 'TSLA', 
+                    pnl: Math.random() * 1000 - 500 
+                })),
+                winRate: 65
+            },
+            TradeCalendar: {
+                trades: [
+                    { symbol: 'AAPL', entryDate: now, exitDate: now, pnl: 500, status: 'CLOSED' },
+                    { symbol: 'TSLA', entryDate: now, status: 'OPEN' },
+                    { symbol: 'GOOGL', entryDate: new Date(now - 86400000), exitDate: now, pnl: -200, status: 'CLOSED' }
+                ]
+            },
+            MonthTradeCalendar: {
+                trades: [
+                    { symbol: 'GOOGL', entryDate: now, exitDate: now, pnl: 1200, status: 'CLOSED' }
+                ]
+            },
+            TradeChart: {
+                openTrades: [{ symbol: 'AAPL', entryPrice: 150 }],
+                closedTrades: [{ symbol: 'TSLA', pnl: 500, exitDate: now }]
+            },
+            ProfitTargetWidget: {
+                trades: [{ pnl: 500, exitDate: now }],
+                period: 'daily',
+                target: 1000
+            },
+            OpenPositionsWidget: {
+                trades: [
+                    { symbol: 'AAPL', entryDate: now, entryPrice: 150, quantity: 100, status: 'OPEN' },
+                    { symbol: 'TSLA', entryDate: now, entryPrice: 700, quantity: 10, status: 'OPEN' }
+                ]
+            }
+        };
+
+        return sampleData[widgetId] || {};
+    }
+
+    // Replace hover handlers with click handler
+    function handleWidgetClick(widget) {
+        activeWidget = widget;
+        showPreview(widget);
+    }
+
+    // Add these helper functions
+    function getPreviewHeight(widgetId) {
+        const config = defaultWidgetConfigs[widgetId];
+        if (!config) return 70; // Default single row height
+        return config.rows * 70; // Each row is 70px
+    }
+
+    // Add function to calculate preview width based on cols
+    function getPreviewWidth(widgetId) {
+        const config = defaultWidgetConfigs[widgetId];
+        if (!config) return 70; // Default single column width
+        return config.cols * 70; // Each column is 70px
     }
 </script>
 
@@ -445,44 +638,113 @@
     </div>
 
     {#if showWidgetModal}
-        <Modal bind:show={showWidgetModal} title="Available Widgets">
-            <div class="absolute top-2 right-2 z-10">
-                <button
-                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
-                    on:click={() => showWidgetModal = false}
-                >
-                    <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
-                    </svg>
-                </button>
-            </div>
-            <div class="space-y-2">
-                {#each availableWidgetsWithCount as widget (widget.id)}
-                    <div class="flex items-center justify-between gap-2 p-3 bg-light-background dark:bg-dark-background hover:bg-light-hover dark:hover:bg-dark-hover rounded-lg cursor-pointer transition-colors duration-200"
-                         on:click={() => handleAddWidget(widget.id)}
-                         class:opacity-50={widget.remaining <= 0}
-                         class:pointer-events-none={widget.remaining <= 0}>
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={widget.icon}/>
-                            </svg>
-                            <span class="text-sm text-light-text dark:text-dark-text">{widget.title}</span>
+        <Modal bind:show={showWidgetModal} title="Available Widgets" maxWidth="max-w-3xl">
+            <!-- Close button -->
+            <button
+                class="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover text-light-text-muted dark:text-dark-text-muted"
+                on:click={() => showWidgetModal = false}
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <!-- Content -->
+            <div class="flex gap-6">
+                <!-- Widget List -->
+                <div class="w-2/6 space-y-1.5">
+                    {#each availableWidgetsWithCount as widget (widget.id)}
+                        <div 
+                            class="relative p-2 rounded-md transition-all duration-200 cursor-pointer
+                                   bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover
+                                   border border-light-border dark:border-dark-border"
+                            class:ring-1={activeWidget?.id === widget.id}
+                            class:ring-theme-500={activeWidget?.id === widget.id}
+                            class:bg-light-hover={activeWidget?.id === widget.id}
+                            class:dark:bg-dark-hover={activeWidget?.id === widget.id}
+                            on:click={() => handleWidgetClick(widget)}
+                        >
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={widget.icon}/>
+                                    </svg>
+                                    <span class="text-xs font-medium text-light-text dark:text-dark-text">
+                                        {widget.title}
+                                    </span>
+                                </div>
+                                <span class="text-[10px] text-light-text-muted dark:text-dark-text-muted">
+                                    {widget.remaining} left
+                                </span>
+                            </div>
                         </div>
-                        <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                            {widget.remaining} left
-                        </span>
-                    </div>
-                {/each}
+                    {/each}
+                </div>
+
+                <!-- Preview Area -->
+                <div class="w-4/6 preview-area">
+                    {#if previewWidget}
+                        <div 
+                            class="rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border h-[480px]  flex flex-col"
+                            transition:fly={{ x: 20, duration: 200 }}
+                        >
+                            <!-- Widget Preview with scroll -->
+                            <div class="bg-light-background h-auto max-h-3/4 dark:bg-dark-background rounded-t-lg border-b overflow-hidden border-light-border dark:border-dark-border flex-shrink-0">
+                                <div class="p-4 overflow-auto">
+                                    <!-- Container with fixed column width -->
+                                    <div 
+                                        class="relative"
+                                        style="width: {getPreviewWidth(previewWidget.id)}px; height: {getPreviewHeight(previewWidget.id)}px;"
+                                    >
+                                        {#if getComponentByName(previewWidget.id)}
+                                            <svelte:component 
+                                                this={getComponentByName(previewWidget.id)}
+                                                {...previewWidget.props}
+                                                height={getPreviewHeight(previewWidget.id)}
+                                                textSize="small"
+                                            />
+                                        {/if}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Description with scrollable area -->
+                            <div class="flex-1  h-auto flex flex-col overflow-y-auto">
+                                <!-- Description container with fixed height -->
+                                <div class="flex-1 p-3">
+                                    <div class="widget-description space-y-2 text-xs leading-relaxed text-light-text-muted dark:text-dark-text-muted">
+                                        {@html getWidgetDescription(previewWidget.id)}
+                                    </div>
+                                </div>
+
+
+                            </div>
+
+                                                            <!-- Add Widget button -->
+                                                            <div class="p-2 bg-light-card dark:bg-dark-card">
+                                                                <button
+                                                                    class="w-full py-1.5 px-3 text-xs font-medium rounded
+                                                                           bg-theme-500/80 hover:bg-theme-500 text-white
+                                                                           disabled:opacity-50 disabled:cursor-not-allowed
+                                                                           transition-colors duration-200 shadow-sm"
+                                                                    disabled={getWidgetTypeCount(widgets, previewWidget.id) >= (widgetLimits[previewWidget.id] || 1)}
+                                                                    on:click={() => handleAddWidget(previewWidget.id)}
+                                                                >
+                                                                    {getWidgetTypeCount(widgets, previewWidget.id) >= (widgetLimits[previewWidget.id] || 1) 
+                                                                        ? 'Maximum Limit Reached' 
+                                                                        : 'Add Widget'
+                                                                    }
+                                                                </button>
+                                                            </div>
+                        </div>
+                    {:else}
+                        <div class="h-full flex items-center justify-center p-4 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border">
+                            <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                                Select a widget to see preview
+                            </span>
+                        </div>
+                    {/if}
+                </div>
             </div>
         </Modal>
     {/if}
@@ -523,7 +785,7 @@
                                 class="p-1 rounded-lg bg-light-hover dark:bg-dark-hover text-light-text dark:text-dark-text"
                             >
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c-.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                                 </svg>
                             </button>
                             <button 
@@ -639,15 +901,7 @@
         flex-direction: column;
     }
 
-    :global(.dark) {
-        --theme-500-10: rgba(var(--theme-500-rgb), 0.1);
-    }
-
-    :global(.light) {
-        --theme-500-10: rgba(var(--theme-500-rgb), 0.1);
-    }
-
-    /* เพิ่มอนิเมชันการสั่น */
+    /* Animation for edit mode */
     @keyframes shake {
         0% { transform: rotate(0deg); }
         25% { transform: rotate(0.3deg); }
@@ -656,14 +910,12 @@
         100% { transform: rotate(0deg); }
     }
 
-    /* ใช้อนิเมชันเมื่ออยู่ในโหมดแก้ไข */
-    :global(.edit-mode) .widget {
+    .edit-mode .widget {
         animation: shake 0.3s infinite;
     }
 
-    /* Add border indication for edit mode */
     .edit-mode-background {
-        border: 2px dashed #1E90FF; /* DodgerBlue color */
+        border: 2px dashed #1E90FF;
     }
 
     .top-bar {
@@ -673,7 +925,7 @@
         z-index: 20;
     }
 
-    /* Add styles to handle edit mode interaction */
+    /* Edit mode interaction styles */
     .edit-mode .widget :global(*) {
         pointer-events: none;
     }
@@ -682,8 +934,120 @@
         pointer-events: auto;
     }
 
-    /* Make sure config buttons are still clickable */
     .edit-mode .widget button {
         pointer-events: auto;
+    }
+
+    /* Preview transitions */
+    .group-hover\:block {
+        transition: all 0.3s ease-in-out;
+    }
+
+    /* Widget description styles */
+    :global(.widget-description) {
+        list-style-type: disc;
+        margin-left: 1rem;
+    }
+
+    :global(.widget-description li) {
+        list-style-position: inside;
+        margin-top: 0.25rem;
+    }
+
+    :global(.widget-description .title) {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Dark mode styles */
+    :global(.dark) .preview-description {
+        color: var(--dark-text);
+    }
+
+    :global(.dark) .preview-description h3 {
+        color: var(--dark-text);
+    }
+
+    :global(.dark) .preview-description ul {
+        color: var(--dark-text-muted);
+    }
+
+    /* Widget options hover states */
+    .widget-options > div:hover,
+    .widget-options > div.active {
+        background-color: var(--light-hover);
+    }
+
+    :global(.dark) .widget-options > div:hover,
+    :global(.dark) .widget-options > div.active {
+        background-color: var(--dark-hover);
+    }
+
+    /* Update transform-gpu styles */
+    .transform-gpu {
+        transform-origin: top center !important;
+        will-change: transform;
+        width: 100% !important;
+        height: 100%;
+        display: block;
+        margin: 0 auto; /* Center the transformed content */
+    }
+
+    /* Ensure preview container handles overflow properly */
+    .preview-area {
+        position: relative;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Add smooth transition for scale changes */
+    .transform-gpu {
+        transition: transform 0.2s ease-out;
+    }
+
+    /* Ensure content is centered */
+    :global(.preview-area .svelte-component) {
+        margin: 0 auto;
+    }
+
+    /* Add styles for preview scrolling */
+    .overflow-auto {
+        overflow: auto;
+        max-width: 100%;
+        max-height: 400px; /* Adjust based on your needs */
+    }
+
+    /* Add padding for scrollbars */
+    .p-4.overflow-auto {
+        padding: 1rem;
+        scrollbar-width: thin;
+        scrollbar-color: var(--theme-500) transparent;
+    }
+
+    /* Customize scrollbar for webkit browsers */
+    .p-4.overflow-auto::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .p-4.overflow-auto::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .p-4.overflow-auto::-webkit-scrollbar-thumb {
+        background-color: var(--theme-500);
+        border-radius: 3px;
+    }
+
+    /* Update description container styles */
+    .widget-description {
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    /* Remove min-height from container */
+    .flex-1.overflow-y-auto {
+        min-height: unset;
     }
 </style>
