@@ -867,72 +867,99 @@
     {/if}
 
     {#if mounted}
-        <div 
-            use:dndzone={{ 
-                items: widgets, 
-                dragDisabled: !editMode,
-                dropFromOthersDisabled: true,
-                dropTargetStyle: {
-                    outline: '2px dashed var(--theme-500)',
-                    backgroundColor: 'var(--theme-500-10)'
-                },
-                flipDurationMs: 200,
-                morphDisabled: true
-            }}
-            on:consider={handleDndConsider}
-            on:finalize={handleDndFinalize}
-            class="grid grid-cols-12 gap-4"
-        >
-            {#each widgets as widget (widget.id)}
-                <div 
-                    class="widget relative {widget.config.textSize}" 
-                    id={"widget-" + widget.id}
-                    style="grid-column: span {widget.config?.cols || 1}; grid-row: span {widget.config?.rows || 1}; height: {widget.config?.height || 100}px;"
-                    on:pointerdown={(event) => handleWidgetPointerDown(event, widget.id)}
-                    on:pointermove={handleWidgetPointerMove}
-                    on:pointerup={handleWidgetPointerUp}
-                    on:pointerleave={handleWidgetPointerUp}
-                >
-                    {#if editMode && !widget.id.includes('dnd-shadow')}
-                        <!-- Add overlay to prevent interaction -->
-                        <div class="absolute inset-0 bg-transparent z-10"></div>
-                        <div class="absolute -top-3 -right-3 z-20 flex gap-0.5">
-                            <button 
-                                on:click={() => openWidgetConfig(widget)}
-                                class="p-1 rounded-lg bg-light-hover dark:bg-dark-hover text-light-text dark:text-dark-text"
-                            >
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                                </svg>
-                            </button>
-                            <button 
-                                on:click={() => deleteWidget(widget.id)}
-                                class="p-1 rounded-lg bg-red-500 hover:bg-red-700 text-white"
-                            >
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                    {/if}
-                    {#if mounted && !widget.id.startsWith('dnd-shadow') && getComponentByName(widget.id)}
-                        <svelte:component 
-                            this={getComponentByName(widget.id)} 
-                            {...(widget.props || {})} 
-                            height={widget.config?.height}
-                            textSize={widget.config?.textSize}
-                            on:view
-                            on:edit
-                            on:delete
-                            on:deleteTransaction
-                            on:dayClick
-                            on:monthClick
-                            on:newTrade
-                        />
-                    {/if}
+        {#if widgets.length === 0}
+            <div class="flex flex-col items-center justify-center p-8 min-h-[400px] rounded-lg border-2 border-dashed border-light-border dark:border-dark-border">
+                <div class="text-center space-y-4">
+                    <svg class="w-16 h-16 mx-auto text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                    </svg>
+                    <div class="space-y-2">
+                        <h3 class="text-lg font-medium text-light-text dark:text-dark-text">No Widgets Added</h3>
+                        <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                            Start by adding widgets to customize your dashboard
+                        </p>
+                    </div>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        on:click={toggleWidgetModal}
+                        class="mt-4"
+                    >
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Your First Widget
+                    </Button>
                 </div>
-            {/each}
-        </div>
+            </div>
+        {:else}
+            <div 
+                use:dndzone={{ 
+                    items: widgets, 
+                    dragDisabled: !editMode,
+                    dropFromOthersDisabled: true,
+                    dropTargetStyle: {
+                        outline: '2px dashed var(--theme-500)',
+                        backgroundColor: 'var(--theme-500-10)'
+                    },
+                    flipDurationMs: 200,
+                    morphDisabled: true
+                }}
+                on:consider={handleDndConsider}
+                on:finalize={handleDndFinalize}
+                class="grid grid-cols-12 gap-4"
+            >
+                {#each widgets as widget (widget.id)}
+                    <div 
+                        class="widget relative {widget.config.textSize}" 
+                        id={"widget-" + widget.id}
+                        style="grid-column: span {widget.config?.cols || 1}; grid-row: span {widget.config?.rows || 1}; height: {widget.config?.height || 100}px;"
+                        on:pointerdown={(event) => handleWidgetPointerDown(event, widget.id)}
+                        on:pointermove={handleWidgetPointerMove}
+                        on:pointerup={handleWidgetPointerUp}
+                        on:pointerleave={handleWidgetPointerUp}
+                    >
+                        {#if editMode && !widget.id.includes('dnd-shadow')}
+                            <!-- Add overlay to prevent interaction -->
+                            <div class="absolute inset-0 bg-transparent z-10"></div>
+                            <div class="absolute -top-3 -right-3 z-20 flex gap-0.5">
+                                <button 
+                                    on:click={() => openWidgetConfig(widget)}
+                                    class="p-1 rounded-lg bg-light-hover dark:bg-dark-hover text-light-text dark:text-dark-text"
+                                >
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                    </svg>
+                                </button>
+                                <button 
+                                    on:click={() => deleteWidget(widget.id)}
+                                    class="p-1 rounded-lg bg-red-500 hover:bg-red-700 text-white"
+                                >
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        {/if}
+                        {#if mounted && !widget.id.startsWith('dnd-shadow') && getComponentByName(widget.id)}
+                            <svelte:component 
+                                this={getComponentByName(widget.id)} 
+                                {...(widget.props || {})} 
+                                height={widget.config?.height}
+                                textSize={widget.config?.textSize}
+                                on:view
+                                on:edit
+                                on:delete
+                                on:deleteTransaction
+                                on:dayClick
+                                on:monthClick
+                                on:newTrade
+                            />
+                        {/if}
+                    </div>
+                {/each}
+            </div>
+        {/if}
     {/if}
 </div>
 
