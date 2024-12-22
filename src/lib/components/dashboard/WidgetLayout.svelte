@@ -374,7 +374,7 @@
     }
 
     function startDragging(widgetId, event) {
-        // เริ่มการลากวิดเจ��อหุการลาก
+        // เริ่มการลากวิดเจอหุการลาก
         const widgetElement = document.getElementById(`widget-${widgetId}`);
         if (widgetElement && event) {
             const dragEvent = new DragEvent('dragstart', {
@@ -496,6 +496,7 @@
         previewTimeout = setTimeout(() => {
             previewWidget = {
                 ...widget,
+                isPreview: true,
                 props: generateSampleProps(widget.id)
             };
         }, 100);
@@ -761,6 +762,7 @@
                                                 {...previewWidget.props}
                                                 height={getPreviewHeight(previewWidget.id)}
                                                 textSize="small"
+                                                isPreview={true}
                                             />
                                         {/if}
                                     </div>

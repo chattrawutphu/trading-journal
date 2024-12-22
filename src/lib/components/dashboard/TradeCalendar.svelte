@@ -11,6 +11,7 @@
     const dispatch = createEventDispatcher();
 
     export let trades = [];
+    export let isPreview = false;
     let showEmptyDayModal = false;
     let selectedDate = "";
     let showMonthYearPicker = false;
@@ -20,6 +21,8 @@
     let dailyBalances = {};
 
     onMount(async () => {
+        if (isPreview) return;
+
         try {
             await transactionStore.fetchTransactions($accountStore.currentAccount._id);
             trades = await api.getTrades($accountStore.currentAccount._id);
@@ -29,7 +32,7 @@
     });
 
     // Watch for account changes
-    $: if ($accountStore.currentAccount?._id !== currentAccountId) {
+    $: if ($accountStore.currentAccount?._id !== currentAccountId && !isPreview) {
         currentAccountId = $accountStore.currentAccount?._id;
         if (currentAccountId) {
             selectedMonth = new Date().getMonth();
