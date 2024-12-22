@@ -71,9 +71,9 @@
         <span>Your Goal ({period}):</span>
         <span class="text-xs">{daysLeft} {daysLeft === 1 ? 'day' : 'days'} left</span>
     </div>
-    <div class="w-full bg-light-border dark:bg-dark-border rounded-full h-5 relative">
+    <div class="w-full bg-light-card dark:bg-dark-border rounded-full h-5 relative">
         <div 
-            class="bg-theme-500 h-5 rounded-full transition-all duration-300" 
+            class="bg-theme-300 dark:bg-theme-500 h-5 rounded-full transition-all duration-300" 
             style="width: {progress * 100}%"
         />
         <div class="absolute inset-0 flex justify-between items-center px-2 text-xs text-light-text dark:text-dark-text">
