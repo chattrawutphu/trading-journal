@@ -374,7 +374,7 @@
     }
 
     function startDragging(widgetId, event) {
-        // เริ่มการลากวิดเจดอหตุการลาก
+        // เริ่มการลากวิดเจ��อหุการลาก
         const widgetElement = document.getElementById(`widget-${widgetId}`);
         if (widgetElement && event) {
             const dragEvent = new DragEvent('dragstart', {
@@ -508,74 +508,82 @@
 
     function generateSampleProps(widgetId) {
         const now = new Date();
+        // สร้างข้อมูล trades สำหรับใช้ร่วมกัน
+        const sampleTrades = Array.from({ length: 10 }, (_, i) => {
+            const date = new Date(now);
+            date.setDate(date.getDate() - i);
+            return {
+                id: `sample-${i}`,
+                symbol: ['AAPL', 'TSLA', 'GOOGL'][i % 3],
+                entryDate: date.toISOString(),
+                exitDate: i % 2 === 0 ? date.toISOString() : null,
+                entryPrice: 100 + (i * 10),
+                exitPrice: i % 2 === 0 ? 110 + (i * 10) : null,
+                quantity: 100,
+                pnl: i % 2 === 0 ? 1000 - (i * 100) : null,
+                status: i % 2 === 0 ? 'CLOSED' : 'OPEN',
+                type: 'LONG'
+            };
+        });
+
         const sampleData = {
             TradingStats: {
-                trades: [
-                    { pnl: 1500, date: now.toISOString() },
-                    { pnl: -300, date: new Date(now - 86400000).toISOString() },
-                    { pnl: 800, date: new Date(now - 172800000).toISOString() }
-                ]
+                trades: sampleTrades
             },
             StatsCards: {
                 totalPnL: 15000,
-                openTrades: Array(3).fill().map((_, i) => ({ 
-                    symbol: ['AAPL', 'TSLA', 'GOOGL'][i], 
-                    quantity: [100, 50, 25][i],
-                    entryDate: now.toISOString()
-                })),
-                closedTrades: Array(5).fill().map(() => ({ 
-                    symbol: 'TSLA', 
-                    pnl: Math.random() * 1000 - 500,
-                    exitDate: now.toISOString(),
-                    entryDate: new Date(now - 86400000).toISOString()
-                })),
+                openTrades: sampleTrades.filter(t => t.status === 'OPEN'),
+                closedTrades: sampleTrades.filter(t => t.status === 'CLOSED'),
                 winRate: 65
             },
             TradeCalendar: {
-                trades: [
-                    { 
-                        symbol: 'AAPL', 
-                        entryDate: now.toISOString(), 
-                        exitDate: now.toISOString(), 
-                        pnl: 500, 
-                        status: 'CLOSED' 
-                    },
-                    { 
-                        symbol: 'TSLA', 
-                        entryDate: now.toISOString(), 
-                        status: 'OPEN' 
-                    },
-                    { 
-                        symbol: 'GOOGL', 
-                        entryDate: new Date(now - 86400000).toISOString(), 
-                        exitDate: now.toISOString(), 
-                        pnl: -200, 
-                        status: 'CLOSED' 
+                trades: sampleTrades,
+                accountId: 'preview-account',
+                totalPnL: 1500,
+                winRate: 65,
+                transactions: [
+                    {
+                        type: 'deposit',
+                        amount: 10000,
+                        date: new Date(now - 86400000 * 30).toISOString()
                     }
-                ],
-                accountId: 'preview-account'
+                ]
             },
             MonthTradeCalendar: {
-                trades: [
-                    { symbol: 'GOOGL', entryDate: now, exitDate: now, pnl: 1200, status: 'CLOSED' }
+                trades: sampleTrades,
+                accountId: 'preview-account',
+                totalPnL: 1200,
+                winRate: 100,
+                transactions: [
+                    {
+                        type: 'deposit',
+                        amount: 10000,
+                        date: new Date(now - 86400000 * 30).toISOString()
+                    }
                 ]
             },
             TradeChart: {
-                openTrades: [{ symbol: 'AAPL', entryPrice: 150 }],
-                closedTrades: [{ symbol: 'TSLA', pnl: 500, exitDate: now }]
+                openTrades: sampleTrades.filter(t => t.status === 'OPEN'),
+                closedTrades: sampleTrades.filter(t => t.status === 'CLOSED')
             },
             ProfitTargetWidget: {
-                trades: [{ pnl: 500, exitDate: now }],
+                trades: sampleTrades,
                 period: 'daily',
                 target: 1000
             },
             OpenPositionsWidget: {
-                trades: [
-                    { symbol: 'AAPL', entryDate: now, entryPrice: 150, quantity: 100, status: 'OPEN' },
-                    { symbol: 'TSLA', entryDate: now, entryPrice: 700, quantity: 10, status: 'OPEN' }
-                ]
+                trades: sampleTrades.filter(t => t.status === 'OPEN')
             }
         };
+
+        // Add common props for calendar widgets
+        if (widgetId === 'TradeCalendar' || widgetId === 'MonthTradeCalendar') {
+            sampleData[widgetId] = {
+                ...sampleData[widgetId],
+                initialBalance: 10000,
+                currentBalance: 11500
+            };
+        }
 
         return sampleData[widgetId] || {};
     }
