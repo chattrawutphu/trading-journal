@@ -10,6 +10,7 @@
     import { onMount, createEventDispatcher } from 'svelte';
     import Button from '../common/Button.svelte';
     import ProfitTargetWidget from './ProfitTargetWidget.svelte';
+    import OpenPositionsWidget from './OpenPositionsWidget.svelte';
     const dispatch = createEventDispatcher();
     let mounted = false;
 
@@ -31,7 +32,8 @@
         TradeCalendar: { cols: 6, rows: 8, height: 560, textSize: 'medium' },
         MonthTradeCalendar: { cols: 6, rows: 8, height: 560, textSize: 'medium' },
         TradeChart: { cols: 4, rows: 8, height: 560, textSize: 'medium' },
-        ProfitTargetWidget: { cols: 4, rows: 0.75, height: 52.5, textSize: 'medium', period: 'daily', target: 1000 }
+        ProfitTargetWidget: { cols: 4, rows: 0.75, height: 52.5, textSize: 'medium', period: 'daily', target: 1000 },
+        OpenPositionsWidget: { cols: 4, rows: 4, height: 280, textSize: 'medium'}
     };
 
     // เพิ่มการกำหนดจำนวนสูงสุดของแต่ละ widget
@@ -40,8 +42,9 @@
         MonthTradeCalendar: 3,
         TradeChart: 3,
         StatsCards: 1,
-        TradingStats: 1, // default limit
-        ProfitTargetWidget: 3
+        TradingStats: 1,
+        ProfitTargetWidget: 3,
+        OpenPositionsWidget: 3
     };
 
     // ปรับปรุง availableWidgets เพื่อแสดงจำนวนที่เหลือ
@@ -159,7 +162,8 @@
             'TradeCalendar': TradeCalendar,
             'MonthTradeCalendar': MonthTradeCalendar,
             'TradeChart': TradeChart,
-            'ProfitTargetWidget': ProfitTargetWidget
+            'ProfitTargetWidget': ProfitTargetWidget,
+            'OpenPositionsWidget': OpenPositionsWidget
         };
 
         return componentMap[baseType] || null;
@@ -178,6 +182,8 @@
                 period: config.period,
                 target: config.target
             };
+        } else if (baseType === 'OpenPositionsWidget') {
+            return { trades, theme: config.theme };
         }
         return {};
     }
