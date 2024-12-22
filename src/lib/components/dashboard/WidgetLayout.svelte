@@ -374,7 +374,7 @@
     }
 
     function startDragging(widgetId, event) {
-        // เริ่มการลากวิดเจโดอหตุการลาก
+        // เริ่มการลากวิดเจดอหตุการลาก
         const widgetElement = document.getElementById(`widget-${widgetId}`);
         if (widgetElement && event) {
             const dragEvent = new DragEvent('dragstart', {
@@ -511,29 +511,49 @@
         const sampleData = {
             TradingStats: {
                 trades: [
-                    { pnl: 1500, date: now },
-                    { pnl: -300, date: new Date(now - 86400000) },
-                    { pnl: 800, date: new Date(now - 172800000) }
+                    { pnl: 1500, date: now.toISOString() },
+                    { pnl: -300, date: new Date(now - 86400000).toISOString() },
+                    { pnl: 800, date: new Date(now - 172800000).toISOString() }
                 ]
             },
             StatsCards: {
                 totalPnL: 15000,
                 openTrades: Array(3).fill().map((_, i) => ({ 
                     symbol: ['AAPL', 'TSLA', 'GOOGL'][i], 
-                    quantity: [100, 50, 25][i] 
+                    quantity: [100, 50, 25][i],
+                    entryDate: now.toISOString()
                 })),
                 closedTrades: Array(5).fill().map(() => ({ 
                     symbol: 'TSLA', 
-                    pnl: Math.random() * 1000 - 500 
+                    pnl: Math.random() * 1000 - 500,
+                    exitDate: now.toISOString(),
+                    entryDate: new Date(now - 86400000).toISOString()
                 })),
                 winRate: 65
             },
             TradeCalendar: {
                 trades: [
-                    { symbol: 'AAPL', entryDate: now, exitDate: now, pnl: 500, status: 'CLOSED' },
-                    { symbol: 'TSLA', entryDate: now, status: 'OPEN' },
-                    { symbol: 'GOOGL', entryDate: new Date(now - 86400000), exitDate: now, pnl: -200, status: 'CLOSED' }
-                ]
+                    { 
+                        symbol: 'AAPL', 
+                        entryDate: now.toISOString(), 
+                        exitDate: now.toISOString(), 
+                        pnl: 500, 
+                        status: 'CLOSED' 
+                    },
+                    { 
+                        symbol: 'TSLA', 
+                        entryDate: now.toISOString(), 
+                        status: 'OPEN' 
+                    },
+                    { 
+                        symbol: 'GOOGL', 
+                        entryDate: new Date(now - 86400000).toISOString(), 
+                        exitDate: now.toISOString(), 
+                        pnl: -200, 
+                        status: 'CLOSED' 
+                    }
+                ],
+                accountId: 'preview-account'
             },
             MonthTradeCalendar: {
                 trades: [
@@ -579,6 +599,32 @@
         if (!config) return 70; // Default single column width
         return config.cols * 70; // Each column is 70px
     }
+
+    // แก้ไขฟังก์ชัน toggleWidgetModal
+    function toggleWidgetModal() {
+        showWidgetModal = !showWidgetModal;
+        if (showWidgetModal) {
+            // Set first widget as active and show preview when modal opens
+            activeWidget = availableWidgetsWithCount[0];
+            previewWidget = {
+                ...activeWidget,
+                props: generateSampleProps(activeWidget.id)
+            };
+        } else {
+            // Clear selections when modal closes
+            activeWidget = null;
+            previewWidget = null;
+        }
+    }
+
+    // Update the preview container to prevent interactions
+    function getPreviewContainer(widget) {
+        return `
+            <div class="pointer-events-none">
+                ${widget}
+            </div>
+        `;
+    }
 </script>
 
 <!-- Rest of the file remains unchanged -->
@@ -589,7 +635,7 @@
                 <Button
                     variant="primary" 
                     size="xs"
-                    on:click={() => showWidgetModal = true}
+                    on:click={toggleWidgetModal}
                 >
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -638,11 +684,16 @@
     </div>
 
     {#if showWidgetModal}
-        <Modal bind:show={showWidgetModal} title="Available Widgets" maxWidth="max-w-3xl">
+        <Modal 
+            show={showWidgetModal}
+            on:close={toggleWidgetModal}
+            title="Available Widgets" 
+            maxWidth="max-w-3xl"
+        >
             <!-- Close button -->
             <button
                 class="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover text-light-text-muted dark:text-dark-text-muted"
-                on:click={() => showWidgetModal = false}
+                on:click={toggleWidgetModal}
             >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -685,15 +736,15 @@
                 <div class="w-4/6 preview-area">
                     {#if previewWidget}
                         <div 
-                            class="rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border h-[480px]  flex flex-col"
+                            class="rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border h-[480px] flex flex-col"
                             transition:fly={{ x: 20, duration: 200 }}
                         >
                             <!-- Widget Preview with scroll -->
                             <div class="bg-light-background h-auto max-h-3/4 dark:bg-dark-background rounded-t-lg border-b overflow-hidden border-light-border dark:border-dark-border flex-shrink-0">
                                 <div class="p-4 overflow-auto">
-                                    <!-- Container with fixed column width -->
+                                    <!-- Add pointer-events-none to prevent interactions -->
                                     <div 
-                                        class="relative"
+                                        class="relative pointer-events-none"
                                         style="width: {getPreviewWidth(previewWidget.id)}px; height: {getPreviewHeight(previewWidget.id)}px;"
                                     >
                                         {#if getComponentByName(previewWidget.id)}
