@@ -232,7 +232,8 @@
 
     function cancelEdit() {
         // Restore previous layout with components
-        widgets = restoreLayout(tempWidgets);
+        const restored = restoreLayout(tempWidgets);
+        dispatch('updateWidgets', restored);
         editMode = false;
         dispatch('editModeChange', false);
     }
@@ -374,7 +375,6 @@
     }
 
     function startDragging(widgetId, event) {
-        // เริ่มการลากว��ดเจอ���ุารลาก
         const widgetElement = document.getElementById(`widget-${widgetId}`);
         if (widgetElement && event) {
             const dragEvent = new DragEvent('dragstart', {
@@ -693,7 +693,7 @@
 </script>
 
 <!-- Rest of the file remains unchanged -->
-<div class="relative w-full {editMode ? 'edit-mode edit-mode-background' : ''}">
+<div class="relative w-full {editMode ? 'edit-mode edit-mode-background px-3 pb-3' : ''}">
     <div class="top-bar top-2 p-2 mb-3 right-2 z-10 flex gap-2 justify-between {editMode ? '' : 'hidden'}">
         {#if editMode}
             <div>
@@ -968,31 +968,31 @@
         bind:show={showConfigModal} 
         title="Configure Widget"
     >
-        <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block mb-2 text-light-text dark:text-dark-text">Columns</label>
+                    <label class="block mb-1 text-xs text-light-text dark:text-dark-text">Columns</label>
                     <input 
                         type="number" 
                         min="1" 
                         max="12" 
                         bind:value={selectedWidgetForConfig.config.cols} 
-                        class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+                        class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-1.5 text-xs focus:ring-2 focus:ring-theme-500 focus:border-transparent"
                     />
                 </div>
                 <div>
-                    <label class="block mb-2 text-light-text dark:text-dark-text">Rows</label>
+                    <label class="block mb-1 text-xs text-light-text dark:text-dark-text">Rows</label>
                     <input 
                         type="number" 
                         min="1" 
                         max="12" 
                         bind:value={selectedWidgetForConfig.config.rows} 
-                        class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+                        class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-1.5 text-xs focus:ring-2 focus:ring-theme-500 focus:border-transparent"
                     />
                 </div>
                 <div>
-                    <label class="block mb-2 text-light-text dark:text-dark-text">Text Size</label>
-                    <select bind:value={selectedWidgetForConfig.config.textSize} class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent">
+                    <label class="block mb-1 text-xs text-light-text dark:text-dark-text">Text Size</label>
+                    <select bind:value={selectedWidgetForConfig.config.textSize} class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-1.5 text-xs focus:ring-2 focus:ring-theme-500 focus:border-transparent">
                         <option value="small">Small</option>
                         <option value="medium">Medium</option>
                         <option value="large">Large</option>
@@ -1001,8 +1001,8 @@
                 </div>
                 {#if selectedWidgetForConfig.id.startsWith('ProfitTargetWidget')}
                     <div>
-                        <label>Goal Type</label>
-                        <select bind:value={selectedWidgetForConfig.config.period}>
+                        <label class="block mb-1 text-xs text-light-text dark:text-dark-text">Goal Type</label>
+                        <select bind:value={selectedWidgetForConfig.config.period} class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-1.5 text-xs focus:ring-2 focus:ring-theme-500 focus:border-transparent">
                             <option value="daily">Daily</option>
                             <option value="weekly">Weekly</option>
                             <option value="monthly">Monthly</option>
@@ -1011,23 +1011,26 @@
                         </select>
                     </div>
                     <div>
-                        <label>Goal Amount</label>
+                        <label class="block mb-1 text-xs text-light-text dark:text-dark-text">Goal Amount</label>
                         <input
                             type="number"
                             bind:value={selectedWidgetForConfig.config.target}
+                            class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded p-1.5 text-xs focus:ring-2 focus:ring-theme-500 focus:border-transparent"
                         />
                     </div>
                 {/if}
             </div>
-            <div class="flex justify-end space-x-2 mt-4">
+            <div class="flex justify-end space-x-2 mt-3">
                 <Button 
                     variant="secondary" 
+                    size="xs"
                     on:click={() => showConfigModal = false}
                 >
                     Cancel
                 </Button>
                 <Button 
                     variant="primary" 
+                    size="xs"
                     on:click={updateWidgetConfig}
                 >
                     Save
