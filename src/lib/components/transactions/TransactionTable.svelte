@@ -4,12 +4,15 @@
   import { formatCurrency } from '$lib/utils/formatters';
   import Loading from '../common/Loading.svelte';
   import Modal from '../common/Modal.svelte';
+  import Button from '../common/Button.svelte';
+  import { api } from '$lib/utils/api';
 
   const dispatch = createEventDispatcher();
   export let accountId;
   export let transactions = null; 
   export let readOnly = false; 
   export let hideEmptyState = false;
+  export let isInModal = false;
 
   let sortField = 'date';
   let sortDirection = 'desc';
@@ -18,6 +21,10 @@
   let selectedTransactions = [];
   let currentPage = 1;
   let itemsPerPage = 10;
+
+  let showDeleteConfirmModal = false;
+  let deleteType = '';
+  let itemsToDelete = [];
 
   $: storeTransactions = $transactionStore.transactions;
   $: displayTransactions = transactions || storeTransactions;
@@ -85,10 +92,12 @@
   async function handleDelete(transactionId) {
     if (confirm('Are you sure you want to delete this transaction?')) {
       try {
-        await transactionStore.deleteTransaction(transactionId);
-        if (!transactions) { 
-          await transactionStore.fetchTransactions(accountId);
+        await api.deleteTransaction(transactionId);
+        if (!transactions) {
+          const updatedTransactions = await api.getTransactions(accountId);
+          transactionStore.set(updatedTransactions);
         }
+        dispatch('deleted');
       } catch (err) {
         console.error('Error deleting transaction:', err);
       }
@@ -104,18 +113,56 @@
   }
 
   async function handleDeleteSelected() {
-    dispatch('deleteConfirm', {
+    if (isInModal) {
+      dispatch('deleteConfirm', {
         type: 'selected',
         context: 'transactions',
         items: selectedTransactions
-    });
+      });
+    } else {
+      showDeleteConfirmModal = true;
+      deleteType = 'selected';
+      itemsToDelete = selectedTransactions;
+    }
   }
 
   async function handleDeleteAll() {
-    dispatch('deleteConfirm', {
+    if (isInModal) {
+      dispatch('deleteConfirm', {
         type: 'all',
         context: 'transactions'
-    });
+      });
+    } else {
+      showDeleteConfirmModal = true;
+      deleteType = 'all';
+      itemsToDelete = [];
+    }
+  }
+
+  async function confirmDelete() {
+    try {
+      if (deleteType === 'selected') {
+        for (const transactionId of itemsToDelete) {
+          await api.deleteTransaction(transactionId);
+        }
+      } else if (deleteType === 'all') {
+        for (const transaction of transactions) {
+          await api.deleteTransaction(transaction._id);
+        }
+      }
+      
+      if (!transactions) {
+        const updatedTransactions = await api.getTransactions(accountId);
+        transactionStore.set(updatedTransactions);
+      }
+
+      dispatch('deleted');
+    } catch (err) {
+      console.error('Error deleting transactions:', err);
+    } finally {
+      showDeleteConfirmModal = false;
+      selectedTransactions = [];
+    }
   }
 </script>
 
@@ -178,7 +225,7 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-light-border dark:divide-dark-border">
-        {#each paginatedTransactions as transaction, index (transaction._id || index)}
+        {#each paginatedTransactions as transaction, index (transaction._id || `transaction-${index}`)}
           <tr class="hover:bg-light-hover dark:hover:bg-dark-hover ">
             <td class="w-8 py-2 px-4 text-right">
               <input 
@@ -314,3 +361,37 @@
     @apply w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-300 dark:disabled:bg-gray-800 disabled:cursor-not-allowed;
   }
 </style>
+
+{#if showDeleteConfirmModal && !isInModal}
+    <Modal
+        show={showDeleteConfirmModal}
+        title="Confirm Delete"
+        on:close={() => showDeleteConfirmModal = false}
+    >
+        <div class="p-6">
+            <p class="text-light-text dark:text-dark-text">
+                {#if deleteType === 'selected'}
+                    Are you sure you want to delete {itemsToDelete.length} selected transactions?
+                {:else}
+                    Are you sure you want to delete all transactions?
+                {/if}
+            </p>
+            <div class="flex justify-end gap-4 mt-6">
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    on:click={() => showDeleteConfirmModal = false}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    variant="danger"
+                    size="sm"
+                    on:click={confirmDelete}
+                >
+                    Delete
+                </Button>
+            </div>
+        </div>
+    </Modal>
+{/if}

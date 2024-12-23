@@ -2,17 +2,23 @@
     import { createEventDispatcher } from 'svelte';
     import { formatCurrency } from '$lib/utils/formatters';
     import Modal from '../common/Modal.svelte';
+    import Button from '../common/Button.svelte';
+    import { api } from '$lib/utils/api';
 
     const dispatch = createEventDispatcher();
 
     export let trades = [];
     export let type = 'closed'; // 'open' or 'closed'
+    export let isInModal = false; // Add this prop
 
     let sortField = type === 'closed' ? 'exitDate' : 'entryDate';
     let sortDirection = 'desc';
     let selectedTrades = [];
     let currentPage = 1;
     let itemsPerPage = 10;
+    let showDeleteConfirmModal = false;
+    let deleteType = '';
+    let itemsToDelete = [];
 
     function formatDate(dateStr) {
         const options = { 
@@ -82,18 +88,55 @@
     }
 
     async function handleDeleteSelected() {
-        dispatch('deleteConfirm', {
-            type: 'selected',
-            context: 'trades',
-            items: selectedTrades
-        });
+        if (isInModal) {
+            // If in modal, dispatch event for parent to handle
+            dispatch('deleteConfirm', {
+                type: 'selected',
+                context: 'trades',
+                items: selectedTrades
+            });
+        } else {
+            // Show modal directly
+            showDeleteConfirmModal = true;
+            deleteType = 'selected';
+            itemsToDelete = selectedTrades;
+        }
     }
 
     async function handleDeleteAll() {
-        dispatch('deleteConfirm', {
-            type: 'all',
-            context: 'trades'
-        });
+        if (isInModal) {
+            // If in modal, dispatch event for parent to handle
+            dispatch('deleteConfirm', {
+                type: 'all',
+                context: 'trades'
+            });
+        } else {
+            // Show modal directly
+            showDeleteConfirmModal = true;
+            deleteType = 'all';
+            itemsToDelete = [];
+        }
+    }
+
+    async function confirmDelete() {
+        try {
+            if (deleteType === 'selected') {
+                for (const tradeId of itemsToDelete) {
+                    await api.deleteTrade(tradeId);
+                }
+            } else if (deleteType === 'all') {
+                for (const trade of trades) {
+                    await api.deleteTrade(trade._id);
+                }
+            }
+            
+            dispatch('deleted');
+        } catch (err) {
+            console.error('Error deleting trades:', err);
+        } finally {
+            showDeleteConfirmModal = false;
+            selectedTrades = [];
+        }
     }
 </script>
 
@@ -295,6 +338,41 @@
         {/if}
     </div>
 </div>
+
+<!-- Show delete confirmation modal only when not in another modal -->
+{#if showDeleteConfirmModal && !isInModal}
+    <Modal
+        show={showDeleteConfirmModal}
+        title="Confirm Delete"
+        on:close={() => showDeleteConfirmModal = false}
+    >
+        <div class="p-6">
+            <p class="text-light-text dark:text-dark-text">
+                {#if deleteType === 'selected'}
+                    Are you sure you want to delete {itemsToDelete.length} selected trades?
+                {:else}
+                    Are you sure you want to delete all trades?
+                {/if}
+            </p>
+            <div class="flex justify-end gap-4 mt-6">
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    on:click={() => showDeleteConfirmModal = false}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    variant="danger"
+                    size="sm"
+                    on:click={confirmDelete}
+                >
+                    Delete
+                </Button>
+            </div>
+        </div>
+    </Modal>
+{/if}
 
 <style lang="postcss">
     .icon-button {

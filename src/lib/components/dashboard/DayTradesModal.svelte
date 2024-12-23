@@ -11,6 +11,8 @@
     import Input from "$lib/components/common/Input.svelte";
     import { transactionDate } from '$lib/stores/transactionDateStore';
     import { tradeDate } from '$lib/stores/tradeDateStore';
+    import Modal from '../common/Modal.svelte';
+    import { api } from '$lib/utils/api';
 
     const dispatch = createEventDispatcher();
 
@@ -28,6 +30,11 @@
 
     let showDepositModal = false;
     let showWithdrawModal = false;
+
+    let showDeleteConfirmModal = false;
+    let deleteContext = '';
+    let deleteType = '';
+    let itemsToDelete = [];
 
     $: if (show && accountId) {
         loadTransactions();
@@ -99,12 +106,23 @@
         dispatch("edit", transaction);
     }
 
-    function handleDelete(transactionId) {
-        dispatch("delete", transactionId);
+    function handleDelete(id) {
+        api.deleteTrade(id).then(() => {
+            dispatch('refresh');
+        }).catch(err => {
+            console.error('Error deleting trade:', err);
+        });
     }
 
-    function handleDeleteConfirm(event) {
-        dispatch('deleteConfirm', event.detail);
+    async function handleDeleteTransaction(id) {
+        try {
+            await api.deleteTransaction(id);
+            // ใช้ accountId ที่มีอยู่แล้ว
+            const updatedTransactions = await api.getTransactions(accountId);
+            transactions = filterTransactionsByDate(updatedTransactions, date);
+        } catch (err) {
+            console.error('Error deleting transaction:', err);
+        }
     }
 
     function handleDeposit() {
@@ -115,6 +133,57 @@
     function handleWithdraw() {
         transactionDate.set(date);
         showWithdrawModal = true;
+    }
+
+    function handleDeleteConfirm(event) {
+        showDeleteConfirmModal = true;
+        deleteContext = event.detail.context;
+        deleteType = event.detail.type;
+        itemsToDelete = event.detail.items || [];
+    }
+
+    async function confirmDelete() {
+        try {
+            if (deleteContext === 'trades') {
+                if (deleteType === 'selected') {
+                    for (const tradeId of itemsToDelete) {
+                        await api.deleteTrade(tradeId);
+                    }
+                } else if (deleteType === 'all') {
+                    for (const trade of trades) {
+                        await api.deleteTrade(trade._id);
+                    }
+                }
+            } else if (deleteContext === 'transactions') {
+                if (deleteType === 'selected') {
+                    for (const transactionId of itemsToDelete) {
+                        await api.deleteTransaction(transactionId);
+                    }
+                } else if (deleteType === 'all') {
+                    for (const transaction of transactions) {
+                        await api.deleteTransaction(transaction._id);
+                    }
+                }
+            }
+
+            // Refresh data
+            if (deleteContext === 'trades') {
+                dispatch('refresh');
+            } else {
+                // ใช้ accountId ที่มีอยู่แล้ว
+                const updatedTransactions = await api.getTransactions(accountId);
+                transactions = filterTransactionsByDate(updatedTransactions, date);
+            }
+
+            // Reset state
+            showDeleteConfirmModal = false;
+            deleteContext = '';
+            deleteType = '';
+            itemsToDelete = [];
+
+        } catch (err) {
+            console.error('Error deleting items:', err);
+        }
     }
 
     $: openTrades = trades.filter((trade) => trade.status === "OPEN");
@@ -204,12 +273,17 @@
                         <TradeTable
                             trades={openTrades}
                             type="open"
+                            isInModal={true}
                             on:view
                             on:edit
-                            on:delete
+                            on:delete={handleDelete}
                             on:favorite
                             on:disable
                             on:deleteConfirm={handleDeleteConfirm}
+                            on:deleted={() => {
+                                // Refresh trades
+                                dispatch('refresh');
+                            }}
                         />
                     </div>
                 {/if}
@@ -224,12 +298,17 @@
                         <TradeTable
                             trades={closedTrades}
                             type="closed"
+                            isInModal={true}
                             on:view
                             on:edit
-                            on:delete
+                            on:delete={handleDelete}
                             on:favorite
-                            on:disable 
+                            on:disable
                             on:deleteConfirm={handleDeleteConfirm}
+                            on:deleted={() => {
+                                // Refresh trades
+                                dispatch('refresh');
+                            }}
                         />
                     </div>
                 {/if}
@@ -244,11 +323,16 @@
                         <TransactionTable
                             {accountId}
                             {transactions}
+                            isInModal={true}
                             readOnly={false}
                             hideEmptyState={true}
                             on:edit={handleEditTransaction}
-                            on:delete={handleDelete}
+                            on:delete={handleDeleteTransaction}
                             on:deleteConfirm={handleDeleteConfirm}
+                            on:deleted={() => {
+                                // Refresh transactions
+                                loadTransactions();
+                            }}
                         />
                     </div>
                 {/if}
@@ -288,6 +372,43 @@
     accountId={accountId}
     on:close={() => showWithdrawModal = false}
 />
+
+<!-- Add Delete Confirmation Modal -->
+{#if showDeleteConfirmModal}
+    <div class="relative z-50">
+        <Modal
+            show={showDeleteConfirmModal}
+            title="Confirm Delete"
+            on:close={() => showDeleteConfirmModal = false}
+        >
+            <div class="p-6">
+                <p class="text-light-text dark:text-dark-text">
+                    {#if deleteType === 'selected'}
+                        Are you sure you want to delete {itemsToDelete.length} selected {deleteContext}?
+                    {:else}
+                        Are you sure you want to delete all {deleteContext}?
+                    {/if}
+                </p>
+                <div class="flex justify-end gap-4 mt-6">
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        on:click={() => showDeleteConfirmModal = false}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        on:click={confirmDelete}
+                    >
+                        Delete
+                    </Button>
+                </div>
+            </div>
+        </Modal>
+    </div>
+{/if}
 
 <style lang="postcss">
     .card {
