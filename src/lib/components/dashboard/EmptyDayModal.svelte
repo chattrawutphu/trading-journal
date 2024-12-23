@@ -134,16 +134,26 @@
 <TransactionModal
     show={showDepositModal}
     type="deposit"
-    accountId={accountId}
+    {accountId}
     on:close={() => showDepositModal = false}
+    on:transactionUpdated={() => {
+        showDepositModal = false;
+        // ปิด EmptyDayModal หลังจากเพิ่ม transaction
+        close();
+    }}
 />
 
 <!-- Withdraw Modal -->
 <TransactionModal
     show={showWithdrawModal}
     type="withdraw"
-    accountId={accountId}
+    {accountId}
     on:close={() => showWithdrawModal = false}
+    on:transactionUpdated={() => {
+        showWithdrawModal = false;
+        // ปิด EmptyDayModal หลังจากเพิ่ม transaction
+        close();
+    }}
 />
 
 <style lang="postcss">

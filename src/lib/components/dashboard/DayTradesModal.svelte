@@ -376,25 +376,41 @@
 <TransactionModal
     show={showTransactionModal}
     transaction={selectedTransaction}
-    accountId={accountId}
+    {accountId}
+    type={selectedTransaction?.type || 'deposit'}
     on:submit={handleTransactionSubmit}
     on:close={() => (showTransactionModal = false)}
+    on:transactionUpdated={async () => {
+        // Refresh transactions
+        await loadTransactions();
+        showTransactionModal = false;
+    }}
 />
 
 <!-- Deposit Modal -->
 <TransactionModal
     show={showDepositModal}
     type="deposit"
-    accountId={accountId}
+    {accountId}
     on:close={() => showDepositModal = false}
+    on:transactionUpdated={async () => {
+        // Refresh transactions
+        await loadTransactions();
+        showDepositModal = false;
+    }}
 />
 
 <!-- Withdraw Modal -->
 <TransactionModal
     show={showWithdrawModal}
     type="withdraw"
-    accountId={accountId}
+    {accountId}
     on:close={() => showWithdrawModal = false}
+    on:transactionUpdated={async () => {
+        // Refresh transactions
+        await loadTransactions();
+        showWithdrawModal = false;
+    }}
 />
 
 <!-- Add Delete Confirmation Modal -->

@@ -5,24 +5,24 @@
     import { transactionStore } from "$lib/stores/transactionStore";
     import { accountStore } from '$lib/stores/accountStore';
     import { transactionDate } from '$lib/stores/transactionDateStore';
-    import { goto } from '$app/navigation'; // Import goto for page refresh
+    import { loadingStore } from '$lib/stores/loadingStore';
+    import { goto } from '$app/navigation';
 
     const dispatch = createEventDispatcher();
 
     export let show = false;
-    export let type = "deposit"; // Can be "deposit" or "withdraw"
-    export let accountId = null; // Ensure accountId is initialized
-    export let transaction = null; // Ensure transaction prop is handled
+    export let type = "deposit";
+    export let accountId = null;
+    export let transaction = null;
 
     let transactionAmount = 0;
     let transactionDateInput;
+    let transactionNote = '';
 
     // Use the store's value for transactionDateInput
     $: transactionDateInput = $transactionDate 
         ? new Date($transactionDate).toLocaleString('sv-SE', { hour12: false }).slice(0, 16) 
         : new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16);
-
-    let transactionNote = '';
 
     if (transaction) {
         transactionAmount = transaction.amount;
@@ -33,28 +33,35 @@
     async function handleSubmit() {
         if (transactionAmount > 0) {
             try {
+                loadingStore.set(true);
+
                 const transactionType = type === "deposit" ? "deposit" : "withdrawal";
                 await transactionStore.createTransaction(
-                    accountId, // Use accountId prop
+                    accountId,
                     transactionType,
                     transactionAmount,
                     new Date(transactionDateInput),
                     transactionNote
                 );
+
                 // เคลียร์ transactionDateStore หลังจากบันทึก transaction
                 transactionDate.set(null);
                 await accountStore.setCurrentAccount(accountId);
                 await transactionStore.fetchTransactions(accountId);
+                
                 dispatch("close");
                 dispatch("transactionUpdated", { accountId });
+                
                 transactionAmount = 0;
-                transactionDateInput = new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16); // Reset to current local date and time
+                transactionDateInput = new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16);
                 transactionNote = '';
 
                 // Refresh the current page
                 goto(window.location.pathname);
             } catch (err) {
                 console.error(err);
+            } finally {
+                loadingStore.set(false);
             }
         }
     }
