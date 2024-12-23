@@ -101,7 +101,7 @@
     ];
 
     // State management
-    let tempWidgets; // Store temporary layout during edit mode
+    let tempWidgets = null; // Store temporary layout during edit mode
     let showConfigModal = false;
     let selectedWidgetForConfig = null;
     let showWidgetModal = false;
@@ -113,6 +113,9 @@
         return () => {
             mounted = false;
             clearTimeout(touchTimeout);
+            if (tempWidgets) {
+                dispatch('updateWidgets', tempWidgets);
+            }
             tempWidgets = null;
             selectedWidgetForConfig = null;
             previewWidget = null;
@@ -162,7 +165,7 @@
     // Layout management functions
     function toggleEditMode() {
         if (!editMode) {
-            tempWidgets = [...widgets];
+            tempWidgets = JSON.parse(JSON.stringify(widgets));
         }
         editMode = !editMode;
         dispatch('editModeChange', editMode);
@@ -170,12 +173,16 @@
 
     function saveLayout() {
         widgetStore.saveToStorage(widgets);
+        tempWidgets = null;
         editMode = false;
         dispatch('editModeChange', false);
     }
 
     function cancelEdit() {
-        dispatch('updateWidgets', tempWidgets);
+        if (tempWidgets) {
+            dispatch('updateWidgets', tempWidgets);
+            tempWidgets = null;
+        }
         editMode = false;
         dispatch('editModeChange', false);
     }
