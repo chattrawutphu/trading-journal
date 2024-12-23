@@ -26,11 +26,29 @@
     }
 
     function handleNewTrade() {
-        const formattedDate = new Date(date);
-        // ตั้งเวลาเป็น 7:00 น.
-        formattedDate.setHours(7, 0, 0, 0);
-        tradeDate.set(formattedDate.toISOString());
-        dispatch('newTrade');
+        // ตรวจสอบว่ามี date หรือไม่
+        if (!date) {
+            console.error('Date is empty');
+            return;
+        }
+
+        const selectedDate = new Date(date);
+        // ตรวจสอบว่า date เป็น valid date หรือไม่
+        if (isNaN(selectedDate.getTime())) {
+            console.error('Invalid date:', date);
+            return;
+        }
+        
+        // ตั้งเวลาเป็น 12:00 น.
+        selectedDate.setHours(12, 0, 0, 0);
+        
+        // เก็บค่าวันที่ใน store
+        tradeDate.set(selectedDate.toISOString());
+        
+        // ส่ง event พร้อมวันที่
+        dispatch('newTrade', {
+            date: selectedDate.toISOString()
+        });
         close();
     }
 

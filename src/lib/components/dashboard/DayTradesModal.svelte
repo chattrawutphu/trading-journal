@@ -73,12 +73,29 @@
     }
 
     function handleNewTrade() {
+        // ตรวจสอบว่ามี date หรือไม่
+        if (!date) {
+            console.error('Date is empty');
+            return;
+        }
+
         const selectedDate = new Date(date);
-        // ตั้งเวลาเป็น 7:00 น.
-        selectedDate.setHours(7, 0, 0, 0);
+        // ตรวจสอบว่า date เป็น valid date หรือไม่
+        if (isNaN(selectedDate.getTime())) {
+            console.error('Invalid date:', date);
+            return;
+        }
+        
+        // ตั้งเวลาเป็น 12:00 น.
+        selectedDate.setHours(12, 0, 0, 0);
+        
+        // เก็บค่าวันที่ใน store
         tradeDate.set(selectedDate.toISOString());
-        dispatch('newTrade');
-        close();
+        
+        // ส่ง event พร้อมวันที่
+        dispatch('newTrade', {
+            date: selectedDate.toISOString()
+        });
     }
 
     function formatDate(dateStr) {
@@ -188,6 +205,13 @@
 
     $: openTrades = trades.filter((trade) => trade.status === "OPEN");
     $: closedTrades = trades.filter((trade) => trade.status === "CLOSED");
+
+    // เพิ่ม watch เพื่อ log ค่า date เมื่อมีการเปลี่ยนแปลง
+    $: {
+        if (show) {
+            console.log('DayTradesModal date:', date);
+        }
+    }
 </script>
 
 {#if loading}

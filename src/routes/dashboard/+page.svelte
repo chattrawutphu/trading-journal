@@ -199,6 +199,12 @@
     }
 
     function handleDayClick(event) {
+        // ตรวจสอบว่ามี date ใน event.detail
+        if (!event.detail?.date) {
+            console.error('No date in event detail');
+            return;
+        }
+
         selectedDate = event.detail.date;
         selectedDisplayDate = event.detail.displayDate;
         selectedDayTrades = event.detail.trades;
@@ -207,12 +213,40 @@
     }
 
     function handleNewTradeFromCalendar(event) {
-        // Format date for date input (YYYY-MM-DD)
-        const date = new Date(event.detail);
-        date.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
-        newTradeDate = date.toISOString().slice(0, 10);
-        showNewTradeModal = true;
-        showDayModal = false; // Close the day modal when opening new trade modal
+        if (!event.detail?.date) {
+            // ถ้า event.detail เป็น string (วันที่โดยตรง)
+            if (typeof event.detail === 'string') {
+                try {
+                    const selectedDate = new Date(event.detail);
+                    if (!isNaN(selectedDate.getTime())) {
+                        selectedDate.setHours(12, 0, 0, 0);
+                        newTradeDate = selectedDate.toISOString().slice(0, 10);
+                        selectedTrade = null;
+                        showEditModal = true;
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Error parsing date string:', err);
+                }
+            }
+            console.error('No date passed from child modal!');
+            return;
+        }
+
+        try {
+            const selectedDate = new Date(event.detail.date);
+            if (isNaN(selectedDate.getTime())) {
+                console.error('Invalid date:', event.detail.date);
+                return;
+            }
+            
+            selectedDate.setHours(12, 0, 0, 0);
+            newTradeDate = selectedDate.toISOString().slice(0, 10);
+            selectedTrade = null;
+            showEditModal = true;
+        } catch (err) {
+            console.error('Error processing date:', err);
+        }
     }
 
     function handleView(event) {
@@ -310,17 +344,13 @@
         selectedDayTransactions = [];
     }
 
-    function closeNewTradeModal() {
-        showNewTradeModal = false;
-        newTradeDate = "";
-    }
-
     function handleNewTrade() {
         // When clicking New Trade button, use current date
         const now = new Date();
         now.setHours(12, 0, 0, 0);
         newTradeDate = now.toISOString().slice(0, 10);
-        showNewTradeModal = true;
+        selectedTrade = null; 
+        showEditModal = true;
     }
 
     function handleAddAccount() {
