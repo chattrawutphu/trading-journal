@@ -141,8 +141,12 @@
     $: {
         for (const dateKey in dailyTrades) {
             const stats = dailyTrades[dateKey];
-            if (stats.totalInvested !== 0) {
-                stats.pnlPercentage = (stats.pnl / stats.totalInvested) * 100;
+            const balance = dailyBalances[dateKey];
+            if (balance && balance !== 0) {
+                // ปรับการคำนวณ percentage
+                const pnlValue = stats.pnl || 0;
+                const percentage = (pnlValue / Math.abs(balance)) * 100;
+                stats.pnlPercentage = percentage;
             } else {
                 stats.pnlPercentage = null;
             }
@@ -226,19 +230,6 @@
 
             dailyBalances[dateKey] = cumulativeBalance;
         });
-    }
-
-    // Adjust pnlPercentage calculation to use daily balance
-    $: {
-        for (const dateKey in dailyTrades) {
-            const stats = dailyTrades[dateKey];
-            const balance = dailyBalances[dateKey];
-            if (balance && balance !== 0) {
-                stats.pnlPercentage = (stats.pnl / balance) * 100;
-            } else {
-                stats.pnlPercentage = null;
-            }
-        }
     }
 
     function getDayStats(day) {
@@ -509,9 +500,9 @@
                                             </span>
                                             <span
                                                 class="text-xs {statsPerDay[day].pnl > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}"
-                                                >
+                                            >
                                                 {#if statsPerDay[day].pnlPercentage !== null}
-                                                    {statsPerDay[day].pnlPercentage >= 0 ? '+' : ''}{statsPerDay[day].pnlPercentage.toFixed(2)}%
+                                                    {statsPerDay[day].pnlPercentage > 0 ? '+' : ''}{statsPerDay[day].pnlPercentage.toFixed(2)}%
                                                 {/if}
                                             </span>
                                         </div>
