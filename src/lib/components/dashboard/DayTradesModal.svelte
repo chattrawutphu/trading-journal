@@ -234,27 +234,30 @@
                     </div>
                 {/if}
 
-                <div class="mb-6">
-                    <h3
-                        class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
-                    >
-                        Transactions
-                    </h3>
-                    <TransactionTable
-                        {accountId}
-                        {transactions}
-                        readOnly={false}
-                        on:edit={handleEditTransaction}
-                        on:delete={handleDelete}
-                        on:deleteConfirm={handleDeleteConfirm}
-                    />
-                </div>
+                {#if transactions && transactions.length > 0}
+                    <div class="mb-6">
+                        <h3
+                            class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
+                        >
+                            Transactions
+                        </h3>
+                        <TransactionTable
+                            {accountId}
+                            {transactions}
+                            readOnly={false}
+                            hideEmptyState={true}
+                            on:edit={handleEditTransaction}
+                            on:delete={handleDelete}
+                            on:deleteConfirm={handleDeleteConfirm}
+                        />
+                    </div>
+                {/if}
 
-                {#if trades.length === 0 && transactions?.length === 0}
+                {#if trades.length === 0 && (!transactions || transactions.length === 0)}
                     <div
                         class="text-center py-8 text-light-text-muted dark:text-dark-text-muted"
                     >
-                        No trades or transactions found for this day
+                        No trades found for this day
                     </div>
                 {/if}
             </div>

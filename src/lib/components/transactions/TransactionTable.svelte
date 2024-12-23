@@ -9,6 +9,7 @@
   export let accountId;
   export let transactions = null; 
   export let readOnly = false; 
+  export let hideEmptyState = false;
 
   let sortField = 'date';
   let sortDirection = 'desc';
@@ -123,7 +124,7 @@
     <Loading message="Loading..." overlay={true} />
   {:else if error}
     <div class="text-red-500">{error}</div>
-  {:else if !displayTransactions || displayTransactions.length === 0}
+  {:else if !hideEmptyState && (!displayTransactions || displayTransactions.length === 0)}
     <div class="card p-8 text-center">
       <div class="flex flex-col items-center justify-center space-y-4">
         <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
