@@ -18,7 +18,6 @@
     export let accountId = null;
 
     let errors = {};
-    let touched = {};
     let previousSymbol = "";
 
     const emotionOptions = [
@@ -136,30 +135,61 @@
     }
 
     function calculatePnL() {
-        if (form.exitPrice && form.entryPrice && form.amount) {
+        // ตรวจสอบ amount ก่อนคำนวณ
+        if (!form.amount || form.amount <= 0) {
+            errors.amount = "Amount must be greater than 0";
+            return;
+        }
+        
+        if (form.exitPrice && form.entryPrice) {
             if (form.side === "LONG") {
                 form.pnl = (form.exitPrice - form.entryPrice) * form.amount;
+                if (form.pnl === 0) {
+                    errors.pnl = "Profit/Loss cannot be zero";
+                } else {
+                    delete errors.pnl;
+                }
             } else {
                 form.pnl = (form.entryPrice - form.exitPrice) * form.amount;
+                if (form.pnl === 0) {
+                    errors.pnl = "Profit/Loss cannot be zero";
+                } else {
+                    delete errors.pnl;
+                }
             }
-            validateField("pnl");
         }
     }
 
-    function validateField(field) {
-        touched[field] = true;
-        errors = validateTradeForm(form);
+    function validateForm(form) {
+        const errors = {};
+        
+        if (!form.symbol?.trim()) {
+            errors.symbol = "Symbol is required";
+        }
+        
+        if (!form.entryPrice || form.entryPrice <= 0) {
+            errors.entryPrice = "Entry price must be greater than 0";
+        }
+
+        if (!form.amount || form.amount <= 0) {
+            errors.amount = "Amount must be greater than 0";
+        }
+
+        if (form.status === "CLOSED") {
+            if (!form.exitPrice || form.exitPrice <= 0) {
+                errors.exitPrice = "Exit price must be greater than 0";
+            }
+            if (!form.pnl || form.pnl === 0) {
+                errors.pnl = "Profit/Loss cannot be zero";
+            }
+        }
+
+        return errors;
     }
 
-    function handleInput(field) {
-        return () => validateField(field);
-    }
-
-    function handleSubmit() {
-        errors = validateTradeForm(form);
-
+    async function handleSubmit() {
+        errors = validateForm(form);
         if (Object.keys(errors).length > 0) {
-            Object.keys(form).forEach((key) => (touched[key] = true));
             return;
         }
 
@@ -202,7 +232,6 @@
     function handleClose() {
         show = false;
         dispatch('close');
-        // Reset form
         form = {
             account: accountId,
             entryDate: getCurrentDateTime(),
@@ -229,7 +258,6 @@
             leverage: 1,
         };
         errors = {};
-        touched = {};
         previousSymbol = "";
     }
 
@@ -337,11 +365,10 @@
                                         bind:value={form.symbol}
                                         required
                                         placeholder="Select or add symbol"
-                                        on:input={handleInput("symbol")}
                                         {accountId}
                                     />
                                 </div>
-                                {#if touched.symbol && errors.symbol}
+                                {#if errors.symbol}
                                     <p class="mt-2 text-sm text-red-500">
                                         {errors.symbol}
                                     </p>
@@ -399,9 +426,7 @@
                                     bind:value={form.entryDate}
                                     max={new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16)}
                                     required
-                                    error={touched.entryDate &&
-                                        errors.entryDate}
-                                    on:input={handleInput("entryDate")}
+                                    error={errors.entryDate}
                                 />
                                 {#if form.status === "CLOSED"}
                                     <Input
@@ -410,9 +435,7 @@
                                         bind:value={form.exitDate}
                                         max={new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16)}
                                         required
-                                        error={touched.exitDate &&
-                                            errors.exitDate}
-                                        on:input={handleInput("exitDate")}
+                                        error={errors.exitDate}
                                     />
                                 {/if}
                                 <Input
@@ -421,8 +444,7 @@
                                     step="0.00000001"
                                     bind:value={form.quantity}
                                     placeholder="0.00"
-                                    error={touched.quantity && errors.quantity}
-                                    on:input={handleInput("quantity")}
+                                    error={errors.quantity}
                                 />
                                 <Input
                                     label="Leverage"
@@ -431,8 +453,7 @@
                                     min="1"
                                     bind:value={form.leverage}
                                     placeholder="1"
-                                    error={touched.leverage && errors.leverage}
-                                    on:input={handleInput("leverage")}
+                                    error={errors.leverage}
                                 />
                             </div>
 
@@ -445,9 +466,7 @@
                                     bind:value={form.entryPrice}
                                     required
                                     placeholder="0.00"
-                                    error={touched.entryPrice &&
-                                        errors.entryPrice}
-                                    on:input={handleInput("entryPrice")}
+                                    error={errors.entryPrice}
                                 />
                                 {#if form.status === "CLOSED"}
                                     <Input
@@ -457,9 +476,7 @@
                                         bind:value={form.exitPrice}
                                         required
                                         placeholder="0.00"
-                                        error={touched.exitPrice &&
-                                            errors.exitPrice}
-                                        on:input={handleInput("exitPrice")}
+                                        error={errors.exitPrice}
                                     />
                                 {/if}
                                 <Input
@@ -469,8 +486,7 @@
                                     bind:value={form.amount}
                                     required
                                     placeholder="0.00"
-                                    error={touched.amount && errors.amount}
-                                    on:input={handleInput("amount")}
+                                    error={errors.amount}
                                 />
                                 {#if form.status === "CLOSED"}
                                     <div class="flex items-end gap-2">
@@ -481,8 +497,7 @@
                                             bind:value={form.pnl}
                                             required
                                             placeholder="0.00"
-                                            error={touched.pnl && errors.pnl}
-                                            on:input={handleInput("pnl")}
+                                            error={errors.pnl}
                                         />
                                         <Button
                                             type="button"
@@ -652,8 +667,7 @@
                                 type="url"
                                 bind:value={form.url}
                                 placeholder="Enter a URL (e.g., TradingView chart, image, etc.)"
-                                error={touched.url && errors.url}
-                                on:input={handleInput("url")}
+                                error={errors.url}
                                 disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             />
                         </div>
