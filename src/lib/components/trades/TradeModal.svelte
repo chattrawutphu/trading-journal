@@ -199,12 +199,14 @@
         close();
     }
 
-    function close() {
-        dispatch("close");
+    function handleClose() {
+        show = false;
+        dispatch('close');
+        // Reset form
         form = {
             account: accountId,
-            entryDate: getCurrentDateTime(), // Reset to current date and time
-            exitDate: getCurrentDateTime(), // Reset to current date and time
+            entryDate: getCurrentDateTime(),
+            exitDate: getCurrentDateTime(),
             symbol: "",
             status: "OPEN",
             side: "LONG",
@@ -262,7 +264,7 @@
             <div
                 class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
-                <div class="flex items-center gap-3">
+                <div class="flex-1 flex items-center gap-3">
                     <h2
                         class="text-2xl font-bold bg-gradient-to-r from-theme-500 to-theme-600 bg-clip-text text-transparent"
                     >
@@ -276,6 +278,24 @@
                         </div>
                     {/if}
                 </div>
+                <button
+                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
+                    on:click={handleClose}
+                >
+                    <svg 
+                        class="w-6 h-6" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                    >
+                        <path 
+                            stroke-linecap="round" 
+                            stroke-linejoin="round" 
+                            stroke-width="2" 
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
+                </button>
                 {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                     <Button
                         type="button"
@@ -668,7 +688,7 @@
                     {/if}
                 </div>
                 <div class="flex gap-4">
-                    <Button type="button" variant="secondary" size="sm" on:click={close}>
+                    <Button type="button" variant="secondary" size="sm" on:click={handleClose}>
                         Cancel
                     </Button>
                     <Button

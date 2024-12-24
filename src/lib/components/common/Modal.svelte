@@ -6,7 +6,12 @@
     export let show = false;
     export let closeOnClickOutside = true;
     export let title = '';
-    export let maxWidth = 'max-w-lg';
+    export let maxWidth = 'max-w-2xl';
+    export let showCloseButton = true;
+
+    function close() {
+        dispatch("close");
+    }
 </script>
 
 {#if show}

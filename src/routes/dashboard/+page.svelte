@@ -11,7 +11,6 @@
     import Modal from "$lib/components/common/Modal.svelte";
     import { api } from "$lib/utils/api";
     import { loadingStore } from '$lib/stores/loadingStore';
-    import { tradeDate } from '$lib/stores/tradeDateStore';
 
     // Add widget configurations
     const defaultWidgetConfigs = {
@@ -60,20 +59,13 @@
     let error = "";
     let openTrades = [];
     let closedTrades = [];
-    let showDayModal = false;
     let showEditModal = false;
     let showViewModal = false;
-    let showNewTradeModal = false;
     let showAccountModal = false;
     let selectedTrade = null;
-    let newTradeDate = "";
     let currentAccountId = null;
-    let showDeleteConfirmModal = false;
-    let deleteType = ''; 
-    let deleteContext = ''; 
-    let selectedItems = [];
-    let dayTradesLoading = false;
     let editMode = false;
+    let trades = [];
 
     // Layout management
     let layouts = [{
@@ -84,7 +76,6 @@
     let showNewLayoutModal = false;
     let newLayoutName = '';
     let showLayoutDropdown = false;
-    let trades = [];
 
     onMount(async () => {
         try {
@@ -243,58 +234,12 @@
         }
     }
 
-    async function handleSubmit(event) {
-        try {
-            loadingStore.set(true); // Set loading to true
-            error = "";
-
-            if (selectedTrade) {
-                await api.updateTrade(selectedTrade._id, event.detail);
-            } else {
-                await api.createTrade(event.detail);
-            }
-
-            await loadTrades();
-            // Refresh account data to update balance
-            await accountStore.setCurrentAccount(
-                $accountStore.currentAccount._id,
-            );
-            // Dispatch trade update event for stats
-            window.dispatchEvent(new CustomEvent("tradeupdate"));
-            showEditModal = false;
-            showNewTradeModal = false;
-            selectedTrade = null;
-            newTradeDate = "";
-        } catch (err) {
-            error = err.message;
-        } finally {
-            loadingStore.set(false); // Set loading to false
-        }
-    }
-
-    function closeEditModal() {
-        showEditModal = false;
-        selectedTrade = null;
-    }
-
     function closeViewModal() {
         showViewModal = false;
         selectedTrade = null;
     }
 
-    function closeDayModal() {
-        showDayModal = false;
-        selectedDate = "";
-        selectedDisplayDate = "";
-        selectedDayTrades = [];
-        selectedDayTransactions = [];
-    }
-
     function handleNewTrade() {
-        // When clicking New Trade button, use current date
-        const now = new Date();
-        now.setHours(12, 0, 0, 0);
-        newTradeDate = now.toISOString().slice(0, 10);
         selectedTrade = null; 
         showEditModal = true;
     }
@@ -312,19 +257,6 @@
                       100,
               )
             : 0;
-
-    function handleDayClick(event) {
-        if (!event.detail?.date) {
-            console.error('No date in event detail');
-            return;
-        }
-
-        selectedDate = event.detail.date;
-        selectedDisplayDate = event.detail.displayDate;
-        selectedDayTrades = event.detail.trades;
-        selectedDayTransactions = event.detail.transactions;
-        showDayModal = true;
-    }
 </script>
 
 
@@ -468,11 +400,8 @@
                         }
                     }}
                     on:editModeChange={(e) => editMode = e.detail}
-                    on:dayClick={handleDayClick}
                     on:view={handleView}
                     on:edit={handleEdit}
-                    on:delete={handleDelete}
-                    on:deleteTransaction={handleDeleteTransaction}
                     on:newTrade={handleNewTradeFromCalendar}
                 />
             {:else}
@@ -576,8 +505,7 @@
         bind:show={showEditModal}
         trade={selectedTrade}
         accountId={$accountStore.currentAccount._id}
-        on:submit={handleSubmit}
-        on:close={closeEditModal}
+        on:tradeUpdated={loadTrades}
     />
 
     <TradeViewModal
