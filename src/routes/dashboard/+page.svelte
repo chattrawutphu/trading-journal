@@ -192,40 +192,8 @@
     }
 
     function handleNewTradeFromCalendar(event) {
-        if (!event.detail?.date) {
-            // ถ้า event.detail เป็น string (วันที่โดยตรง)
-            if (typeof event.detail === 'string') {
-                try {
-                    const selectedDate = new Date(event.detail);
-                    if (!isNaN(selectedDate.getTime())) {
-                        selectedDate.setHours(12, 0, 0, 0);
-                        newTradeDate = selectedDate.toISOString().slice(0, 10);
-                        selectedTrade = null;
-                        showEditModal = true;
-                        return;
-                    }
-                } catch (err) {
-                    console.error('Error parsing date string:', err);
-                }
-            }
-            console.error('No date passed from child modal!');
-            return;
-        }
-
-        try {
-            const selectedDate = new Date(event.detail.date);
-            if (isNaN(selectedDate.getTime())) {
-                console.error('Invalid date:', event.detail.date);
-                return;
-            }
-            
-            selectedDate.setHours(12, 0, 0, 0);
-            newTradeDate = selectedDate.toISOString().slice(0, 10);
-            selectedTrade = null;
-            showEditModal = true;
-        } catch (err) {
-            console.error('Error processing date:', err);
-        }
+        selectedTrade = null;
+        showEditModal = true;
     }
 
     function handleView(event) {

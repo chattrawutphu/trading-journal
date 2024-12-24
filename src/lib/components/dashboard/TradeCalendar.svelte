@@ -355,7 +355,7 @@
     }
 
     function handleNewTrade(event) {
-        dispatch('newTrade', event.detail);
+        dispatch('newTrade');
     }
 
     function previousMonth() {
