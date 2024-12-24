@@ -297,44 +297,144 @@
 </script>
 
 <div class="space-y-4 p-8 pb-0 pt-4">
-    {#if error}
-        <div class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">
-            <div class="flex">
-                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                </svg>
-                <span>{error}</span>
-            </div>
-        </div>
+    {#if $loadingStore}
+        <Loading message="Loading..." overlay={true} />
     {/if}
 
-    <!-- Header -->
-    <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">History</h1>
-        {#if $accountStore.currentAccount}
-            {#if activeTab === 'trades'}
-                <Button variant="primary" size="sm" on:click={() => showEditModal = true}>
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    <div class="transition-opacity duration-200" class:opacity-0={$loadingStore}>
+        <!-- Content -->
+        {#if error}
+            <div class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">
+                <div class="flex">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                     </svg>
-                    New Trade
-                </Button>
-            {:else if activeTab === 'transactions'}
-                <div class="flex gap-2">
-                    <Button variant="primary" size="sm" on:click={() => showDepositModal = true}>
+                    <span>{error}</span>
+                </div>
+            </div>
+        {/if}
+
+        <!-- Header -->
+        <div class="flex justify-between items-center">
+            <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">History</h1>
+            {#if $accountStore.currentAccount}
+                {#if activeTab === 'trades'}
+                    <Button variant="primary" size="sm" on:click={() => showEditModal = true}>
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
-                        Deposit
+                        New Trade
                     </Button>
-                    <Button variant="primary" size="sm" on:click={() => showWithdrawModal = true}>
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                {:else if activeTab === 'transactions'}
+                    <div class="flex gap-2">
+                        <Button variant="primary" size="sm" on:click={() => showDepositModal = true}>
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Deposit
+                        </Button>
+                        <Button variant="primary" size="sm" on:click={() => showWithdrawModal = true}>
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            </svg>
+                            Withdraw
+                        </Button>
+                    </div>
+                {/if}
+            {/if}
+        </div>
+
+        {#if $accountStore.currentAccount}
+            <!-- Tab Navigation -->
+            <div class="border-b border-light-border dark:border-dark-border">
+                <nav class="-mb-px flex space-x-8">
+                    <button
+                        class="py-4 px-1 border-b-2 font-medium text-sm  {activeTab === 'trades' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
+                        on:click={() => activeTab = 'trades'}
+                    >
+                        Trades
+                    </button>
+                    <button
+                        class="py-4 px-1 border-b-2 font-medium text-sm  {activeTab === 'transactions' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
+                        on:click={() => activeTab = 'transactions'}
+                    >
+                        Transactions
+                    </button>
+                </nav>
+            </div>
+
+            {#if hasTrades}
+                <!-- Filters -->
+                <TradeFilters />
+
+                {#if hasOpenTrades}
+                    <!-- Open Trades -->
+                    <div class="card">
+                        <div class="p-4 border-b border-light-border dark:border-dark-border">
+                            <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Open Positions</h2>
+                        </div>
+                        <TradeTable 
+                            trades={openTrades}
+                            type="open"
+                            on:view={handleView}
+                            on:edit={handleEdit}
+                            on:delete={e => handleDelete(e.detail)}
+                            on:favorite={e => handleFavorite(e.detail)}
+                            on:disable={e => handleDisable(e.detail)}
+                            on:deleteConfirm={handleDeleteConfirm}
+                        />
+                    </div>
+                {/if}
+
+                {#if hasClosedTrades}
+                    <!-- Closed Trades -->
+                    <div class="card">
+                        <div class="p-4 border-b border-light-border dark:border-dark-border">
+                            <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Positions</h2>
+                        </div>
+                        <TradeTable 
+                            trades={closedTrades}
+                            type="closed"
+                            on:view={handleView}
+                            on:edit={handleEdit}
+                            on:delete={e => handleDelete(e.detail)}
+                            on:favorite={e => handleFavorite(e.detail)}
+                            on:disable={e => handleDisable(e.detail)}
+                            on:deleteConfirm={handleDeleteConfirm}
+                        />
+                    </div>
+                {/if}
+            {:else}
+                <div class="card p-8 text-center">
+                    <div class="flex flex-col items-center justify-center space-y-4">
+                        <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        Withdraw
-                    </Button>
+                        <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">No trades found</h2>
+                        <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
+                            Start tracking your trades by clicking the "New Trade" button above.
+                        </p>
+                    </div>
                 </div>
             {/if}
+        {:else}
+            <div class="card p-16 text-center space-y-6">
+                <div class="flex flex-col items-center justify-center space-y-4">
+                    <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">Create an account to see your trading history</h2>
+                    <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
+                        Track your trades, manage your transactions, and analyze your performance with our comprehensive trading tools.
+                    </p>
+                    <Button variant="primary" size="sm" on:click={handleAddAccount}>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Account
+                    </Button>
+                </div>
+            </div>
         {/if}
     </div>
 

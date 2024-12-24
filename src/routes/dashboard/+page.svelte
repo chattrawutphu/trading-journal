@@ -492,61 +492,37 @@
             <Loading message="Loading..." overlay={true} />
         {/if}
         
-        {#if $accountStore.currentAccount}
-            <WidgetLayout 
-                {trades}
-                accountId={$accountStore.currentAccount._id}
-                {openTrades} 
-                {closedTrades} 
-                {totalPnL} 
-                {winRate}
-                widgets={layouts[activeLayoutIndex]?.widgets || []}
-                bind:editMode
-                on:updateWidgets={(e) => {
-                    if (layouts[activeLayoutIndex]) {
-                        layouts[activeLayoutIndex].widgets = e.detail;
-                        saveLayouts();
-                    }
-                }}
-                on:editModeChange={(e) => editMode = e.detail}
-                on:dayClick={handleDayClick}
-                on:monthClick={handleDayClick}
-                on:view={handleView}
-                on:edit={handleEdit}
-                on:delete={handleDelete}
-                on:deleteTransaction={handleDeleteTransaction}
-                on:newTrade={handleNewTradeFromCalendar}
-            />
-        {:else}
-            <div class="card p-16 text-center space-y-6">
-                <div class="flex flex-col items-center justify-center space-y-4">
-                    <svg
-                        class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                        />
-                    </svg>
-                    <h2
-                        class="text-2xl font-bold text-light-text dark:text-dark-text"
-                    >
-                        Create an account to see your trading statistics
-                    </h2>
-                    <p
-                        class="text-light-text-muted dark:text-dark-text-muted max-w-md"
-                    >
-                        Track your performance, analyze your trades, and improve
-                        your trading strategy with our comprehensive trading tools.
-                    </p>
-                    <Button variant="primary" size="sm" on:click={handleAddAccount}>
+        <div class="transition-opacity duration-200" class:opacity-0={$loadingStore}>
+            {#if $accountStore.currentAccount}
+                <WidgetLayout 
+                    {trades}
+                    accountId={$accountStore.currentAccount._id}
+                    {openTrades} 
+                    {closedTrades} 
+                    {totalPnL} 
+                    {winRate}
+                    widgets={layouts[activeLayoutIndex]?.widgets || []}
+                    bind:editMode
+                    on:updateWidgets={(e) => {
+                        if (layouts[activeLayoutIndex]) {
+                            layouts[activeLayoutIndex].widgets = e.detail;
+                            saveLayouts();
+                        }
+                    }}
+                    on:editModeChange={(e) => editMode = e.detail}
+                    on:dayClick={handleDayClick}
+                    on:monthClick={handleDayClick}
+                    on:view={handleView}
+                    on:edit={handleEdit}
+                    on:delete={handleDelete}
+                    on:deleteTransaction={handleDeleteTransaction}
+                    on:newTrade={handleNewTradeFromCalendar}
+                />
+            {:else}
+                <div class="card p-16 text-center space-y-6">
+                    <div class="flex flex-col items-center justify-center space-y-4">
                         <svg
-                            class="w-5 h-5 mr-2"
+                            class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -555,14 +531,40 @@
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
                                 stroke-width="2"
-                                d="M12 4v16m8-8H4"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                             />
                         </svg>
-                        Add Account
-                    </Button>
+                        <h2
+                            class="text-2xl font-bold text-light-text dark:text-dark-text"
+                        >
+                            Create an account to see your trading statistics
+                        </h2>
+                        <p
+                            class="text-light-text-muted dark:text-dark-text-muted max-w-md"
+                        >
+                            Track your performance, analyze your trades, and improve
+                            your trading strategy with our comprehensive trading tools.
+                        </p>
+                        <Button variant="primary" size="sm" on:click={handleAddAccount}>
+                            <svg
+                                class="w-5 h-5 mr-2"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M12 4v16m8-8H4"
+                                />
+                            </svg>
+                            Add Account
+                        </Button>
+                    </div>
                 </div>
-            </div>
-        {/if}
+            {/if}
+        </div>
     </div>
 </div>
 
