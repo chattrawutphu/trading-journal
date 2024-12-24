@@ -1,6 +1,6 @@
 <script>
     import { createEventDispatcher } from "svelte";
-    import { fade, fly } from "svelte/transition";
+    import { fade } from "svelte/transition";
     import Button from "../common/Button.svelte";
     import TradeTable from "../trades/TradeTable.svelte";
     import TransactionTable from "../transactions/TransactionTable.svelte";
@@ -8,7 +8,6 @@
     import { transactionStore } from "$lib/stores/transactionStore";
     import { accountStore } from '$lib/stores/accountStore';
     import Loading from "$lib/components/common/Loading.svelte";
-    import Input from "$lib/components/common/Input.svelte";
     import { transactionDate } from '$lib/stores/transactionDateStore';
     import { tradeDate } from '$lib/stores/tradeDateStore';
     import Modal from '../common/Modal.svelte';

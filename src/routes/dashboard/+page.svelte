@@ -11,6 +11,7 @@
     import Modal from "$lib/components/common/Modal.svelte";
     import { api } from "$lib/utils/api";
     import { loadingStore } from '$lib/stores/loadingStore';
+    import { tradeDate } from '$lib/stores/tradeDateStore';
 
     // Add widget configurations
     const defaultWidgetConfigs = {
@@ -191,7 +192,7 @@
         }
     }
 
-    function handleNewTradeFromCalendar(event) {
+    function handleNewTradeFromCalendar() {
         selectedTrade = null;
         showEditModal = true;
     }
@@ -199,13 +200,11 @@
     function handleView(event) {
         selectedTrade = event.detail;
         showViewModal = true;
-        showDayModal = false;
     }
 
     function handleEdit(event) {
         selectedTrade = event.detail;
         showEditModal = true;
-        showDayModal = false;
     }
 
     async function handleDelete(event) {
@@ -577,7 +576,6 @@
         bind:show={showEditModal}
         trade={selectedTrade}
         accountId={$accountStore.currentAccount._id}
-        date={newTradeDate}
         on:submit={handleSubmit}
         on:close={closeEditModal}
     />
