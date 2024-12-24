@@ -9,6 +9,7 @@
     export let min = undefined;
     export let max = undefined;
     export let step = undefined;
+    export let className = "";
 
     // For datetime-local inputs, set max to current date-time if not provided
     $: if (type === 'datetime-local' && max === undefined) {
@@ -28,7 +29,7 @@
     <div class="relative">
         {#if type === 'text'}
             <input
-                class="input {error ? 'error' : ''}"
+                class="input {error ? 'error' : ''} {className}"
                 type="text"
                 bind:value
                 {placeholder}
@@ -40,7 +41,7 @@
             />
         {:else if type === 'password'}
             <input
-                class="input {error ? 'error' : ''}"
+                class="input {error ? 'error' : ''} {className}"
                 type="password"
                 bind:value
                 {placeholder}
@@ -52,7 +53,7 @@
             />
         {:else if type === 'number'}
             <input
-                class="input {error ? 'error' : ''}"
+                class="input {error ? 'error' : ''} {className}"
                 type="number"
                 bind:value
                 {placeholder}
@@ -67,7 +68,7 @@
             />
         {:else if type === 'datetime-local'}
             <input
-                class="input {error ? 'error' : ''}"
+                class="input {error ? 'error' : ''} {className}"
                 type="datetime-local"
                 bind:value
                 {placeholder}
@@ -82,7 +83,7 @@
             />
         {:else if type === 'date'}
             <input
-                class="input {error ? 'error' : ''}"
+                class="input {error ? 'error' : ''} {className}"
                 type="date"
                 bind:value
                 {placeholder}
@@ -104,7 +105,7 @@
 
 <style lang="postcss">
     .input {
-        @apply w-full px-3 py-2 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-lg shadow-sm text-light-text dark:text-dark-text placeholder-light-text-muted dark:placeholder-dark-text-muted focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent ;
+        @apply w-full px-2.5 py-1.5 text-sm rounded-md;
     }
 
     .input.error {
@@ -114,6 +115,7 @@
     .input:disabled {
         @apply opacity-50 cursor-not-allowed;
     }
+
 
     /* Style for disabled dates in datetime-local input */
     input[type="datetime-local"]::-webkit-calendar-picker-indicator {
@@ -132,5 +134,10 @@
     input[type="datetime-local"]:out-of-range::-webkit-datetime-edit-day-field,
     input[type="datetime-local"]:out-of-range::-webkit-datetime-edit-text {
         @apply text-red-500;
+    }
+
+    /* Adjust error message size */
+    p.text-sm {
+        @apply text-[13px];
     }
 </style>

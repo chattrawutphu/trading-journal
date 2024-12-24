@@ -1,12 +1,10 @@
 <script>
-    export let options = [];
-    export let value = "";
     export let label = "";
+    export let value = "";
+    export let options = [];
     export let placeholder = "";
     export let required = false;
-    export let error = "";
     export let disabled = false;
-    export let className = "";
 </script>
 
 <div class="space-y-1">
@@ -19,10 +17,10 @@
         </label>
     {/if}
     <select
-        class="select {error ? 'error' : ''} {className}"
         bind:value
         {required}
         {disabled}
+        class="select"
         on:change
     >
         {#if placeholder}
@@ -32,21 +30,19 @@
             <option value={option.value}>{option.label}</option>
         {/each}
     </select>
-    {#if error}
-        <p class="text-sm text-red-500">{error}</p>
-    {/if}
 </div>
 
 <style lang="postcss">
     .select {
-        @apply w-full px-3 py-2 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-lg shadow-sm text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent ;
-    }
-
-    .select.error {
-        @apply border-red-500 focus:ring-red-500;
+        @apply w-full px-2.5 py-1.5 h-8 text-sm bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-md shadow-sm text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-theme-500 focus:border-transparent;
     }
 
     .select:disabled {
         @apply opacity-50 cursor-not-allowed;
+    }
+
+    /* Style for select options */
+    .select option {
+        @apply bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text py-1 text-sm;
     }
 </style>

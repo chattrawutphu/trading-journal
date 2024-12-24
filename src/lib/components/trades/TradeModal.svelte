@@ -285,22 +285,22 @@
 
 {#if show}
     <div
-        class="fixed modal inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+        class="fixed modal inset-0 bg-black/50 z-50 flex items-center justify-center p-2"
         transition:fade={{ duration: 150 }}>
-        <div class="card w-full max-w-4xl mx-auto relative transform ease-out">
+        <div class="card w-full max-w-2xl mx-auto relative transform ease-out">
             <!-- Header -->
             <div
-                class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-4 py-3 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <div class="flex-1 flex items-center gap-3">
                     <h2
-                        class="text-2xl font-bold bg-gradient-to-r from-theme-500 to-theme-600 bg-clip-text text-transparent"
+                        class="text-lg font-bold bg-gradient-to-r from-theme-500 to-theme-600 bg-clip-text text-transparent"
                     >
                         {trade ? "Edit Trade" : "New Trade"}
                     </h2>
                     {#if form.symbol}
                         <div
-                            class="text-sm px-3 py-1 rounded-full bg-light-hover dark:bg-dark-hover text-light-text-muted dark:text-dark-text-muted"
+                            class="text-base px-3 py-1 rounded-full bg-light-hover dark:bg-dark-hover text-light-text-muted dark:text-dark-text-muted"
                         >
                             {form.symbol}
                         </div>
@@ -327,34 +327,34 @@
                 {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                     <Button
                         type="button"
-                        variant="secondary"
+                        variant="link"
                         size="small"
                         on:click={upgradePlan}
-                        class="text-sm"
+                        class="text-base"
                     >
-                        Upgrade Plan
+                        Upgrade
                     </Button>
                 {/if}
             </div>
 
             <!-- Scrollable Content -->
-            <div class="px-8 py-6 max-h-[calc(100vh-16rem)] overflow-y-auto">
-                <form on:submit|preventDefault={handleSubmit} class="space-y-3">
+            <div class="px-4 py-3 max-h-[calc(100vh-10rem)] overflow-y-auto">
+                <form on:submit|preventDefault={handleSubmit} class="space-y-2">
                     <!-- Basic Info Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-md p-3 space-y-2"
                     >
                         <h3
-                            class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"
+                            class="text-base font-semibold text-light-text dark:text-dark-text mb-2"
                         >
                             Trade Details
                         </h3>
 
-                        <div class="grid grid-cols-2 gap-6">
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label
                                 for="trade-symbol"
-                                    class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-2"
+                                    class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-1"
                                 >
                                     Symbol
                                     <span class="text-red-500">*</span>
@@ -382,7 +382,7 @@
                             />
                         </div>
 
-                        <div class="grid grid-cols-2 gap-6">
+                        <div class="grid grid-cols-2 gap-4">
                             <Select
                                 label="Status"
                                 options={statusOptions}
@@ -392,7 +392,7 @@
                             <div>
                                 <label
                                     for="trade-strategy"
-                                    class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-2"
+                                    class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted mb-1"
                                 >
                                     Strategy
                                 </label>
@@ -409,10 +409,10 @@
 
                     <!-- Trade Details Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-md p-3 space-y-2"
                     >
                         <h3
-                            class="text-lg font-semibold text-light-text dark:text-dark-text mb-4"
+                            class="text-base font-semibold text-light-text dark:text-dark-text mb-2"
                         >
                             Entry & Exit
                         </h3>
@@ -441,7 +441,7 @@
                                 <Input
                                     label="Quantity"
                                     type="number"
-                                    step="0.00000001"
+                                    className="no-spinners"
                                     bind:value={form.quantity}
                                     placeholder="0.00"
                                     error={errors.quantity}
@@ -462,7 +462,7 @@
                                 <Input
                                     label="Entry Price"
                                     type="number"
-                                    step="0.00000001"
+                                    className="no-spinners"
                                     bind:value={form.entryPrice}
                                     required
                                     placeholder="0.00"
@@ -472,7 +472,7 @@
                                     <Input
                                         label="Exit Price"
                                         type="number"
-                                        step="0.00000001"
+                                        className="no-spinners"
                                         bind:value={form.exitPrice}
                                         required
                                         placeholder="0.00"
@@ -482,7 +482,7 @@
                                 <Input
                                     label="Amount (USD)"
                                     type="number"
-                                    step="0.01"
+                                    className="no-spinners"
                                     bind:value={form.amount}
                                     required
                                     placeholder="0.00"
@@ -493,7 +493,7 @@
                                         <Input
                                             label="P&L"
                                             type="number"
-                                            step="0.01"
+                                            className="no-spinners"
                                             bind:value={form.pnl}
                                             required
                                             placeholder="0.00"
@@ -527,10 +527,10 @@
 
                     <!-- Analysis Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-md p-3 space-y-2"
                     >
                         <h3
-                            class="text-lg font-semibold text-light-text dark:text-dark-text mb-4 flex justify-between items-center"
+                            class="text-base font-semibold text-light-text dark:text-dark-text mb-2 flex justify-between items-center"
                         >
                             Analysis
                             {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
@@ -539,7 +539,7 @@
                                     variant="link"
                                     size="small"
                                     on:click={upgradePlan}
-                                    class="text-sm"
+                                    class="text-base"
                                 >
                                     Upgrade
                                 </Button>
@@ -567,7 +567,7 @@
                         </div>
 
                         <!-- Trade Levels -->
-                        <div class="grid grid-cols-2 gap-6">
+                        <div class="grid grid-cols-2 gap-4">
                             <Select
                                 label="Confidence Level"
                                 options={levelOptions}
@@ -583,9 +583,9 @@
                         </div>
 
                         <!-- Trade Settings -->
-                        <div class="grid grid-cols-2 gap-6">
+                        <div class="grid grid-cols-2 gap-4">
                             <label
-                                class="flex items-center gap-3 p-3 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover  cursor-pointer group"
+                                class="flex items-center gap-1.5 p-1.5 rounded hover:bg-light-hover dark:hover:bg-dark-hover cursor-pointer group select-none"
                             >
                                 <input
                                     type="checkbox"
@@ -594,13 +594,13 @@
                                     disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
                                 <span
-                                    class="text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text "
+                                    class="text-sm text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text"
                                 >
                                     Has Stop Loss
                                 </span>
                             </label>
                             <label
-                                class="flex items-center gap-3 p-3 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover  cursor-pointer group"
+                                class="flex items-center gap-1.5 p-1.5 rounded hover:bg-light-hover dark:hover:bg-dark-hover cursor-pointer group select-none"
                             >
                                 <input
                                     type="checkbox"
@@ -609,7 +609,7 @@
                                     disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
                                 <span
-                                    class="text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text "
+                                    class="text-sm text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text"
                                 >
                                     Has Take Profit
                                 </span>
@@ -619,10 +619,10 @@
 
                     <!-- Additional Info Section -->
                     <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-6 space-y-3"
+                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-md p-3 space-y-2"
                     >
                         <h3
-                            class="text-lg font-semibold text-light-text dark:text-dark-text mb-4 flex justify-between items-center"
+                            class="text-base font-semibold text-light-text dark:text-dark-text mb-2 flex justify-between items-center"
                         >
                             Additional Information
                             {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
@@ -631,7 +631,7 @@
                                     variant="link"
                                     size="small"
                                     on:click={upgradePlan}
-                                    class="text-sm"
+                                    class="text-base"
                                 >
                                     Upgrade
                                 </Button>
@@ -646,30 +646,42 @@
                                 placeholder="How did you feel during this trade?"
                                 disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             />
-                            <div>
+                            <div class="space-y-1">
                                 <label
-                                for="trade-notes"
-                                    class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-2"
+                                    for="trade-notes"
+                                    class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
                                 >
                                     Notes
                                 </label>
                                 <textarea
-                                id="trade-notes"
+                                    id="trade-notes"
                                     bind:value={form.notes}
                                     rows="3"
-                                    class="input w-full resize-none"
+                                    class="w-full px-2.5 py-1.5 text-sm rounded-md border border-light-border dark:border-dark-border bg-light-bg dark:bg-dark-bg resize-none"
                                     placeholder="Additional notes about the trade..."
+                                    disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
                             </div>
 
-                            <Input
-                                label="URL"
-                                type="url"
-                                bind:value={form.url}
-                                placeholder="Enter a URL (e.g., TradingView chart, image, etc.)"
-                                error={errors.url}
-                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
-                            />
+                            <div class="space-y-1">
+                                <label
+                                    for="trade-url"
+                                    class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
+                                >
+                                    URL
+                                </label>
+                                <input
+                                    id="trade-url"
+                                    type="url"
+                                    bind:value={form.url}
+                                    class="w-full px-2.5 py-1.5 h-8 text-sm rounded-md border border-light-border dark:border-dark-border bg-light-bg dark:bg-dark-bg"
+                                    placeholder="Enter a URL (e.g., TradingView chart, image, etc.)"
+                                    disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                />
+                                {#if errors.url}
+                                    <p class="text-sm text-red-500">{errors.url}</p>
+                                {/if}
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -677,7 +689,7 @@
 
             <!-- Footer -->
             <div
-                class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-4 py-2 border-t border-light-border dark:border-dark-border flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <div class="flex items-center">
                     {#if Object.keys(errors).length > 0}
@@ -721,12 +733,10 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl ;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl;
     }
 
-    .checkbox {
-        @apply h-5 w-5 rounded border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-theme-500 focus:ring-theme-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-bg ;
-    }
+
 
     .input-wrapper :global(input),
     .input-wrapper :global(.input) {
@@ -740,4 +750,21 @@
     .input-wrapper :global(.input.success) {
         @apply border-green-500 focus:ring-green-500;
     }
+
+    .input {
+        @apply w-full px-2.5 py-1.5 text-sm rounded-md;
+    }
+    
+    /* Hide number input spinners for decimal inputs */
+    input[type="number"].no-spinners::-webkit-outer-spin-button,
+    input[type="number"].no-spinners::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    input[type="number"].no-spinners {
+        -moz-appearance: textfield;
+    }
+    
+    /* Override global input styles */
 </style>

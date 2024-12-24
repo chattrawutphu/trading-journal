@@ -199,16 +199,16 @@
             on:focus={() => isOpen = true}
             on:keydown={handleKeydown}
             {placeholder}
-            class="input w-full pr-10 bg-light-bg dark:bg-dark-bg"
+            class="input w-full pr-8 px-2.5 py-1.5 h-8 text-sm bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-md"
             disabled={editingOption !== null}
         />
-        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+        <div class="absolute inset-y-0 right-0 flex items-center pr-2">
             <button
                 type="button"
-                class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text-muted dark:hover:text-dark-text "
+                class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text"
                 on:click={() => isOpen = !isOpen}
             >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
             </button>
@@ -217,115 +217,114 @@
 
     <!-- Dropdown -->
     {#if isOpen}
-        <div 
-            class="absolute z-50 w-full mt-1 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-lg shadow-lg divide-y divide-light-border dark:divide-dark-border max-h-[300px] overflow-auto"
+        <div class="absolute z-50 w-full mt-1 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-md shadow-lg divide-y divide-light-border dark:divide-dark-border max-h-[240px] overflow-auto"
             transition:fade={{ duration: 100 }}
         >
             {#if loading}
-                <div class="p-4 text-center text-light-text-muted dark:text-dark-text-muted">
+                <div class="p-2 text-center text-sm text-light-text-muted dark:text-dark-text-muted">
                     Loading...
                 </div>
             {:else if error}
-                <div class="p-4 text-center text-red-500">
+                <div class="p-2 text-center text-sm text-red-500">
                     {error}
                 </div>
-            {:else}
-                <!-- Options List -->
-                {#if filteredOptions.length > 0}
-                    <div class="max-h-[200px] overflow-y-auto">
-                        {#each filteredOptions as option}
-                            <div class="group relative hover:bg-light-hover dark:hover:bg-dark-hover ">
-                                {#if editingOption?.value === option.value}
-                                    <div class="flex items-center p-2">
-                                        <input
-                                            type="text"
-                                            bind:value={editValue}
-                                            on:keydown={handleKeydown}
-                                            class="input flex-1 mr-2 bg-light-bg dark:bg-dark-bg"
-                                            autofocus
-                                        />
-                                        <div class="flex space-x-1">
-                                            <Button 
-                                                variant="primary"
-                                                size="sm"
-                                                on:click={() => handleUpdate(option)}
-                                            >
-                                                Save
-                                            </Button>
-                                            <Button 
-                                                variant="secondary"
-                                                size="sm"
-                                                on:click={() => {
-                                                    editingOption = null;
-                                                    editValue = '';
-                                                    searchTerm = value;
-                                                }}
-                                            >
-                                                Cancel
-                                            </Button>
-                                        </div>
-                                    </div>
-                                {:else}
-                                    <div class="flex items-center justify-between px-4 py-2">
-                                        <div 
-                                            class="flex-1 text-light-text-muted dark:text-dark-text cursor-pointer"
-                                            on:click={() => handleSelect(option)}
-                                        >
-                                            {option.value}
-                                        </div>
-                                        <div class="hidden group-hover:flex items-center space-x-1">
-                                            <button
-                                                type="button"
-                                                class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-light-text-muted dark:hover:text-dark-text"
-                                                on:click={(e) => startEditing(option, e)}
-                                            >
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                                </svg>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-red-500"
-                                                on:click={(e) => handleDelete(option, e)}
-                                            >
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                {/if}
-                            </div>
-                        {/each}
-                    </div>
-                {:else}
-                    <div class="p-4 text-center text-light-text-muted dark:text-dark-text-muted">
-                        No options found
-                    </div>
-                {/if}
+            {/if}
 
-                <!-- Add New Option Button -->
-                <div class="p-4 bg-light-card dark:bg-dark-card border-t border-light-border dark:border-dark-border">
-                    {#if searchTerm.trim() && !editingOption && !filteredOptions.some(opt => opt.value.toLowerCase() === searchTerm.trim().toLowerCase())}
-                        <Button 
-                            variant="primary"
-                            class="w-full"
-                            on:click={handleCreate}
-                        >
-                            <div class="flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                Add "{searchTerm.trim()}"
-                            </div>
-                        </Button>
-                    {:else}
-                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted text-center">
-                            Type to add new {type.toLowerCase()}
+            <!-- Options List -->
+            {#if filteredOptions.length > 0}
+                <div class="max-h-[160px] overflow-y-auto">
+                    {#each filteredOptions as option}
+                        <div class="group relative hover:bg-light-hover dark:hover:bg-dark-hover">
+                            {#if editingOption?.value === option.value}
+                                <div class="flex items-center p-1.5">
+                                    <input
+                                        type="text"
+                                        bind:value={editValue}
+                                        on:keydown={handleKeydown}
+                                        class="input flex-1 mr-1.5 px-2.5 py-1.5 h-8 text-sm bg-light-bg dark:bg-dark-bg rounded-md"
+                                        autofocus
+                                    />
+                                    <div class="flex space-x-1">
+                                        <Button 
+                                            variant="primary"
+                                            size="sm"
+                                            on:click={() => handleUpdate(option)}
+                                        >
+                                            Save
+                                        </Button>
+                                        <Button 
+                                            variant="secondary"
+                                            size="sm"
+                                            on:click={() => {
+                                                editingOption = null;
+                                                editValue = '';
+                                                searchTerm = value;
+                                            }}
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </div>
+                                </div>
+                            {:else}
+                                <div class="flex items-center justify-between px-2 py-1.5">
+                                    <div 
+                                        class="flex-1 text-sm text-light-text-muted dark:text-dark-text cursor-pointer"
+                                        on:click={() => handleSelect(option)}
+                                    >
+                                        {option.value}
+                                    </div>
+                                    <div class="hidden group-hover:flex items-center space-x-1">
+                                        <button
+                                            type="button"
+                                            class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text"
+                                            on:click={(e) => startEditing(option, e)}
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                            </svg>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-red-500"
+                                            on:click={(e) => handleDelete(option, e)}
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            {/if}
                         </div>
-                    {/if}
+                    {/each}
+                </div>
+            {:else}
+                <div class="p-2 text-center text-sm text-light-text-muted dark:text-dark-text-muted">
+                    No options found
                 </div>
             {/if}
+
+            <!-- Add New Option Button -->
+            <div class="p-2 bg-light-card dark:bg-dark-card border-t border-light-border dark:border-dark-border">
+                {#if searchTerm.trim() && !editingOption && !filteredOptions.some(opt => opt.value.toLowerCase() === searchTerm.trim().toLowerCase())}
+                    <Button 
+                        variant="primary"
+                        class="w-full"
+                        on:click={handleCreate}
+                    >
+                        <div class="flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add "{searchTerm.trim()}"
+                        </div>
+                    </Button>
+                {:else}
+                    <div class="text-sm text-light-text-muted dark:text-dark-text-muted text-center">
+                        Type to add new {type.toLowerCase()}
+                    </div>
+                {/if}
+            </div>
         </div>
     {/if}
 </div>
