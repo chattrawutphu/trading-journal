@@ -3,6 +3,7 @@
     import { theme } from "$lib/stores/themeStore";
     import { accountStore } from "$lib/stores/accountStore";
     import { transactionStore } from "$lib/stores/transactionStore";
+    import DayTradesModal from "./DayTradesModal.svelte";
     import Select from "../common/Select.svelte";
     import DatePicker from '../common/DatePicker.svelte';
     import { api } from '$lib/utils/api';
@@ -11,7 +12,12 @@
 
     export let trades = [];
     export let isPreview = false;
+    let showDayTradesModal = false;
+    let selectedDayTrades = [];
+    let selectedDayTransactions = [];
     let selectedDate = "";
+    let selectedDisplayDate = "";
+    let dayTradesLoading = false;
     let showMonthYearPicker = false;
     let showDatePicker = false;
     let currentAccountId = null;
@@ -325,16 +331,31 @@
             day: "numeric",
         });
 
-        dispatch("dayClick", {
-            date: formattedDate,
-            displayDate,
-            trades: stats?.trades || [],
-            transactions: stats?.transactions || [],
-        });
+        selectedDate = formattedDate;
+        selectedDisplayDate = displayDate;
+        selectedDayTrades = stats?.trades || [];
+        selectedDayTransactions = stats?.transactions || [];
+        showDayTradesModal = true;
     }
 
-    function handleNewTrade() {
-        dispatch("newTrade", selectedDate);
+    function handleView(event) {
+        dispatch('view', event.detail);
+    }
+
+    function handleEdit(event) {
+        dispatch('edit', event.detail);
+    }
+
+    function handleDelete(event) {
+        dispatch('delete', event.detail);
+    }
+
+    function handleDeleteTransaction(event) {
+        dispatch('deleteTransaction', event.detail);
+    }
+
+    function handleNewTrade(event) {
+        dispatch('newTrade', event.detail);
     }
 
     function previousMonth() {
@@ -548,6 +569,28 @@
         </div>
     </div>
 </div>
+
+<DayTradesModal
+    bind:show={showDayTradesModal}
+    trades={selectedDayTrades}
+    transactions={selectedDayTransactions}
+    date={selectedDate}
+    displayDate={selectedDisplayDate}
+    accountId={$accountStore.currentAccount?._id}
+    loading={dayTradesLoading}
+    on:view={handleView}
+    on:edit={handleEdit}
+    on:delete={handleDelete}
+    on:deleteTransaction={handleDeleteTransaction}
+    on:newTrade={handleNewTrade}
+    on:close={() => {
+        showDayTradesModal = false;
+        selectedDayTrades = [];
+        selectedDayTransactions = [];
+        selectedDate = "";
+        selectedDisplayDate = "";
+    }}
+/>
 
 <style lang="postcss">
     .card {

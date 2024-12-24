@@ -5,7 +5,6 @@
     import WidgetLayout from "$lib/components/dashboard/WidgetLayout.svelte";
     import TradeModal from "$lib/components/trades/TradeModal.svelte";
     import TradeViewModal from "$lib/components/trades/TradeViewModal.svelte";
-    import DayTradesModal from "$lib/components/dashboard/DayTradesModal.svelte";
     import NewAccountModal from "$lib/components/accounts/NewAccountModal.svelte";
     import Loading from "$lib/components/common/Loading.svelte";
     import Button from "$lib/components/common/Button.svelte";
@@ -66,10 +65,6 @@
     let showNewTradeModal = false;
     let showAccountModal = false;
     let selectedTrade = null;
-    let selectedDate = "";
-    let selectedDisplayDate = "";
-    let selectedDayTrades = [];
-    let selectedDayTransactions = [];
     let newTradeDate = "";
     let currentAccountId = null;
     let showDeleteConfirmModal = false;
@@ -610,19 +605,6 @@
 />
 
 {#if $accountStore.currentAccount}
-    <DayTradesModal
-        bind:show={showDayModal}
-        trades={selectedDayTrades}
-        transactions={selectedDayTransactions}
-        displayDate={selectedDisplayDate}
-        loading={dayTradesLoading}
-        on:view={handleView}
-        on:edit={handleEdit}
-        on:delete={handleDelete}
-        on:deleteTransaction={handleDeleteTransaction}
-        on:newTrade={handleNewTradeFromCalendar}
-    />
-
     <TradeModal
         bind:show={showEditModal}
         trade={selectedTrade}
