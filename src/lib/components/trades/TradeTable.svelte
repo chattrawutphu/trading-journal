@@ -147,7 +147,7 @@
                 <th class="w-8 text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
                     <input 
                         type="checkbox" 
-                        class="custom-checkbox"
+                        class="checkbox "
                         on:click={() => selectedTrades = selectedTrades.length === trades.length ? [] : trades.map(t => t._id)}
                         checked={selectedTrades.length === trades.length}
                     />
@@ -218,7 +218,7 @@
                     <td class="w-8 py-2 px-4 text-right">
                         <input 
                             type="checkbox"
-                            class="custom-checkbox"
+                            class="checkbox"
                             on:click={() => handleSelect(trade._id)}
                             checked={selectedTrades.includes(trade._id)}
                         />
@@ -393,10 +393,6 @@
 
     .btn-secondary:disabled {
         @apply bg-gray-300 text-gray-500 cursor-not-allowed;
-    }
-
-    .custom-checkbox {
-        @apply appearance-none h-4 w-4 border border-gray-300 rounded-sm bg-white checked:bg-theme-500 checked:border-transparent focus:outline-none transition duration-200 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer;
     }
 
     .btn-secondary svg {
