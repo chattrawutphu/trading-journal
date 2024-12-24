@@ -6,7 +6,6 @@
     import TradeModal from "$lib/components/trades/TradeModal.svelte";
     import TradeViewModal from "$lib/components/trades/TradeViewModal.svelte";
     import DayTradesModal from "$lib/components/dashboard/DayTradesModal.svelte";
-    import EmptyDayModal from "$lib/components/dashboard/EmptyDayModal.svelte";
     import NewAccountModal from "$lib/components/accounts/NewAccountModal.svelte";
     import Loading from "$lib/components/common/Loading.svelte";
     import Button from "$lib/components/common/Button.svelte";
@@ -65,7 +64,6 @@
     let showEditModal = false;
     let showViewModal = false;
     let showNewTradeModal = false;
-    let showEmptyDayModal = false;
     let showAccountModal = false;
     let selectedTrade = null;
     let selectedDate = "";
@@ -421,7 +419,6 @@
                 if (showEditModal) showEditModal = false;
                 if (showViewModal) showViewModal = false;
                 if (showNewTradeModal) showNewTradeModal = false;
-                if (showEmptyDayModal) showEmptyDayModal = false;
                 // Close month modal in calendar widgets
                 const widgets = document.querySelectorAll('svelte\\:component');
                 widgets.forEach(widget => {
@@ -639,13 +636,6 @@
         bind:show={showViewModal}
         trade={selectedTrade}
         on:close={closeViewModal}
-    />
-
-    <EmptyDayModal
-        bind:show={showEmptyDayModal}
-        date={selectedDate}
-        accountId={$accountStore.currentAccount._id}
-        on:newTrade={handleNewTradeFromCalendar}
     />
 {/if}
 
