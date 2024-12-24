@@ -198,20 +198,6 @@
         }
     }
 
-    function handleDayClick(event) {
-        // ตรวจสอบว่ามี date ใน event.detail
-        if (!event.detail?.date) {
-            console.error('No date in event detail');
-            return;
-        }
-
-        selectedDate = event.detail.date;
-        selectedDisplayDate = event.detail.displayDate;
-        selectedDayTrades = event.detail.trades;
-        selectedDayTransactions = event.detail.transactions;
-        showDayModal = true;
-    }
-
     function handleNewTradeFromCalendar(event) {
         if (!event.detail?.date) {
             // ถ้า event.detail เป็น string (วันที่โดยตรง)
@@ -366,6 +352,19 @@
                       100,
               )
             : 0;
+
+    function handleDayClick(event) {
+        if (!event.detail?.date) {
+            console.error('No date in event detail');
+            return;
+        }
+
+        selectedDate = event.detail.date;
+        selectedDisplayDate = event.detail.displayDate;
+        selectedDayTrades = event.detail.trades;
+        selectedDayTransactions = event.detail.transactions;
+        showDayModal = true;
+    }
 </script>
 
 
@@ -511,7 +510,6 @@
                     }}
                     on:editModeChange={(e) => editMode = e.detail}
                     on:dayClick={handleDayClick}
-                    on:monthClick={handleDayClick}
                     on:view={handleView}
                     on:edit={handleEdit}
                     on:delete={handleDelete}

@@ -351,7 +351,6 @@
                 on:delete
                 on:deleteTransaction
                 on:dayClick
-                on:monthClick
                 on:newTrade
             />
         {/if}

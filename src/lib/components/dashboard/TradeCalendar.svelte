@@ -4,15 +4,13 @@
     import { accountStore } from "$lib/stores/accountStore";
     import { transactionStore } from "$lib/stores/transactionStore";
     import Select from "../common/Select.svelte";
-    import EmptyDayModal from "./EmptyDayModal.svelte";
-    import { api } from '$lib/utils/api';
     import DatePicker from '../common/DatePicker.svelte';
+    import { api } from '$lib/utils/api';
 
     const dispatch = createEventDispatcher();
 
     export let trades = [];
     export let isPreview = false;
-    let showEmptyDayModal = false;
     let selectedDate = "";
     let showMonthYearPicker = false;
     let showDatePicker = false;
@@ -327,22 +325,11 @@
             day: "numeric",
         });
 
-        if (!stats?.trades.length && !stats?.transactions?.length) {
-            selectedDate = formattedDate;
-            showEmptyDayModal = true;
-            return;
-        }
-
         dispatch("dayClick", {
             date: formattedDate,
             displayDate,
-            trades: [...(stats.trades || [])].sort((a, b) => {
-                if (a.status !== b.status) {
-                    return a.status === "OPEN" ? -1 : 1;
-                }
-                return (b.pnl || 0) - (a.pnl || 0);
-            }),
-            transactions: stats.transactions || [],
+            trades: stats?.trades || [],
+            transactions: stats?.transactions || [],
         });
     }
 
@@ -562,16 +549,8 @@
     </div>
 </div>
 
-<EmptyDayModal
-    bind:show={showEmptyDayModal}
-    date={selectedDate}
-    accountId={$accountStore.currentAccount._id}
-    on:newTrade={handleNewTrade}
-    key="empty-day-modal"
-/>
-
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg ;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg;
     }
 </style>

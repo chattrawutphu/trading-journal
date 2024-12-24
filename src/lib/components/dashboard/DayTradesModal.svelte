@@ -22,7 +22,7 @@
     export let date = "";
     export let displayDate = "";
     export let accountId;
-    export let loading = false; // เพิ่มสถานะ loading
+    export let loading = false;
 
     let showTransactionModal = false;
     let selectedTransaction = null;
@@ -73,29 +73,11 @@
     }
 
     function handleNewTrade() {
-        // ตรวจสอบว่ามี date หรือไม่
-        if (!date) {
-            console.error('Date is empty');
-            return;
-        }
-
-        const selectedDate = new Date(date);
-        // ตรวจสอบว่า date เป็น valid date หรือไม่
-        if (isNaN(selectedDate.getTime())) {
-            console.error('Invalid date:', date);
-            return;
-        }
-        
-        // ตั้งเวลาเป็น 12:00 น.
-        selectedDate.setHours(12, 0, 0, 0);
-        
-        // เก็บค่าวันที่ใน store
-        tradeDate.set(selectedDate.toISOString());
-        
-        // ส่ง event พร้อมวันที่
-        dispatch('newTrade', {
-            date: selectedDate.toISOString()
-        });
+        const formattedDate = new Date(date);
+        formattedDate.setHours(7, 0, 0, 0);
+        tradeDate.set(formattedDate.toISOString());
+        dispatch('newTrade');
+        close();
     }
 
     function formatDate(dateStr) {
@@ -219,18 +201,12 @@
 {:else if error}
     <div class="text-red-500">{error}</div>
 {:else if show}
-    <div
-        class="fixed modal inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-        transition:fade={{ duration: 150 }}
-    >
+    <div class="fixed modal inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+         transition:fade={{ duration: 150 }}>
         <div class="card w-full max-w-4xl mx-auto relative transform ease-out">
             <!-- Header -->
-            <div
-                class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10"
-            >
-                <h2
-                    class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent"
-                >
+            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+                <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">
                     {displayDate || formatDate(date)}
                 </h2>
                 <div class="flex items-center gap-4">
@@ -249,37 +225,15 @@
                         </Button>
                     </div>
                     <Button variant="primary" size="sm" on:click={handleNewTrade}>
-                        <svg
-                            class="w-5 h-5 mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M12 4v16m8-8H4"
-                            />
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
                         New Trade
                     </Button>
-                    <button
-                        class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
-                        on:click={close}
-                    >
-                        <svg
-                            class="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
+                    <button class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
+                            on:click={close}>
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
                 </div>
@@ -287,167 +241,141 @@
 
             <!-- Content -->
             <div class="px-8 py-6 max-h-[calc(100vh-16rem)] overflow-y-auto">
-                {#if openTrades.length > 0}
-                    <div class="mb-6">
-                        <h3
-                            class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
-                        >
-                            Open Trades
-                        </h3>
-                        <TradeTable
-                            trades={openTrades}
-                            type="open"
-                            isInModal={true}
-                            on:view
-                            on:edit
-                            on:delete={handleDelete}
-                            on:favorite
-                            on:disable
-                            on:deleteConfirm={handleDeleteConfirm}
-                            on:deleted={() => {
-                                // Refresh trades
-                                dispatch('refresh');
-                            }}
-                        />
-                    </div>
-                {/if}
-
-                {#if closedTrades.length > 0}
-                    <div class="mb-6">
-                        <h3
-                            class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
-                        >
-                            Closed Trades
-                        </h3>
-                        <TradeTable
-                            trades={closedTrades}
-                            type="closed"
-                            isInModal={true}
-                            on:view
-                            on:edit
-                            on:delete={handleDelete}
-                            on:favorite
-                            on:disable
-                            on:deleteConfirm={handleDeleteConfirm}
-                            on:deleted={() => {
-                                // Refresh trades
-                                dispatch('refresh');
-                            }}
-                        />
-                    </div>
-                {/if}
-
-                {#if transactions && transactions.length > 0}
-                    <div class="mb-6">
-                        <h3
-                            class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
-                        >
-                            Transactions
-                        </h3>
-                        <TransactionTable
-                            {accountId}
-                            {transactions}
-                            isInModal={true}
-                            readOnly={false}
-                            hideEmptyState={true}
-                            on:edit={handleEditTransaction}
-                            on:delete={handleDeleteTransaction}
-                            on:deleteConfirm={handleDeleteConfirm}
-                            on:deleted={() => {
-                                // Refresh transactions
-                                loadTransactions();
-                            }}
-                        />
-                    </div>
-                {/if}
-
                 {#if trades.length === 0 && (!transactions || transactions.length === 0)}
-                    <div
-                        class="text-center py-8 text-light-text-muted dark:text-dark-text-muted"
-                    >
-                        No trades found for this day
+                    <!-- Empty State -->
+                    <div class="text-center py-8">
+                        <svg on:click={handleNewTrade} 
+                             class="w-16 h-16 mx-auto mb-4 text-light-text-muted dark:text-dark-text-muted cursor-pointer" 
+                             fill="none" 
+                             stroke="currentColor" 
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" 
+                                  stroke-linejoin="round" 
+                                  stroke-width="2" 
+                                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        <p class="text-light-text-muted dark:text-dark-text-muted mb-6">
+                            No trades recorded for this day. Would you like to add one?
+                        </p>
                     </div>
+                {:else}
+                    <!-- Existing content for trades and transactions -->
+                    {#if openTrades.length > 0}
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">
+                                Open Trades
+                            </h3>
+                            <TradeTable
+                                trades={openTrades}
+                                type="open"
+                                isInModal={true}
+                                on:view
+                                on:edit
+                                on:delete={handleDelete}
+                                on:favorite
+                                on:disable
+                                on:deleteConfirm={handleDeleteConfirm}
+                                on:deleted={() => dispatch('refresh')}
+                            />
+                        </div>
+                    {/if}
+
+                    {#if closedTrades.length > 0}
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">
+                                Closed Trades
+                            </h3>
+                            <TradeTable
+                                trades={closedTrades}
+                                type="closed"
+                                isInModal={true}
+                                on:view
+                                on:edit
+                                on:delete={handleDelete}
+                                on:favorite
+                                on:disable
+                                on:deleteConfirm={handleDeleteConfirm}
+                                on:deleted={() => dispatch('refresh')}
+                            />
+                        </div>
+                    {/if}
+
+                    {#if transactions && transactions.length > 0}
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">
+                                Transactions
+                            </h3>
+                            <TransactionTable
+                                {accountId}
+                                {transactions}
+                                isInModal={true}
+                                readOnly={false}
+                                hideEmptyState={true}
+                                on:edit={handleEditTransaction}
+                                on:delete={handleDeleteTransaction}
+                                on:deleteConfirm={handleDeleteConfirm}
+                                on:deleted={loadTransactions}
+                            />
+                        </div>
+                    {/if}
                 {/if}
             </div>
         </div>
     </div>
 {/if}
 
+<!-- Transaction Modals -->
 <TransactionModal
-    show={showTransactionModal}
+    show={showTransactionModal || showDepositModal || showWithdrawModal}
     transaction={selectedTransaction}
     {accountId}
-    type={selectedTransaction?.type || 'deposit'}
-    on:submit={handleTransactionSubmit}
-    on:close={() => (showTransactionModal = false)}
+    type={showDepositModal ? 'deposit' : showWithdrawModal ? 'withdraw' : selectedTransaction?.type || 'deposit'}
+    on:close={() => {
+        showTransactionModal = false;
+        showDepositModal = false;
+        showWithdrawModal = false;
+    }}
     on:transactionUpdated={async () => {
-        // Refresh transactions
         await loadTransactions();
         showTransactionModal = false;
-    }}
-/>
-
-<!-- Deposit Modal -->
-<TransactionModal
-    show={showDepositModal}
-    type="deposit"
-    {accountId}
-    on:close={() => showDepositModal = false}
-    on:transactionUpdated={async () => {
-        // Refresh transactions
-        await loadTransactions();
         showDepositModal = false;
-    }}
-/>
-
-<!-- Withdraw Modal -->
-<TransactionModal
-    show={showWithdrawModal}
-    type="withdraw"
-    {accountId}
-    on:close={() => showWithdrawModal = false}
-    on:transactionUpdated={async () => {
-        // Refresh transactions
-        await loadTransactions();
         showWithdrawModal = false;
     }}
 />
 
-<!-- Add Delete Confirmation Modal -->
+<!-- Delete Confirmation Modal -->
 {#if showDeleteConfirmModal}
-    <div class="relative z-50">
-        <Modal
-            show={showDeleteConfirmModal}
-            title="Confirm Delete"
-            on:close={() => showDeleteConfirmModal = false}
-        >
-            <div class="p-6">
-                <p class="text-light-text dark:text-dark-text">
-                    {#if deleteType === 'selected'}
-                        Are you sure you want to delete {itemsToDelete.length} selected {deleteContext}?
-                    {:else}
-                        Are you sure you want to delete all {deleteContext}?
-                    {/if}
-                </p>
-                <div class="flex justify-end gap-4 mt-6">
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        on:click={() => showDeleteConfirmModal = false}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="danger"
-                        size="sm"
-                        on:click={confirmDelete}
-                    >
-                        Delete
-                    </Button>
-                </div>
+    <Modal
+        show={showDeleteConfirmModal}
+        title="Confirm Delete"
+        on:close={() => showDeleteConfirmModal = false}
+    >
+        <div class="p-6">
+            <p class="text-light-text dark:text-dark-text">
+                {#if deleteType === 'selected'}
+                    Are you sure you want to delete {itemsToDelete.length} selected {deleteContext}?
+                {:else}
+                    Are you sure you want to delete all {deleteContext}?
+                {/if}
+            </p>
+            <div class="flex justify-end gap-4 mt-6">
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    on:click={() => showDeleteConfirmModal = false}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    variant="danger"
+                    size="sm"
+                    on:click={confirmDelete}
+                >
+                    Delete
+                </Button>
             </div>
-        </Modal>
-    </div>
+        </div>
+    </Modal>
 {/if}
 
 <style lang="postcss">
