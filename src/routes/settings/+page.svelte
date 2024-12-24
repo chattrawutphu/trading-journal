@@ -5,6 +5,7 @@
     import Button from '$lib/components/common/Button.svelte';
     import Input from '$lib/components/common/Input.svelte';
     import Select from '$lib/components/common/Select.svelte';
+    import Loading from '$lib/components/common/Loading.svelte';
 
     const tabs = [
         { id: 'profile', label: 'Profile', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>' },
@@ -144,6 +145,9 @@
 </script>
 
 <div class="space-y-8 p-8">
+    {#if loading}
+        <Loading message="Loading..." overlay={true} />
+    {/if}
     <!-- Header -->
     <div class="flex justify-between items-center">
         <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">Settings</h1>

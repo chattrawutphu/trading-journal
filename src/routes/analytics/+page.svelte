@@ -120,6 +120,9 @@
 </script>
 
 <div class="space-y-8 p-8">
+    {#if showLoading && $accountStore.currentAccount}
+        <Loading message="Loading..." overlay={true} />
+    {/if}
     <!-- Header -->
     <div class="flex justify-between items-center">
         <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">Advanced Analytics</h1>
@@ -143,9 +146,7 @@
         </div>
     {/if}
 
-    {#if showLoading && $accountStore.currentAccount}
-        <Loading message="Loading..." overlay={true} />
-    {:else if $accountStore.currentAccount}
+    {#if $accountStore.currentAccount}
         <!-- Key Metrics -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="card p-6">
