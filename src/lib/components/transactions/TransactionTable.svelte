@@ -286,7 +286,7 @@
             </button>
           {/if}
           <button 
-            class="btn btn-secondary flex items-center gap-1"
+            class="btn btn-secondary flex items-center gap-1 hidden"
             on:click={handleDeleteAll}
             title="Delete all transactions"
           >

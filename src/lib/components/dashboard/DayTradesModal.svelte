@@ -274,17 +274,32 @@
                             {#if trades.length > 0}
                                 <div class="space-y-1">
                                     <h4 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Trade Stats</h4>
-                                    <div class="flex flex-col text-sm">
-                                        <span class="flex justify-between">
-                                            <span>Win Rate:</span>
-                                            <span class="font-medium">{winRate}%</span>
-                                        </span>
-                                        <span class="flex justify-between">
-                                            <span>Trades:</span>
-                                            <span class="font-medium">
-                                                {dailySummary.closedTradesCount} closed, {dailySummary.openTradesCount} open
-                                            </span>
-                                        </span>
+                                    <div class="flex gap-3 items-center">
+                                        <div class="flex items-center gap-1.5">
+                                            <div class="text-base font-bold {winRate > 50 ? 'text-green-500' : winRate < 50 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}">
+                                                {winRate}%
+                                            </div>
+                                            <div class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                                                Win Rate
+                                            </div>
+                                        </div>
+                                        <div class="h-6 w-px bg-light-border dark:bg-dark-border"></div>
+                                        <div class="flex items-center gap-2">
+                                            <div class="flex items-center gap-1">
+                                                <span class="text-sm font-bold text-green-500">{dailySummary.winCount}</span>
+                                                <span class="text-xs text-light-text-muted dark:text-dark-text-muted">Wins</span>
+                                            </div>
+                                            <div class="flex items-center gap-1">
+                                                <span class="text-sm font-bold text-red-500">{dailySummary.lossCount}</span>
+                                                <span class="text-xs text-light-text-muted dark:text-dark-text-muted">Losses</span>
+                                            </div>
+                                            {#if dailySummary.openTradesCount > 0}
+                                                <div class="flex items-center gap-1">
+                                                    <span class="text-sm font-bold text-yellow-500">{dailySummary.openTradesCount}</span>
+                                                    <span class="text-xs text-light-text-muted dark:text-dark-text-muted">Open</span>
+                                                </div>
+                                            {/if}
+                                        </div>
                                     </div>
                                 </div>
                             {/if}
@@ -307,15 +322,15 @@
                                       stroke-width="2" 
                                       d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
-                            <p class="text-light-text-muted dark:text-dark-text-muted mb-6">
+                            <p class="text-light-text-muted dark:text-dark-text-muted mb-3">
                                 No trades recorded for this day. Would you like to add one?
                             </p>
                         </div>
                     {:else}
                         <!-- Tables -->
                         {#if openTrades.length > 0}
-                            <div class="mb-6">
-                                <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">
+                            <div class="mb-3">
+                                <h3 class="text-sm font-medium mb-2 text-light-text-muted dark:text-dark-text-muted">
                                     Open Trades
                                 </h3>
                                 <TradeTable
@@ -333,8 +348,8 @@
                         {/if}
 
                         {#if closedTrades.length > 0}
-                            <div class="mb-6">
-                                <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">
+                            <div class="mb-3">
+                                <h3 class="text-sm font-medium mb-2 text-light-text-muted dark:text-dark-text-muted">
                                     Closed Trades
                                 </h3>
                                 <TradeTable
@@ -353,8 +368,8 @@
                         {/if}
 
                         {#if transactions && transactions.length > 0}
-                            <div class="mb-6">
-                                <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">
+                            <div class="mb-3">
+                                <h3 class="text-sm font-medium mb-2 text-light-text-muted dark:text-dark-text-muted">
                                     Transactions
                                 </h3>
                                 <TransactionTable
