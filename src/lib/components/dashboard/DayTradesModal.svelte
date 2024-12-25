@@ -31,9 +31,7 @@
     let showWithdrawModal = false;
 
     let showDeleteConfirmModal = false;
-    let deleteContext = '';
-    let deleteType = '';
-    let itemsToDelete = [];
+    let deleteContext = null;
 
     $: if (show && accountId) {
         loadTransactions();
@@ -66,9 +64,7 @@
     }
 
     function close() {
-        show = false;
-        dispatch("close");
-        transactions = [];
+        dispatch('close');
     }
 
     function handleNewTrade() {
@@ -76,7 +72,6 @@
         formattedDate.setHours(7, 0, 0, 0);
         tradeDate.set(formattedDate.toISOString());
         dispatch('newTrade');
-        close();
     }
 
     function formatDate(dateStr) {
@@ -100,27 +95,8 @@
         showTransactionModal = false;
     }
 
-    function handleEdit(transaction) {
-        dispatch("edit", transaction);
-    }
-
-    function handleDelete(id) {
-        api.deleteTrade(id).then(() => {
-            dispatch('refresh');
-        }).catch(err => {
-            console.error('Error deleting trade:', err);
-        });
-    }
-
-    async function handleDeleteTransaction(id) {
-        try {
-            await api.deleteTransaction(id);
-            // ใช้ accountId ที่มีอยู่แล้ว
-            const updatedTransactions = await api.getTransactions(accountId);
-            transactions = filterTransactionsByDate(updatedTransactions, date);
-        } catch (err) {
-            console.error('Error deleting transaction:', err);
-        }
+    function handleEdit(trade) {
+        dispatch("edit", trade);
     }
 
     function handleDeposit() {
@@ -135,50 +111,40 @@
 
     function handleDeleteConfirm(event) {
         showDeleteConfirmModal = true;
-        deleteContext = event.detail.context;
-        deleteType = event.detail.type;
-        itemsToDelete = event.detail.items || [];
+        deleteContext = event.detail;
     }
 
     async function confirmDelete() {
+        if (deleteContext) {
+            dispatch('delete', deleteContext);
+        }
+        showDeleteConfirmModal = false;
+        deleteContext = null;
+    }
+
+    async function handleDelete(event) {
+        const { type, items, context } = event.detail;
         try {
-            if (deleteContext === 'trades') {
-                if (deleteType === 'selected') {
-                    for (const tradeId of itemsToDelete) {
-                        await api.deleteTrade(tradeId);
-                    }
-                } else if (deleteType === 'all') {
-                    for (const trade of trades) {
-                        await api.deleteTrade(trade._id);
+            if (context === 'trades') {
+                for (const tradeId of items) {
+                    const result = await api.deleteTrade(tradeId);
+                    if (!result.success) {
+                        console.error(`Failed to delete trade ${tradeId}:`, result.error);
+                        continue;
                     }
                 }
-            } else if (deleteContext === 'transactions') {
-                if (deleteType === 'selected') {
-                    for (const transactionId of itemsToDelete) {
-                        await api.deleteTransaction(transactionId);
-                    }
-                } else if (deleteType === 'all') {
-                    for (const transaction of transactions) {
-                        await api.deleteTransaction(transaction._id);
-                    }
-                }
-            }
-
-            // Refresh data
-            if (deleteContext === 'trades') {
                 dispatch('refresh');
-            } else {
-                // ใช้ accountId ที่มีอยู่แล้ว
-                const updatedTransactions = await api.getTransactions(accountId);
-                transactions = filterTransactionsByDate(updatedTransactions, date);
+            } else if (context === 'transactions') {
+                for (const transactionId of items) {
+                    try {
+                        await api.deleteTransaction(transactionId);
+                    } catch (err) {
+                        console.error(`Failed to delete transaction ${transactionId}:`, err);
+                        continue;
+                    }
+                }
+                await loadTransactions();
             }
-
-            // Reset state
-            showDeleteConfirmModal = false;
-            deleteContext = '';
-            deleteType = '';
-            itemsToDelete = [];
-
         } catch (err) {
             console.error('Error deleting items:', err);
         }
@@ -270,10 +236,9 @@
                                 isInModal={true}
                                 on:view
                                 on:edit
-                                on:delete={handleDelete}
                                 on:favorite
                                 on:disable
-                                on:deleteConfirm={handleDeleteConfirm}
+                                on:delete={handleDelete}
                                 on:deleted={() => dispatch('refresh')}
                             />
                         </div>
@@ -290,10 +255,9 @@
                                 isInModal={true}
                                 on:view
                                 on:edit
-                                on:delete={handleDelete}
                                 on:favorite
                                 on:disable
-                                on:deleteConfirm={handleDeleteConfirm}
+                                on:delete={handleDelete}
                                 on:deleted={() => dispatch('refresh')}
                             />
                         </div>
@@ -311,8 +275,7 @@
                                 readOnly={false}
                                 hideEmptyState={true}
                                 on:edit={handleEditTransaction}
-                                on:delete={handleDeleteTransaction}
-                                on:deleteConfirm={handleDeleteConfirm}
+                                on:delete={handleDelete}
                                 on:deleted={loadTransactions}
                             />
                         </div>
@@ -351,10 +314,12 @@
     >
         <div class="p-6">
             <p class="text-light-text dark:text-dark-text">
-                {#if deleteType === 'selected'}
-                    Are you sure you want to delete {itemsToDelete.length} selected {deleteContext}?
+                {#if deleteContext?.type === 'selected'}
+                    Are you sure you want to delete {deleteContext.items.length} selected trades?
+                {:else if deleteContext?.type === 'single'}
+                    Are you sure you want to delete this trade?
                 {:else}
-                    Are you sure you want to delete all {deleteContext}?
+                    Are you sure you want to delete all trades?
                 {/if}
             </p>
             <div class="flex justify-end gap-4 mt-6">

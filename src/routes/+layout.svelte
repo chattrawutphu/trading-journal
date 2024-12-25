@@ -11,6 +11,8 @@
     import Navbar from '$lib/components/layout/Navbar.svelte';
     import MobileMenu from '$lib/components/layout/MobileMenu.svelte'; // Import MobileMenu component
     import '../app.css';
+    import { deleteModalStore } from '$lib/stores/modalStore';
+    import DeleteConfirmModal from '$lib/components/common/DeleteConfirmModal.svelte';
 
     const publicRoutes = ['/', '/login', '/register', '/forgot-password'];
 
@@ -150,6 +152,21 @@
         <div class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
     </div>
 {/if}
+
+<DeleteConfirmModal
+    show={$deleteModalStore.show}
+    type={$deleteModalStore.type}
+    context={$deleteModalStore.context}
+    count={$deleteModalStore.count}
+    itemName={$deleteModalStore.itemName}
+    on:confirm={() => {
+        if ($deleteModalStore.onConfirm) {
+            $deleteModalStore.onConfirm();
+        }
+        $deleteModalStore.show = false;
+    }}
+    on:close={() => $deleteModalStore.show = false}
+/>
 
 <style lang="postcss">
     :global(body) {

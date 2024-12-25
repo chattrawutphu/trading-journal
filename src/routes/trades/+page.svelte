@@ -37,9 +37,6 @@
     let currentAccountId = null;
     let transactionNote = ''; // Add this variable if not already present
     let showDeleteConfirmModal = false;
-    let deleteType = '';
-    let deleteContext = '';  
-    let selectedItems = [];
 
     function updateTradeStats(tradeList) {
         // แยกและอัพเดท trades ทั้งหมด
@@ -195,26 +192,6 @@
         }
     }
 
-    async function handleDelete(tradeId) {
-        if (!confirm('Are you sure you want to delete this trade?')) return;
-
-        try {
-            loadingStore.set(true); // Set loading to true
-            error = '';
-
-            await api.deleteTrade(tradeId);
-            await loadTrades();
-            // Refresh account data to update balance
-            await accountStore.setCurrentAccount($accountStore.currentAccount._id);
-            // Dispatch trade update event
-            window.dispatchEvent(new CustomEvent('tradeupdate'));
-        } catch (err) {
-            error = err.message;
-        } finally {
-            loadingStore.set(false); // Set loading to false
-        }
-    }
-
     async function handleFavorite(tradeId) {
         try {
             loadingStore.set(true); // Set loading to true
@@ -255,44 +232,6 @@
 
     function handleAddAccount() {
         showAccountModal = true;
-    }
-
-    async function handleDeleteConfirm(event) {
-        const { type, context, items } = event.detail;
-        deleteType = type;
-        deleteContext = context;
-        selectedItems = items || [];
-        showDeleteConfirmModal = true;
-    }
-
-    async function confirmDelete() {
-        showDeleteConfirmModal = false;
-        if (deleteContext === 'trades') {
-            if (deleteType === 'all') {
-                for (const trade of trades) {
-                    await handleDelete(trade._id); 
-                }
-            } else {
-                for (const tradeId of selectedItems) {
-                    await handleDelete(tradeId);
-                }
-            }
-        } else if (deleteContext === 'transactions') {
-            try {
-                if (deleteType === 'all') {
-                    for (const transaction of $transactionStore.transactions) {
-                        await transactionStore.deleteTransaction(transaction._id);
-                    }
-                } else {
-                    for (const transactionId of selectedItems) {
-                        await transactionStore.deleteTransaction(transactionId);
-                    }
-                }
-                await transactionStore.fetchTransactions($accountStore.currentAccount._id);
-            } catch (err) {
-                error = err.message;
-            }
-        }
     }
 </script>
 
@@ -378,10 +317,9 @@
                             type="open"
                             on:view={handleView}
                             on:edit={handleEdit}
-                            on:delete={e => handleDelete(e.detail)}
+                            on:deleted={loadTrades}
                             on:favorite={e => handleFavorite(e.detail)}
                             on:disable={e => handleDisable(e.detail)}
-                            on:deleteConfirm={handleDeleteConfirm}
                         />
                     </div>
                 {/if}
@@ -397,10 +335,9 @@
                             type="closed"
                             on:view={handleView}
                             on:edit={handleEdit}
-                            on:delete={e => handleDelete(e.detail)}
+                            on:deleted={loadTrades}
                             on:favorite={e => handleFavorite(e.detail)}
                             on:disable={e => handleDisable(e.detail)}
-                            on:deleteConfirm={handleDeleteConfirm}
                         />
                     </div>
                 {/if}
@@ -476,10 +413,9 @@
                                 type="open"
                                 on:view={handleView}
                                 on:edit={handleEdit}
-                                on:delete={e => handleDelete(e.detail)}
+                                on:deleted={loadTrades}
                                 on:favorite={e => handleFavorite(e.detail)}
                                 on:disable={e => handleDisable(e.detail)}
-                                on:deleteConfirm={handleDeleteConfirm}
                             />
                         </div>
                     {/if}
@@ -495,10 +431,9 @@
                                 type="closed"
                                 on:view={handleView}
                                 on:edit={handleEdit}
-                                on:delete={e => handleDelete(e.detail)}
+                                on:deleted={loadTrades}
                                 on:favorite={e => handleFavorite(e.detail)}
                                 on:disable={e => handleDisable(e.detail)}
-                                on:deleteConfirm={handleDeleteConfirm}
                             />
                         </div>
                     {/if}
@@ -522,7 +457,7 @@
                         accountId={currentAccountId}
                         transactions={transactionStore.transactions}
                         readOnly={false}
-                        on:deleteConfirm={handleDeleteConfirm}
+                        on:deleted={() => transactionStore.fetchTransactions(currentAccountId)}
                     />
                 </div>
             {/if}
@@ -720,17 +655,6 @@
         </div>
     {/if}
 {/if}
-
-<Modal
-    bind:show={showDeleteConfirmModal}
-    title="Confirm Deletion"
->
-    <p>Are you sure you want to {deleteType === 'all' ? 'delete all' : 'delete the selected'} {deleteContext}?</p>
-    <div class="flex justify-end gap-2 mt-4">
-        <button class="btn btn-secondary" on:click={() => showDeleteConfirmModal = false}>Cancel</button>
-        <button class="btn btn-primary" on:click={confirmDelete}>Confirm</button>
-    </div>
-</Modal>
 
 <style lang="postcss">
     .card {

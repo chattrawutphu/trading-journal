@@ -6,6 +6,7 @@
   import Modal from '../common/Modal.svelte';
   import Button from '../common/Button.svelte';
   import { api } from '$lib/utils/api';
+  import { deleteModalStore } from '$lib/stores/modalStore';
 
   const dispatch = createEventDispatcher();
   export let accountId;
@@ -25,6 +26,7 @@
   let showDeleteConfirmModal = false;
   let deleteType = '';
   let itemsToDelete = [];
+  let singleItemToDelete = null;
 
   $: storeTransactions = $transactionStore.transactions;
   $: displayTransactions = transactions || storeTransactions;
@@ -89,19 +91,31 @@
     dispatch('edit', transaction);
   }
 
-  async function handleDelete(transactionId) {
-    if (confirm('Are you sure you want to delete this transaction?')) {
-      try {
-        await api.deleteTransaction(transactionId);
-        if (!transactions) {
-          const updatedTransactions = await api.getTransactions(accountId);
-          transactionStore.set(updatedTransactions);
-        }
-        dispatch('deleted');
-      } catch (err) {
-        console.error('Error deleting transaction:', err);
+  function showDeleteModal(type, count = 0, itemName = '') {
+    deleteModalProps = {
+      show: true,
+      type,
+      context: 'transactions',
+      count,
+      itemName
+    };
+  }
+
+  async function handleDelete(transaction) {
+    deleteModalStore.set({
+      show: true,
+      type: 'single',
+      context: 'trades',
+      count: 1,
+      itemName: `trade ${transaction.symbol}`,
+      onConfirm: () => {
+        dispatch('delete', {
+          type: 'single',
+          context: 'trades',
+          items: [transaction._id]
+        });
       }
-    }
+    });
   }
 
   function handleSelect(transactionId) {
@@ -113,56 +127,35 @@
   }
 
   async function handleDeleteSelected() {
-    if (isInModal) {
-      dispatch('deleteConfirm', {
-        type: 'selected',
-        context: 'transactions',
-        items: selectedTransactions
-      });
-    } else {
-      showDeleteConfirmModal = true;
-      deleteType = 'selected';
-      itemsToDelete = selectedTransactions;
-    }
+    deleteModalStore.set({
+      show: true,
+      type: 'selected',
+      context: 'trades',
+      count: selectedTrades.length,
+      onConfirm: () => {
+        dispatch('delete', {
+          type: 'selected',
+          context: 'trades',
+          items: selectedTrades
+        });
+        selectedTrades = [];
+      }
+    });
   }
 
   async function handleDeleteAll() {
-    if (isInModal) {
-      dispatch('deleteConfirm', {
-        type: 'all',
-        context: 'transactions'
-      });
-    } else {
-      showDeleteConfirmModal = true;
-      deleteType = 'all';
-      itemsToDelete = [];
-    }
-  }
-
-  async function confirmDelete() {
-    try {
-      if (deleteType === 'selected') {
-        for (const transactionId of itemsToDelete) {
-          await api.deleteTransaction(transactionId);
-        }
-      } else if (deleteType === 'all') {
-        for (const transaction of transactions) {
-          await api.deleteTransaction(transaction._id);
-        }
+    deleteModalStore.set({
+      show: true,
+      type: 'all',
+      context: 'trades',
+      onConfirm: () => {
+        dispatch('delete', {
+          type: 'all',
+          context: 'trades',
+          items: trades.map(t => t._id)
+        });
       }
-      
-      if (!transactions) {
-        const updatedTransactions = await api.getTransactions(accountId);
-        transactionStore.set(updatedTransactions);
-      }
-
-      dispatch('deleted');
-    } catch (err) {
-      console.error('Error deleting transactions:', err);
-    } finally {
-      showDeleteConfirmModal = false;
-      selectedTransactions = [];
-    }
+    });
   }
 </script>
 
@@ -263,7 +256,7 @@
                   </button>
                   <button 
                     class="icon-button text-red-500 hover:text-red-600"
-                    on:click={() => handleDelete(transaction._id)}
+                    on:click={() => handleDelete(transaction)}
                     title="Delete transaction"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,7 +290,7 @@
             on:click={handleDeleteAll}
             title="Delete all transactions"
           >
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 24 24">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
             </svg>
             Delete All
@@ -358,36 +351,3 @@
   }
 </style>
 
-{#if showDeleteConfirmModal && !isInModal}
-    <Modal
-        show={showDeleteConfirmModal}
-        title="Confirm Delete"
-        on:close={() => showDeleteConfirmModal = false}
-    >
-        <div class="p-6">
-            <p class="text-light-text dark:text-dark-text">
-                {#if deleteType === 'selected'}
-                    Are you sure you want to delete {itemsToDelete.length} selected transactions?
-                {:else}
-                    Are you sure you want to delete all transactions?
-                {/if}
-            </p>
-            <div class="flex justify-end gap-4 mt-6">
-                <Button
-                    variant="secondary"
-                    size="sm"
-                    on:click={() => showDeleteConfirmModal = false}
-                >
-                    Cancel
-                </Button>
-                <Button
-                    variant="danger"
-                    size="sm"
-                    on:click={confirmDelete}
-                >
-                    Delete
-                </Button>
-            </div>
-        </div>
-    </Modal>
-{/if}

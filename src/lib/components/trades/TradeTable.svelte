@@ -1,9 +1,9 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import { formatCurrency } from '$lib/utils/formatters';
-    import Modal from '../common/Modal.svelte';
     import Button from '../common/Button.svelte';
     import { api } from '$lib/utils/api';
+    import { deleteModalStore } from '$lib/stores/modalStore';
 
     const dispatch = createEventDispatcher();
 
@@ -19,6 +19,7 @@
     let showDeleteConfirmModal = false;
     let deleteType = '';
     let itemsToDelete = [];
+    let singleItemToDelete = null;
 
     function formatDate(dateStr) {
         const options = { 
@@ -87,56 +88,53 @@
         }
     }
 
+    async function handleDelete(trade) {
+        deleteModalStore.set({
+            show: true,
+            type: 'single',
+            context: 'trades',
+            count: 1,
+            itemName: `trade ${trade.symbol}`,
+            onConfirm: () => {
+                dispatch('delete', {
+                    type: 'single',
+                    context: 'trades',
+                    items: [trade._id]
+                });
+            }
+        });
+    }
+
     async function handleDeleteSelected() {
-        if (isInModal) {
-            // If in modal, dispatch event for parent to handle
-            dispatch('deleteConfirm', {
-                type: 'selected',
-                context: 'trades',
-                items: selectedTrades
-            });
-        } else {
-            // Show modal directly
-            showDeleteConfirmModal = true;
-            deleteType = 'selected';
-            itemsToDelete = selectedTrades;
-        }
+        deleteModalStore.set({
+            show: true,
+            type: 'selected',
+            context: 'trades',
+            count: selectedTrades.length,
+            onConfirm: () => {
+                dispatch('delete', {
+                    type: 'selected',
+                    context: 'trades',
+                    items: selectedTrades
+                });
+                selectedTrades = [];
+            }
+        });
     }
 
     async function handleDeleteAll() {
-        if (isInModal) {
-            // If in modal, dispatch event for parent to handle
-            dispatch('deleteConfirm', {
-                type: 'all',
-                context: 'trades'
-            });
-        } else {
-            // Show modal directly
-            showDeleteConfirmModal = true;
-            deleteType = 'all';
-            itemsToDelete = [];
-        }
-    }
-
-    async function confirmDelete() {
-        try {
-            if (deleteType === 'selected') {
-                for (const tradeId of itemsToDelete) {
-                    await api.deleteTrade(tradeId);
-                }
-            } else if (deleteType === 'all') {
-                for (const trade of trades) {
-                    await api.deleteTrade(trade._id);
-                }
+        deleteModalStore.set({
+            show: true,
+            type: 'all',
+            context: 'trades',
+            onConfirm: () => {
+                dispatch('delete', {
+                    type: 'all',
+                    context: 'trades',
+                    items: trades.map(t => t._id)
+                });
             }
-            
-            dispatch('deleted');
-        } catch (err) {
-            console.error('Error deleting trades:', err);
-        } finally {
-            showDeleteConfirmModal = false;
-            selectedTrades = [];
-        }
+        });
     }
 </script>
 
@@ -286,7 +284,7 @@
                             </button>
                             <button 
                                 class="icon-button text-red-500 hover:text-red-600"
-                                on:click={() => handleSelect(trade._id)}
+                                on:click={() => handleDelete(trade)}
                                 title="Delete trade"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,41 +336,6 @@
         {/if}
     </div>
 </div>
-
-<!-- Show delete confirmation modal only when not in another modal -->
-{#if showDeleteConfirmModal && !isInModal}
-    <Modal
-        show={showDeleteConfirmModal}
-        title="Confirm Delete"
-        on:close={() => showDeleteConfirmModal = false}
-    >
-        <div class="p-6">
-            <p class="text-light-text dark:text-dark-text">
-                {#if deleteType === 'selected'}
-                    Are you sure you want to delete {itemsToDelete.length} selected trades?
-                {:else}
-                    Are you sure you want to delete all trades?
-                {/if}
-            </p>
-            <div class="flex justify-end gap-4 mt-6">
-                <Button
-                    variant="secondary"
-                    size="sm"
-                    on:click={() => showDeleteConfirmModal = false}
-                >
-                    Cancel
-                </Button>
-                <Button
-                    variant="danger"
-                    size="sm"
-                    on:click={confirmDelete}
-                >
-                    Delete
-                </Button>
-            </div>
-        </div>
-    </Modal>
-{/if}
 
 <style lang="postcss">
     .icon-button {
