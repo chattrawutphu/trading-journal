@@ -23,6 +23,7 @@
     let currentAccountId = null;
     let dailyTrades = {};
     let dailyBalances = {};
+    let selectedDayBalance = null;
 
     onMount(async () => {
         if (isPreview) return;
@@ -188,52 +189,73 @@
     // Compute daily balances based on transactions and trades
     $: {
         dailyBalances = {};
-        let cumulativeBalance = $accountStore.currentAccount.initialBalance || 0;
+        let cumulativeBalance = $accountStore.currentAccount?.initialBalance || 0;
+        console.log('Initial Balance:', cumulativeBalance); // Debug log
 
-        // Collect all relevant dates
-        let allDatesSet = new Set();
+        // Sort all dates chronologically
+        const allDates = [...new Set([
+            ...trades.map(t => normalizeDate(t.status === "CLOSED" ? t.exitDate : t.entryDate).toISOString().split('T')[0]),
+            ...$transactionStore.transactions.map(t => normalizeDate(t.date).toISOString().split('T')[0])
+        ])].sort();
 
-        trades.forEach(trade => {
-            let date = trade.status === "CLOSED" ? trade.exitDate : trade.entryDate;
-            date = normalizeDate(date).toISOString().split("T")[0];
-            allDatesSet.add(date);
-        });
-
-        $transactionStore.transactions.forEach(transaction => {
-            let date = normalizeDate(transaction.date).toISOString().split("T")[0];
-            allDatesSet.add(date);
-        });
-
-        // Sort the dates in chronological order
-        let allDates = Array.from(allDatesSet).sort();
-
-        // Calculate cumulative balance for each date
+        // Calculate running balance for each date
         allDates.forEach(dateKey => {
-            // Apply transactions on that date
-            const transactions = $transactionStore.transactions.filter(t => {
-                return normalizeDate(t.date).toISOString().split("T")[0] === dateKey;
-            });
+            const dayTransactions = $transactionStore.transactions.filter(t => 
+                normalizeDate(t.date).toISOString().split('T')[0] === dateKey
+            );
 
-            transactions.forEach(transaction => {
-                if (transaction.type === "deposit") {
-                    cumulativeBalance += transaction.amount;
-                } else if (transaction.type === "withdrawal") {
-                    cumulativeBalance -= transaction.amount;
-                }
-            });
+            const dayTrades = trades.filter(t => 
+                t.status === "CLOSED" && 
+                normalizeDate(t.exitDate).toISOString().split('T')[0] === dateKey
+            );
 
-            // Apply P&L from closed trades on that date
-            const dayTrades = trades.filter(trade => {
-                const tradeDate = normalizeDate(trade.exitDate).toISOString().split("T")[0];
-                return tradeDate === dateKey && trade.status === "CLOSED";
-            });
+            const transactionChange = dayTransactions.reduce((sum, t) => 
+                sum + (t.type === "deposit" ? t.amount : -t.amount), 0
+            );
+            
+            const tradeChange = dayTrades.reduce((sum, t) => {
+                const pnl = Number(t.pnl) || 0;
+                return sum + pnl;
+            }, 0);
 
-            dayTrades.forEach(trade => {
-                cumulativeBalance += trade.pnl || 0;
-            });
+            // Debug logs
+            console.log('Date:', dateKey);
+            console.log('Before - Balance:', cumulativeBalance);
+            console.log('Transaction Change:', transactionChange);
+            console.log('Trade Change:', tradeChange);
 
-            dailyBalances[dateKey] = cumulativeBalance;
+            // Store the balance for this date
+            dailyBalances[dateKey] = {
+                startBalance: cumulativeBalance,
+                endBalance: cumulativeBalance + transactionChange + tradeChange,
+                transactions: dayTransactions,
+                trades: dayTrades
+            };
+
+            // Update cumulative balance after storing
+            cumulativeBalance += transactionChange + tradeChange;
+
+            // Debug log
+            console.log('After - Balance:', cumulativeBalance);
         });
+
+        // Fill in any missing dates in the current month
+        const currentMonthStart = new Date(selectedYear, selectedMonth, 1);
+        const currentMonthEnd = new Date(selectedYear, selectedMonth + 1, 0);
+
+        let currentDate = new Date(currentMonthStart);
+        while (currentDate <= currentMonthEnd) {
+            const dateKey = currentDate.toISOString().split('T')[0];
+            if (!dailyBalances[dateKey]) {
+                dailyBalances[dateKey] = {
+                    startBalance: cumulativeBalance,
+                    endBalance: cumulativeBalance,
+                    transactions: [],
+                    trades: []
+                };
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
     }
 
     function getDayStats(day) {
@@ -335,6 +357,9 @@
         selectedDisplayDate = displayDate;
         selectedDayTrades = stats?.trades || [];
         selectedDayTransactions = stats?.transactions || [];
+        
+        selectedDayBalance = dailyBalances[formattedDate];
+        
         showDayTradesModal = true;
     }
 
@@ -498,21 +523,18 @@
                                     {/if}
 
                                     {#if statsPerDay[day].pnl !== 0}
+                                        {@const dateKey = formatDateForInput(new Date(selectedYear, selectedMonth, day))}
+                                        {@const balance = dailyBalances[dateKey]?.endBalance}
+                                        {@const pnl = statsPerDay[day].pnl}
                                         <div class="mt-auto flex justify-between items-center">
-                                            <span
-                                                class="text-sm font-bold {getTextClass(
-                                                    statsPerDay[day],
-                                                )}"
-                                            >
+                                            <span class="text-sm font-bold {getTextClass(statsPerDay[day])}">
                                                 {formatPnL(statsPerDay[day].pnl)}
                                             </span>
-                                            <span
-                                                class="text-xs {statsPerDay[day].pnl > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}"
-                                            >
-                                                {#if statsPerDay[day].pnlPercentage !== null}
-                                                    {statsPerDay[day].pnlPercentage > 0 ? '+' : ''}{statsPerDay[day].pnlPercentage.toFixed(2)}%
-                                                {/if}
-                                            </span>
+                                            {#if pnl !== 0 && balance > 0}
+                                                <span class="text-xs {pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                                    {((pnl / balance) * 100).toFixed(1)}%
+                                                </span>
+                                            {/if}
                                         </div>
                                     {/if}
 
@@ -578,6 +600,7 @@
     displayDate={selectedDisplayDate}
     accountId={$accountStore.currentAccount?._id}
     loading={dayTradesLoading}
+    dailyBalance={selectedDayBalance}
     on:view={handleView}
     on:edit={handleEdit}
     on:delete={handleDelete}
@@ -589,6 +612,7 @@
         selectedDayTransactions = [];
         selectedDate = "";
         selectedDisplayDate = "";
+        selectedDayBalance = null;
     }}
 />
 

@@ -34,13 +34,13 @@
 
   function formatDate(dateStr) {
     const options = { 
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false // Use 24-hour format
     };
-    return new Date(dateStr).toLocaleString(undefined, options); 
+    return new Date(dateStr).toLocaleString(undefined, options);
   }
 
   function getTypeClass(type) {
@@ -177,10 +177,10 @@
       </div>
     </div>
   {:else}
-    <table class="w-full">
+    <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-light-border dark:border-dark-border">
-          <th class="w-8 text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+          <th class="w-8 text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
             <input 
               type="checkbox"
               class="checkbox"
@@ -188,39 +188,39 @@
               checked={selectedTransactions.length === displayTransactions.length}
             />
           </th>
-          <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+          <th class="text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
             <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('type')}>
               Type
               <span class="text-xs">{getSortIcon('type')}</span>
             </button>
           </th>
-          <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+          <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
             <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('amount')}>
               Amount
               <span class="text-xs">{getSortIcon('amount')}</span>
             </button>
           </th>
-          <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+          <th class="text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
             <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('date')}>
               Date
               <span class="text-xs">{getSortIcon('date')}</span>
             </button>
           </th>
-          <th class="text-left py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">
+          <th class="text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
             <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('note')}>
               Note
               <span class="text-xs">{getSortIcon('note')}</span>
             </button>
           </th>
           {#if !readOnly}
-            <th class="text-right py-2 px-4 font-medium text-light-text-muted dark:text-dark-text-muted">Actions</th>
+            <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">Actions</th>
           {/if}
         </tr>
       </thead>
       <tbody class="divide-y divide-light-border dark:divide-dark-border">
         {#each paginatedTransactions as transaction, index (transaction._id || `transaction-${index}`)}
           <tr class="hover:bg-light-hover dark:hover:bg-dark-hover ">
-            <td class="w-8 py-2 px-4 text-right">
+            <td class="w-8 py-1 px-2 text-right">
               <input 
                 type="checkbox"
                 class="checkbox"
@@ -228,23 +228,23 @@
                 checked={selectedTransactions.includes(transaction._id)}
               />
             </td>
-            <td class="py-2 px-4">
+            <td class="py-1 px-2">
               <span class="capitalize {getTypeClass(transaction.type)}">{transaction.type}</span>
             </td>
-            <td class="py-2 px-4 text-right">
+            <td class="py-1 px-2 text-right">
               <span class="{getTypeClass(transaction.type)}">
                 ${transaction.amount?.toLocaleString() || '0'}
               </span>
             </td>
-            <td class="py-2 px-4 text-light-text-muted dark:text-dark-text">
+            <td class="py-1 px-2 text-light-text-muted dark:text-dark-text">
               {formatDate(transaction.date)}
             </td>
-            <td class="py-2 px-4 text-light-text-muted dark:text-dark-text-muted">
+            <td class="py-1 px-2 text-light-text-muted dark:text-dark-text-muted">
               {transaction.note || ''}
             </td>
             {#if !readOnly}
-              <td class="py-2 px-4">
-                <div class="flex justify-end gap-2">
+              <td class="py-1 px-2">
+                <div class="flex justify-end">
                   <button 
                     class="icon-button text-theme-500 hover:text-theme-600"
                     on:click={() => handleEdit(transaction)}
@@ -315,7 +315,7 @@
 
 <style lang="postcss">
 .icon-button {
-    @apply p-1 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover ;
+    @apply p-1 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover text-sm;
   }
 
 .card {

@@ -1,13 +1,22 @@
 // src/lib/utils/formatters.js
 
-export const formatCurrency = (value) => {
+export function formatCurrency(value) {
+    if (value === null || value === undefined) return '$0';
+
+    // Convert to number if it's a string
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+
+    // Check if the number has decimal places
+    const hasDecimal = numValue % 1 !== 0;
+
+    // Format with appropriate decimal places
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
-        minimumFractionDigits: 2,
+        minimumFractionDigits: hasDecimal ? 2 : 0,
         maximumFractionDigits: 2
-    }).format(value);
-};
+    }).format(numValue);
+}
 
 // Alias for formatCurrency
 export const formatMoney = formatCurrency;
