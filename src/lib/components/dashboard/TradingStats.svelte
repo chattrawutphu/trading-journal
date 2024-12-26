@@ -124,61 +124,73 @@
     <div class="md:hidden">
         {#if selectedPeriod && stats[selectedPeriod]}
             <!-- Main Card -->
-            <div class="card p-4 relative" on:click={toggleOtherPeriods}>
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted capitalize">
-                        {PERIOD_OPTIONS[selectedPeriod].label}
-                    </h3>
-                    <div class="w-10 h-10 rounded-full {currentPeriodData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
-                        <svg class="w-5 h-5 {currentPeriodData.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[selectedPeriod].icon}/>
-                        </svg>
+            <div 
+                class="card p-4 relative cursor-pointer hover:bg-light-hover/50 dark:hover:bg-dark-hover/50 transition-all" 
+                on:click={toggleOtherPeriods}
+            >
+                <!-- Period Label & Icon -->
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-10 h-10 rounded-full {currentPeriodData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
+                            <svg class="w-5 h-5 {currentPeriodData.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[selectedPeriod].icon}/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-medium text-light-text dark:text-dark-text capitalize">
+                                {PERIOD_OPTIONS[selectedPeriod].label}
+                            </h3>
+                            <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                                {currentPeriodData.trades} trade{currentPeriodData.trades !== 1 ? 's' : ''}
+                            </p>
+                        </div>
                     </div>
+                    <svg 
+                        class=" absolute bottom-2 right-2/4 w-5 h-5 text-light-text-muted dark:text-dark-text-muted transition-transform duration-200 {showOtherPeriods ? 'rotate-180' : ''}"
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
                 </div>
 
-                <div class="space-y-3">
-                    <div class="flex items-baseline gap-2">
-                        <p class="text-2xl font-bold {currentPeriodData.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
-                            {formatCurrency(currentPeriodData.pnl)}
-                        </p>
-                        {#if currentPeriodData.balanceChange !== 0}
-                            <p class="text-sm {currentPeriodData.balanceChange > 0 ? 'text-green-500' : 'text-red-500'}">
-                                {formatPercentage(currentPeriodData.balanceChange)}
-                            </p>
-                        {/if}
-                    </div>
-                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
-                        {currentPeriodData.trades} trade{currentPeriodData.trades !== 1 ? 's' : ''}
+                <!-- PnL Display -->
+                <div class="flex items-baseline gap-2">
+                    <p class="text-3xl font-bold {currentPeriodData.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                        {formatCurrency(currentPeriodData.pnl)}
                     </p>
-                    <svg class="bottom-2 mx-auto w-5 h-5 text-light-text-muted dark:text-dark-text-muted transition-all duration-500 ease-in-out transform animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" class="s-tV50YEqJQ93_"></path>
-                      </svg>
+                    {#if currentPeriodData.balanceChange !== 0}
+                        <p class="text-sm font-medium {currentPeriodData.balanceChange > 0 ? 'text-green-500' : 'text-red-500'}">
+                            {formatPercentage(currentPeriodData.balanceChange)}
+                        </p>
+                    {/if}
                 </div>
             </div>
 
             <!-- Period List Dropdown -->
             {#if showOtherPeriods}
                 <div 
-                    class="mt-2 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg overflow-hidden shadow-lg"
+                    class="mt-2 rounded-lg overflow-hidden shadow-lg divide-y divide-light-border dark:divide-dark-border"
                     transition:slide={{ duration: 200 }}
                 >
                     {#each $tradingStatsStore.selectedPeriods as period}
                         {#if stats[period]}
                             <button
-                                class="w-full flex items-center justify-between p-3 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors {period === selectedPeriod ? 'bg-theme-500/10 border-l-4 border-theme-500' : ''}"
+                                class="w-full flex items-center justify-between p-4 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover transition-colors {period === selectedPeriod ? 'bg-theme-500/5 border-l-4 border-theme-500' : 'border-l-4 border-transparent'}"
                                 on:click={() => {
                                     selectedPeriod = period;
                                     showOtherPeriods = false;
                                 }}
                             >
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full {stats[period]?.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
-                                        <svg class="w-4 h-4 {stats[period]?.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="w-10 h-10 rounded-full {stats[period]?.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
+                                        <svg class="w-5 h-5 {stats[period]?.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[period].icon}/>
                                         </svg>
                                     </div>
-                                    <div class="text-left">
-                                        <h3 class="text-sm font-medium text-light-text dark:text-dark-text capitalize">
+                                    <div>
+                                        <h3 class="text-base font-medium text-light-text dark:text-dark-text capitalize">
                                             {PERIOD_OPTIONS[period].label}
                                         </h3>
                                         <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
@@ -187,11 +199,11 @@
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-sm font-bold {stats[period]?.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                    <p class="text-base font-bold {stats[period]?.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
                                         {formatCompactNumber(stats[period]?.pnl || 0)}
                                     </p>
                                     {#if stats[period]?.balanceChange !== 0}
-                                        <p class="text-xs {stats[period]?.balanceChange > 0 ? 'text-green-500' : 'text-red-500'}">
+                                        <p class="text-xs font-medium {stats[period]?.balanceChange > 0 ? 'text-green-500' : 'text-red-500'}">
                                             {formatPercentage(stats[period]?.balanceChange || 0)}
                                         </p>
                                     {/if}
@@ -202,9 +214,12 @@
                 </div>
             {/if}
         {:else}
-            <!-- Loading or Error State -->
-            <div class="card p-4 text-center text-light-text-muted dark:text-dark-text-muted">
-                {error || 'Loading...'}
+            <div class="card p-4 text-center">
+                <div class="animate-pulse flex flex-col items-center gap-4">
+                    <div class="w-10 h-10 bg-light-hover dark:bg-dark-hover rounded-full"></div>
+                    <div class="h-4 w-24 bg-light-hover dark:bg-dark-hover rounded"></div>
+                    <div class="h-6 w-32 bg-light-hover dark:bg-dark-hover rounded"></div>
+                </div>
             </div>
         {/if}
     </div>
@@ -267,20 +282,22 @@
     }
 
     /* Add smooth transitions */
-    .card {
+    .card, button {
         transition: all 0.2s ease-in-out;
     }
 
-    /* Optional hover effect */
+    /* Add active state for mobile */
+    @media (max-width: 768px) {
+        .card:active {
+            @apply bg-light-hover/50 dark:bg-dark-hover/50;
+        }
+    }
+
+    /* Optional hover effect for desktop */
     @media (hover: hover) {
         .card:hover {
             @apply shadow-xl;
             transform: translateY(-1px);
         }
-    }
-
-    /* Add transition for dropdown arrow */
-    svg {
-        transition: transform 0.2s ease-in-out;
     }
 </style>
