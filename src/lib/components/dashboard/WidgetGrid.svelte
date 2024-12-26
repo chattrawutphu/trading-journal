@@ -11,6 +11,16 @@
     export let handleWidgetPointerDown;
     export let handleWidgetPointerMove;
     export let handleWidgetPointerUp;
+
+    function getColumnSpan(widget) {
+        const isMobile = window.innerWidth < 768;
+        return isMobile ? 12 : widget.config?.cols || 1;
+    }
+
+    function getHeight(widget) {
+        const isMobile = window.innerWidth < 768;
+        return isMobile ? 'auto' : `${widget.config?.height || 100}px`;
+    }
 </script>
 
 <div 
@@ -33,7 +43,7 @@
         <div 
             class="widget relative {widget.config.textSize}" 
             id={"widget-" + widget.id}
-            style="grid-column: span {widget.config?.cols || 1}; grid-row: span {widget.config?.rows || 1}; height: {widget.config?.height || 100}px;"
+            style="--widget-cols: {widget.config?.cols || 1}; --widget-rows: {widget.config?.rows || 1}; --widget-height: {widget.config?.height || 100}px;"
             on:pointerdown={(event) => handleWidgetPointerDown(event, widget.id)}
             on:pointermove={handleWidgetPointerMove}
             on:pointerup={handleWidgetPointerUp}
@@ -84,6 +94,23 @@
         position: relative;
         display: flex;
         flex-direction: column;
+    }
+
+    /* Desktop styles (md and up) */
+    @media (min-width: 768px) {
+        .widget {
+            grid-column: span var(--widget-cols);
+            grid-row: span var(--widget-rows);
+            height: var(--widget-height);
+        }
+    }
+
+    /* Mobile styles */
+    @media (max-width: 767.98px) {
+        .widget {
+            grid-column: span 12 !important;
+            height: auto !important;
+        }
     }
 
     :global(.edit-mode) .widget {
