@@ -13,12 +13,14 @@
     import '../app.css';
     import { deleteModalStore } from '$lib/stores/modalStore';
     import DeleteConfirmModal from '$lib/components/common/DeleteConfirmModal.svelte';
+    import { browser } from '$app/environment';
 
     const publicRoutes = ['/', '/login', '/register', '/forgot-password'];
 
     let sidebarCollapsed = false;
     let isLoading = true;
     let initialized = false;
+    let initialSidebarSet = false;
 
     function handleLogout() {
         auth.logout();
@@ -53,6 +55,18 @@
         }
     }
 
+    function setInitialSidebarState() {
+        if (!initialSidebarSet && browser) {
+            const width = window.innerWidth;
+            if (width >= 1024) {  // lg breakpoint
+                sidebarCollapsed = false;
+            } else if (width >= 768) {  // md breakpoint
+                sidebarCollapsed = true;
+            }
+            initialSidebarSet = true;
+        }
+    }
+
     onMount(async () => {
         try {
             initialized = true;
@@ -79,6 +93,10 @@
                 goto('/login');
             }
         }
+    });
+
+    onMount(() => {
+        setInitialSidebarState();
     });
 
     // Watch for auth state changes
