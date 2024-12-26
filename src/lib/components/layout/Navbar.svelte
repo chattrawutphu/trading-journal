@@ -116,7 +116,7 @@
 </div>
 {/if}
   
-<nav class>
+<nav class="hidden md:block">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-end gap-x-4 h-12">
             <!-- Account Selector -->

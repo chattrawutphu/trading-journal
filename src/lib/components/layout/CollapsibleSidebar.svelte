@@ -57,7 +57,7 @@
     // $: console.log('Auth store user:', $auth?.user);
 </script>
 
-<aside class="h-screen hidden sm:block p-3 pe-0">
+<aside class="h-screen hidden md:block p-3 pe-0">
     <div
         class="rounded-md h-full bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col { $isCollapsed
             ? 'w-20'

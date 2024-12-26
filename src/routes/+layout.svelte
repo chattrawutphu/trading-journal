@@ -65,7 +65,7 @@
                 ]);
             }
             
-            // ถ้าไม่ได้อยู่ใน public routes และยังไม่ได้ login ให้ redirect ไปหน้า login
+            // ถ้าไม่ได้อยู่ใน public routes แลยังไม่ได้ login ให้ redirect ไปหน้า login
             if (!success && !publicRoutes.includes($page.url.pathname)) {
                 goto('/login');
             }
@@ -137,13 +137,12 @@
                 collapsed={sidebarCollapsed} 
                 on:collapse={handleSidebarCollapse} 
             />
-            <div class="flex-1 flex flex-col overflow-hidden ps-0 p-3">
+            <div class="flex-1 flex flex-col overflow-hidden">
                 <MobileMenu />
                 <Navbar {sidebarCollapsed} on:logout={handleLogout} />
-                <main class="flex-1 overflow-x-hidden overflow-y-auto">
+                <main class="flex-1 overflow-x-hidden overflow-y-auto p-3">
                     <slot />
                 </main>
-                 <!-- Add MobileMenu component here -->
             </div>
         </div>
     {/if}
