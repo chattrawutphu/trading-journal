@@ -493,7 +493,7 @@
 
                             {#if statsPerDay[day]}
                                 <div
-                                    class="absolute inset-0 p-1.5 pt-5 flex flex-col"
+                                    class="absolute -top-2 inset-0 p-1.5 pt-5 flex flex-col"
                                 >
                                 <div class={`border-s border-s-[2.25px] border-transparent ${statsPerDay[day].pnl === 0 ? '' : statsPerDay[day].pnl < 0 ? 'dark:border-red-600 ps-1' : 'dark:border-green-600 ps-1'}`}>
                                     {#if statsPerDay[day].trades.length > 0}

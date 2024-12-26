@@ -195,7 +195,7 @@
         <div class="card w-full max-w-4xl mx-auto relative transform ease-out max-h-[90vh] flex flex-col">
             <!-- Header -->
             <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
-                <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">
+                <h2 class="text-xl font-bold bg-gradient-purple bg-clip-text text-transparent">
                     {displayDate || formatDate(date)}
                 </h2>
                 <div class="flex items-center gap-4">
@@ -322,14 +322,14 @@
                                       stroke-width="2" 
                                       d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
-                            <p class="text-light-text-muted dark:text-dark-text-muted mb-3">
+                            <p class="text-light-text-muted dark:text-dark-text-muted ">
                                 No trades recorded for this day. Would you like to add one?
                             </p>
                         </div>
                     {:else}
                         <!-- Tables -->
                         {#if openTrades.length > 0}
-                            <div class="mb-3">
+                            <div class="">
                                 <h3 class="text-sm font-medium mb-2 text-light-text-muted dark:text-dark-text-muted">
                                     Open Trades
                                 </h3>
@@ -348,7 +348,7 @@
                         {/if}
 
                         {#if closedTrades.length > 0}
-                            <div class="mb-3">
+                            <div class="">
                                 <h3 class="text-sm font-medium mb-2 text-light-text-muted dark:text-dark-text-muted">
                                     Closed Trades
                                 </h3>
@@ -368,7 +368,7 @@
                         {/if}
 
                         {#if transactions && transactions.length > 0}
-                            <div class="mb-3">
+                            <div class="">
                                 <h3 class="text-sm font-medium mb-2 text-light-text-muted dark:text-dark-text-muted">
                                     Transactions
                                 </h3>
