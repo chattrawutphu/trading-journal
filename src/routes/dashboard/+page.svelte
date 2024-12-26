@@ -358,7 +358,7 @@
             <div class="flex items-center gap-4">
                 <Button variant="primary" size="sm" on:click={handleNewTrade}>
                     <svg
-                        class="w-5 h-5 mr-2"
+                        class="w-5 h-5 mr-0 md:mr-2"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -370,7 +370,7 @@
                             d="M12 4v16m8-8H4"
                         />
                     </svg>
-                    New Trade
+                    <span class="hidden md:flex">New Trade<span>
                 </Button>
             </div>
         {/if}

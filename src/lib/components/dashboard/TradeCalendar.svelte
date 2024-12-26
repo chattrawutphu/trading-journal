@@ -483,7 +483,7 @@
                             >
                             <div class="flex w-full justify-between">
                                 {#if isToday(day)}
-                                    <span>to day!</span>
+                                    <span hidden md:flex>to day!</span>
                                 {/if}
                                 <span>{day}</span>
                             </div>
@@ -491,31 +491,29 @@
 
                             {#if statsPerDay[day]}
                                 <div
-                                    class="absolute -top-2 inset-0 p-1.5 pt-5 flex flex-col"
+                                    class="absolute top-0 md:-top-2 inset-0 p-1.5 pt-5 flex flex-col"
                                 >
                                 <div class={`border-s border-s-[2.25px] border-transparent ${statsPerDay[day].pnl === 0 ? '' : statsPerDay[day].pnl < 0 ? 'dark:border-red-600 ps-1' : 'dark:border-green-600 ps-1'}`}>
                                     {#if statsPerDay[day].trades.length > 0}
-                                        <div class="space-y-0.5">
-                                            <div
-                                                class="flex items-center gap-1"
-                                            >
-                                                    {#if statsPerDay[day].openTrades > 0}
-                                                        <span class="text-xs text-yellow-600 dark:text-yellow-400">
-                                                            {statsPerDay[day].openTrades} open{statsPerDay[day].openTrades !== 1 ? "s" : ""}
+                                        <div class="trade-stats space-y-0.5">
+                                            <div class="flex items-center gap-1 flex-wrap">
+                                                {#if statsPerDay[day].openTrades > 0}
+                                                    <span class="text-xs whitespace-nowrap text-yellow-600 dark:text-yellow-400">
+                                                        {statsPerDay[day].openTrades} open{statsPerDay[day].openTrades !== 1 ? "s" : ""}
+                                                    </span>
+                                                {/if}
+                                                <div class="trade-results hidden md:flex gap-1 text-xs">
+                                                    {#if statsPerDay[day].wins > 0}
+                                                        <span class="whitespace-nowrap text-green-600 dark:text-green-400">
+                                                            {statsPerDay[day].wins} win{statsPerDay[day].wins !== 1 ? "s" : ""}
                                                         </span>
                                                     {/if}
-                                                    <div class="flex gap-1 text-xs">
-                                                        {#if statsPerDay[day].wins > 0}
-                                                            <span class="text-green-600 dark:text-green-400">
-                                                                {statsPerDay[day].wins} win{statsPerDay[day].wins !== 1 ? "s" : ""}
-                                                            </span>
-                                                        {/if}
-                                                        {#if statsPerDay[day].losses > 0}
-                                                            <span class="text-red-600 dark:text-red-400">
-                                                                {statsPerDay[day].losses} loss{statsPerDay[day].losses !== 1 ? "es" : ""}
-                                                            </span>
-                                                        {/if}
-                                                    </div>
+                                                    {#if statsPerDay[day].losses > 0}
+                                                        <span class="whitespace-nowrap text-red-600 dark:text-red-400">
+                                                            {statsPerDay[day].losses} loss{statsPerDay[day].losses !== 1 ? "es" : ""}
+                                                        </span>
+                                                    {/if}
+                                                </div>
                                             </div>
                                         </div>
                                     {/if}
@@ -524,12 +522,12 @@
                                         {@const dateKey = formatDateForInput(new Date(selectedYear, selectedMonth, day))}
                                         {@const balance = dailyBalances[dateKey]?.endBalance}
                                         {@const pnl = statsPerDay[day].pnl}
-                                        <div class="mt-auto flex justify-between items-center">
-                                            <span class="text-sm font-bold {getTextClass(statsPerDay[day])}">
+                                        <div class="pnl-stats mt-auto flex flex-col md:flex-row justify-between items-start md:items-center">
+                                            <span class="text-sm font-bold whitespace-nowrap  {getTextClass(statsPerDay[day])}">
                                                 {formatPnL(statsPerDay[day].pnl)}
                                             </span>
                                             {#if pnl !== 0 && balance > 0}
-                                                <span class="text-xs {pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                                <span class="pnl-percentage whitespace-nowrap text-xs {pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
                                                     {((pnl / balance) * 100).toFixed(1)}%
                                                 </span>
                                             {/if}
@@ -538,7 +536,7 @@
 
                                     {#if statsPerDay[day].transactions?.length > 0}
                                         <div
-                                            class="absolute bottom-1 right-1 flex gap-0.5 items-center opacity-60 dark:opacity-80"
+                                            class="absolute  bottom-1 right-1 flex gap-0.5 items-center opacity-60 dark:opacity-80"
                                         >
                                             {#if statsPerDay[day].transactions.some((t) => t.type === "deposit")}
                                                 <div class="flex items-center">
@@ -629,6 +627,34 @@
     @media (min-width: 768px) {
         .calendar-day-cell {
             min-height: initial; /* ยกเลิก min-height */
+        }
+    }
+
+    /* Mobile styles */
+    @media (max-width: 767px) {
+        .trade-stats {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pnl-stats {
+            gap: 0.25rem;
+        }
+
+        .pnl-percentage {
+            margin-left: 0;
+        }
+    }
+
+    /* Desktop styles */
+    @media (min-width: 768px) {
+        .trade-stats {
+            display: flex;
+            flex-direction: row;
+        }
+
+        .pnl-stats {
+            gap: 0.5rem;
         }
     }
 </style>

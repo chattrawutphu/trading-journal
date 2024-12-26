@@ -199,25 +199,25 @@
                     {displayDate || formatDate(date)}
                 </h2>
                 <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-1">
+                    <div class="flex items-center gap-4 md:gap-1">
                         <Button variant="secondary" size="xs" on:click={handleDeposit}>
-                            <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 md:w-3 md:h-3 mr-0 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                             </svg>
-                            Deposit
+                            <span class="hidden md:flex">Deposit</span>
                         </Button>
                         <Button variant="secondary" size="xs" on:click={handleWithdraw}>
-                            <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 md:w-3 md:h-3 mr-0 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
                             </svg>
-                            Withdraw
+                            <span class="hidden md:flex">Withdraw</span>
                         </Button>
                     </div>
                     <Button variant="primary" size="sm" on:click={handleNewTrade}>
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 mr-0 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
-                        New Trade
+                        <span class="hidden md:flex">New Trade</span>
                     </Button>
                     <button class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
                             on:click={close}>
@@ -274,7 +274,7 @@
                             {#if trades.length > 0}
                                 <div class="space-y-1">
                                     <h4 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Trade Stats</h4>
-                                    <div class="flex gap-3 items-center">
+                                    <div class="flex gap-3 flex-col md:flex-row items-center">
                                         <div class="flex items-center gap-1.5">
                                             <div class="text-base font-bold {winRate > 50 ? 'text-green-500' : winRate < 50 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}">
                                                 {winRate}%
@@ -283,7 +283,7 @@
                                                 Win Rate
                                             </div>
                                         </div>
-                                        <div class="h-6 w-px bg-light-border dark:bg-dark-border"></div>
+                                        <div class="h-6 hidden md:flex w-px bg-light-border dark:bg-dark-border"></div>
                                         <div class="flex items-center gap-2">
                                             <div class="flex items-center gap-1">
                                                 <span class="text-sm font-bold text-green-500">{dailySummary.winCount}</span>
