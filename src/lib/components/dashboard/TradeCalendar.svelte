@@ -218,12 +218,6 @@
                 return sum + pnl;
             }, 0);
 
-            // Debug logs
-            console.log('Date:', dateKey);
-            console.log('Before - Balance:', cumulativeBalance);
-            console.log('Transaction Change:', transactionChange);
-            console.log('Trade Change:', tradeChange);
-
             // Store the balance for this date
             dailyBalances[dateKey] = {
                 startBalance: cumulativeBalance,
@@ -234,9 +228,6 @@
 
             // Update cumulative balance after storing
             cumulativeBalance += transactionChange + tradeChange;
-
-            // Debug log
-            console.log('After - Balance:', cumulativeBalance);
         });
 
         // Fill in any missing dates in the current month

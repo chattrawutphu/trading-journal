@@ -287,7 +287,7 @@
 
 <div class="relative w-full {editMode ? 'edit-mode edit-mode-background px-3 pb-3' : ''}">
     <!-- Edit mode toolbar -->
-    <div class="top-bar top-2 p-2 mb-3 right-2 z-10 flex gap-2 justify-between {editMode ? '' : 'hidden'}">
+    <div class="sticky z-20 -top-3 bg-white dark:bg-[#0f172a] p-2 mb-3 right-2 flex gap-2 justify-between {editMode ? '' : 'hidden'}">
         {#if editMode}
             <div>
                 <Button
@@ -402,10 +402,4 @@
         border: 2px dashed #1E90FF;
     }
 
-    .top-bar {
-        position: sticky;
-        top: 0;
-        background-color: var(--bg-color);
-        z-index: 20;
-    }
 </style>

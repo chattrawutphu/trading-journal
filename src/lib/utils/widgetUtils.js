@@ -16,19 +16,57 @@ export function getWidgetTypeCount(widgets, baseType) {
 
 export function getDefaultConfig(widgetType) {
     const defaultConfigs = {
-        TradingStats: { cols: 'auto', rows: 'auto', textSize: 'medium' },
-        StatsCards: { cols: 12, rows: 1, textSize: 'medium' },
-        TradeCalendar: { cols: 10, rows: 8, textSize: 'medium' },
-        MonthTradeCalendar: { cols: 6, rows: 8, textSize: 'medium' },
-        TradeChart: { cols: 4, rows: 8, textSize: 'medium' },
-        ProfitTargetWidget: { cols: 4, rows: 'auto', textSize: 'medium', period: 'daily', target: 1000 },
-        OpenPositionsWidget: { cols: 4, rows: 4, textSize: 'medium' }
+        TradingStats: {
+            cols: 'auto',
+            rows: 'auto',
+            textSize: 'medium',
+            disabled: { cols: true, rows: true }
+        },
+        StatsCards: {
+            cols: 12,
+            rows: 1,
+            textSize: 'medium',
+            disabled: { cols: false, rows: false }
+        },
+        TradeCalendar: {
+            cols: 10,
+            rows: 8,
+            textSize: 'medium',
+            disabled: { cols: false, rows: false }
+        },
+        MonthTradeCalendar: {
+            cols: 6,
+            rows: 8,
+            textSize: 'medium',
+            disabled: { cols: false, rows: false }
+        },
+        TradeChart: {
+            cols: 4,
+            rows: 8,
+            textSize: 'medium',
+            disabled: { cols: false, rows: false }
+        },
+        ProfitTargetWidget: {
+            cols: 4,
+            rows: 'auto',
+            textSize: 'medium',
+            period: 'daily',
+            target: 1000,
+            disabled: { cols: false, rows: true }
+        },
+        OpenPositionsWidget: {
+            cols: 4,
+            rows: 4,
+            textSize: 'medium',
+            disabled: { cols: false, rows: false }
+        }
     };
 
     return defaultConfigs[widgetType] || {
         cols: 1,
         rows: 1,
-        textSize: 'medium'
+        textSize: 'medium',
+        disabled: { cols: false, rows: false }
     };
 }
 
@@ -223,8 +261,3 @@ export function getBaseWidgetType(widgetId) {
 export function calculateHeight(rows) {
     return rows === 'auto' ? 'auto' : rows * 70;
 }
-
-export const disabledConfigWidgets = {
-    TradingStats: { cols: true, rows: true },
-    ProfitTargetWidget: { cols: false, rows: true }
-};
