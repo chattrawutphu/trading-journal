@@ -469,15 +469,13 @@
         <div class="grid grid-cols-7 gap-1 flex-1">
             {#each calendarDays as day, index (day !== null ? day : 'empty-' + index)}
                 {#if day !== null}
-                    <div class="relative flex-1">
+                    <div class="relative calendar-day-cell">
                         <div
                             class="absolute inset-0 border border-light-border dark:border-dark-border rounded-md
-                                   {getCardClass(
-                                statsPerDay[day],
-                                day,
-                            )} hover:shadow {!isFutureDate(
-                                day,
-                            ) && 'transform hover:scale-[1.04] transition-transform duration-300 ease-in-out'} {isToday(day) ? ' bg-indigo-300/50 dark:bg-indigo-600/20' : ''}"
+                                   {getCardClass(statsPerDay[day], day)} 
+                                   hover:shadow 
+                                   {!isFutureDate(day) && 'transform hover:scale-[1.04] transition-transform duration-300 ease-in-out'} 
+                                   {isToday(day) ? ' bg-indigo-300/50 dark:bg-indigo-600/20' : ''}"
                             on:click={() => handleDayClick(day, statsPerDay[day])}
                         >
                             <div
@@ -584,7 +582,7 @@
                         </div>
                     </div>
                 {:else}
-                    <div class="relative aspect-square">
+                    <div class="relative calendar-day-cell">
                     </div>
                 {/if}
             {/each}
@@ -619,5 +617,18 @@
 <style lang="postcss">
     .card {
         @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg;
+    }
+
+    /* Default styles สำหรับ mobile */
+    .calendar-day-cell {
+        position: relative;
+        min-height: 80px;
+    }
+
+    /* Desktop styles (md ขึ้นไป) */
+    @media (min-width: 768px) {
+        .calendar-day-cell {
+            min-height: initial; /* ยกเลิก min-height */
+        }
     }
 </style>
