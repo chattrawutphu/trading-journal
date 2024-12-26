@@ -1,5 +1,6 @@
 <script>
     import { dndzone } from 'svelte-dnd-action';
+    import { calculateHeight } from '$lib/utils/widgetUtils';
     
     export let widgets = [];
     export let editMode = false;
@@ -11,6 +12,11 @@
     export let handleWidgetPointerDown;
     export let handleWidgetPointerMove;
     export let handleWidgetPointerUp;
+
+    $: getWidgetHeight = (widget) => {
+        if (widget.config?.rows === 'auto') return 'auto';
+        return `${calculateHeight(widget.config?.rows || 1)}px`;
+    };
 
     function getColumnSpan(widget) {
         const isMobile = window.innerWidth < 768;
@@ -43,7 +49,9 @@
         <div 
             class="widget relative {widget.config.textSize}" 
             id={"widget-" + widget.id}
-            style="--widget-cols: {widget.config?.cols || 1}; --widget-rows: {widget.config?.rows || 1}; --widget-height: {widget.config?.height || 100}px;"
+            style="--widget-cols: {widget.config?.cols === 'auto' ? '12' : widget.config?.cols || 1}; 
+                   --widget-rows: {widget.config?.rows || 1}; 
+                   --widget-height: {getWidgetHeight(widget)};"
             on:pointerdown={(event) => handleWidgetPointerDown(event, widget.id)}
             on:pointermove={handleWidgetPointerMove}
             on:pointerup={handleWidgetPointerUp}

@@ -16,16 +16,20 @@ export function getWidgetTypeCount(widgets, baseType) {
 
 export function getDefaultConfig(widgetType) {
     const defaultConfigs = {
-        TradingStats: { cols: 12, rows: 2, height: 140, textSize: 'medium' },
-        StatsCards: { cols: 2, rows: 8, height: 560, textSize: 'medium' },
-        TradeCalendar: { cols: 10, rows: 8, height: 560, textSize: 'medium' },
-        MonthTradeCalendar: { cols: 6, rows: 8, height: 560, textSize: 'medium' },
-        TradeChart: { cols: 4, rows: 8, height: 560, textSize: 'medium' },
-        ProfitTargetWidget: { cols: 4, rows: 0.75, height: 52.5, textSize: 'medium', period: 'daily', target: 1000 },
-        OpenPositionsWidget: { cols: 4, rows: 4, height: 280, textSize: 'medium' }
+        TradingStats: { cols: 'auto', rows: 'auto', textSize: 'medium' },
+        StatsCards: { cols: 12, rows: 1, textSize: 'medium' },
+        TradeCalendar: { cols: 10, rows: 8, textSize: 'medium' },
+        MonthTradeCalendar: { cols: 6, rows: 8, textSize: 'medium' },
+        TradeChart: { cols: 4, rows: 8, textSize: 'medium' },
+        ProfitTargetWidget: { cols: 4, rows: 'auto', textSize: 'medium', period: 'daily', target: 1000 },
+        OpenPositionsWidget: { cols: 4, rows: 4, textSize: 'medium' }
     };
 
-    return defaultConfigs[widgetType] || {};
+    return defaultConfigs[widgetType] || {
+        cols: 1,
+        rows: 1,
+        textSize: 'medium'
+    };
 }
 
 export const widgetLimits = {
@@ -215,3 +219,12 @@ export function calculateWidgetWidth(cols) {
 export function getBaseWidgetType(widgetId) {
     return widgetId.split('_')[0];
 }
+
+export function calculateHeight(rows) {
+    return rows === 'auto' ? 'auto' : rows * 70;
+}
+
+export const disabledConfigWidgets = {
+    TradingStats: { cols: true, rows: true },
+    ProfitTargetWidget: { cols: false, rows: true }
+};

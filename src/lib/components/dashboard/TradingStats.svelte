@@ -99,7 +99,7 @@
                 </div>
             </div>
             <div class="space-y-2">
-                <div class="flex items-baseline justify-between">
+                <div class="flex flex-wrap items-baseline justify-between">
                     <p class="text-lg {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
                         {formatCurrency(data.pnl)}
                     </p>
