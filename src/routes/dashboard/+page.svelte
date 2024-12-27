@@ -260,7 +260,7 @@
 </script>
 
 
-<div class="space-y-4 p-1 sm:p-8 sm:pb-0 sm:pt-4">
+<div class="space-y-4 p-1 sm:p-8 sm:py-0">
     {#if error}
         <div
             class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded-lg"
@@ -284,73 +284,93 @@
 
     <!-- Header -->
     <div class="flex justify-between items-center">
-        <!-- Replace the h1 title with this button -->
-        <div class="relative">
-            <button 
-                class="flex items-center text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent focus:outline-none"
-                on:click={() => showLayoutDropdown = !showLayoutDropdown}
-            >
-                Dashboard
-                <svg class="w-6 h-6 ml-2 text-theme-500 transform transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20"
-                    class:rotate-180={showLayoutDropdown}>
-                    <path fill-rule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 011.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clip-rule="evenodd" />
-                </svg>
-            </button>
+        <!-- Left side with title and edit button -->
+        <div class="flex items-center gap-3">
+            <!-- Replace the h1 title with this button -->
+            <div class="relative">
+                <button 
+                    class="flex items-center text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent focus:outline-none"
+                    on:click={() => showLayoutDropdown = !showLayoutDropdown}
+                >
+                    Dashboard
+                    <svg class="w-6 h-6 ml-2 text-theme-500 transform transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20"
+                        class:rotate-180={showLayoutDropdown}>
+                        <path fill-rule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 011.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clip-rule="evenodd" />
+                    </svg>
+                </button>
 
-            <!-- Layout Dropdown Menu -->
-            {#if showLayoutDropdown}
-                <div class="absolute left-0 mt-2 w-48 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg z-50">
-                    <div class="py-1">
-                        {#each layouts as layout, i}
+                <!-- Layout Dropdown Menu -->
+                {#if showLayoutDropdown}
+                    <div class="absolute left-0 mt-2 w-48 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg z-50">
+                        <div class="py-1">
+                            {#each layouts as layout, i}
+                                <button
+                                    class="flex items-center justify-between w-full px-4 py-2 text-sm hover:bg-light-hover dark:hover:bg-dark-hover {i === activeLayoutIndex ? 'text-theme-500 bg-theme-500/10' : 'text-light-text dark:text-dark-text'}"
+                                    on:click={() => {
+                                        editMode = false;
+                                        activeLayoutIndex = i;
+                                        showLayoutDropdown = false;
+                                        // Close any open modals when switching layouts
+                                        if (showDayModal) showDayModal = false;
+                                        if (showEditModal) showEditModal = false;
+                                        if (showViewModal) showViewModal = false;
+                                        if (showNewTradeModal) showNewTradeModal = false;
+                                        // Close month modal in calendar widgets
+                                        const widgets = document.querySelectorAll('svelte\\:component');
+                                        widgets.forEach(widget => {
+                                            if (widget.__svelte_component__ && widget.__svelte_component__.closeMonthModal) {
+                                                widget.__svelte_component__.closeMonthModal();
+                                            }
+                                        });
+                                    }}
+                                >
+                                    <span>{layout.name}</span>
+                                    {#if layouts.length > 1}
+                                        <button
+                                            class="p-1 rounded-full hover:bg-red-500 hover:text-white"
+                                            on:click|stopPropagation={() => deleteLayout(i)}
+                                        >
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    {/if}
+                                </button>
+                            {/each}
+
+                            <!-- Add New Layout Button -->
                             <button
-                                class="flex items-center justify-between w-full px-4 py-2 text-sm hover:bg-light-hover dark:hover:bg-dark-hover {i === activeLayoutIndex ? 'text-theme-500 bg-theme-500/10' : 'text-light-text dark:text-dark-text'}"
-            on:click={() => {
-                editMode = false;
-                activeLayoutIndex = i;
-                showLayoutDropdown = false;
-                // Close any open modals when switching layouts
-                if (showDayModal) showDayModal = false;
-                if (showEditModal) showEditModal = false;
-                if (showViewModal) showViewModal = false;
-                if (showNewTradeModal) showNewTradeModal = false;
-                // Close month modal in calendar widgets
-                const widgets = document.querySelectorAll('svelte\\:component');
-                widgets.forEach(widget => {
-                    if (widget.__svelte_component__ && widget.__svelte_component__.closeMonthModal) {
-                        widget.__svelte_component__.closeMonthModal();
-                    }
-                });
-            }}
+                                class="flex items-center w-full px-4 py-2 text-sm text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover border-t border-light-border dark:border-dark-border"
+                                on:click={() => {
+                                    showNewLayoutModal = true;
+                                    showLayoutDropdown = false;
+                                }}
                             >
-                                <span>{layout.name}</span>
-                                {#if layouts.length > 1}
-                                    <button
-                                        class="p-1 rounded-full hover:bg-red-500 hover:text-white"
-                                        on:click|stopPropagation={() => deleteLayout(i)}
-                                    >
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                {/if}
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                New Layout
                             </button>
-                        {/each}
-
-                        <!-- Add New Layout Button -->
-                        <button
-                            class="flex items-center w-full px-4 py-2 text-sm text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover border-t border-light-border dark:border-dark-border"
-                            on:click={() => {
-                                showNewLayoutModal = true;
-                                showLayoutDropdown = false;
-                            }}
-                        >
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                            New Layout
-                        </button>
+                        </div>
                     </div>
-                </div>
+                {/if}
+            </div>
+
+            <!-- Add Edit Layout Button -->
+            {#if $accountStore.currentAccount && !editMode}
+                <button
+                    class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md
+                           text-light-text-muted dark:text-dark-text-muted
+                           hover:bg-light-hover dark:hover:bg-dark-hover
+                           border border-light-border dark:border-dark-border
+                           transition-colors duration-200"
+                    on:click={() => editMode = true}
+                >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit layout
+                </button>
             {/if}
         </div>
 
@@ -370,7 +390,7 @@
                             d="M12 4v16m8-8H4"
                         />
                     </svg>
-                    <span class="hidden md:flex">New Trade<span>
+                    <span class="hidden md:flex">New Trade</span>
                 </Button>
             </div>
         {/if}

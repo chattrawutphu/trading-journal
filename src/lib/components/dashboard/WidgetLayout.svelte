@@ -19,6 +19,7 @@
     import TradeChart from './TradeChart.svelte';
     import ProfitTargetWidget from './ProfitTargetWidget.svelte';
     import OpenPositionsWidget from './OpenPositionsWidget.svelte';
+    import ShortCalendarWidget from './ShortCalendarWidget.svelte';
 
     // Import utilities
     import { 
@@ -97,6 +98,12 @@
             title: 'Open Positions',
             icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
             config: {...defaultWidgetConfigs.OpenPositionsWidget}
+        },
+        {
+            id: 'ShortCalendar',
+            title: 'Quick Calendar',
+            icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+            config: {...defaultWidgetConfigs.ShortCalendar}
         }
     ];
 
@@ -137,7 +144,8 @@
             'MonthTradeCalendar': MonthTradeCalendar,
             'TradeChart': TradeChart,
             'ProfitTargetWidget': ProfitTargetWidget,
-            'OpenPositionsWidget': OpenPositionsWidget
+            'OpenPositionsWidget': OpenPositionsWidget,
+            'ShortCalendar': ShortCalendarWidget
         };
 
         return componentMap[baseType] || null;
@@ -146,7 +154,7 @@
     function getWidgetProps(baseType, config) {
         if (baseType === 'StatsCards') {
             return { totalPnL, openTrades, closedTrades, winRate };
-        } else if (baseType === 'TradeCalendar' || baseType === 'MonthTradeCalendar') {
+        } else if (baseType === 'TradeCalendar' || baseType === 'MonthTradeCalendar' || baseType === 'ShortCalendar') {
             return { trades: [...openTrades, ...closedTrades], accountId };
         } else if (baseType === 'TradeChart') {
             return { openTrades, closedTrades };

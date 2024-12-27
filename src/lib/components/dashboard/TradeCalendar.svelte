@@ -409,7 +409,7 @@
         <div class="flex justify-between items-center relative">
             <div class="flex items-center justify-between w-full gap-2">
                 <span
-                    class="text-2xl font-semibold cursor-pointer text-light-text-muted dark:text-dark-text"
+                    class="text-xl font-semibold cursor-pointer text-light-text-muted dark:text-dark-text"
                     on:click={() => showDatePicker = !showDatePicker}
                 >
                     {months[selectedMonth]} {selectedYear}

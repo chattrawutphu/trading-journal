@@ -59,6 +59,13 @@ export function getDefaultConfig(widgetType) {
             rows: 4,
             textSize: 'medium',
             disabled: { cols: false, rows: false }
+        },
+        ShortCalendar: {
+            cols: 12,
+            rows: 'auto',
+            textSize: 'medium',
+            disabled: { cols: false, rows: false },
+            height: 'auto'
         }
     };
 
@@ -77,7 +84,8 @@ export const widgetLimits = {
     StatsCards: 1,
     TradingStats: 1,
     ProfitTargetWidget: 3,
-    OpenPositionsWidget: 3
+    OpenPositionsWidget: 3,
+    ShortCalendar: 1
 };
 
 export function getWidgetDescription(widgetId) {
@@ -150,6 +158,16 @@ export function getWidgetDescription(widgetId) {
                 "Key position metrics",
                 "Scrollable position list",
                 "Quick position overview"
+            ]
+        },
+        ShortCalendar: {
+            title: "Quick Calendar View",
+            description: "A compact calendar view showing trading activity for the past few days with quick navigation.",
+            features: [
+                "12-day view with today highlighted",
+                "Quick navigation between days",
+                "Trade performance indicators",
+                "Daily profit/loss tracking"
             ]
         }
     };
