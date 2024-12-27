@@ -9,9 +9,6 @@
     export let onConfigClick;
     export let onDeleteClick;
     export let getComponentByName;
-    export let handleWidgetPointerDown;
-    export let handleWidgetPointerMove;
-    export let handleWidgetPointerUp;
     export let onAddWidgetAtPosition;
 
     $: getWidgetHeight = (widget) => {
@@ -27,22 +24,6 @@
     $: getWidgetRows = (widget) => {
         return widget.config?.rows || 1;
     };
-
-    function getColumnSpan(widget) {
-        const isMobile = window.innerWidth < 768;
-        return isMobile ? 12 : widget.config?.cols || 1;
-    }
-
-    function getHeight(widget) {
-        const isMobile = window.innerWidth < 768;
-        return isMobile ? 'auto' : `${widget.config?.height || 100}px`;
-    }
-
-    function handleConfigClose() {
-        if (onConfigClose) {
-            onConfigClose();
-        }
-    }
 
     function handleAddButtonClick(position, widget, event) {
         event.stopPropagation();
@@ -73,10 +54,6 @@
             style="--widget-cols: {getWidgetCols(widget)}; 
                    --widget-rows: {getWidgetRows(widget)}; 
                    --widget-height: {getWidgetHeight(widget)};"
-            on:pointerdown={(event) => handleWidgetPointerDown(event, widget.id)}
-            on:pointermove={handleWidgetPointerMove}
-            on:pointerup={handleWidgetPointerUp}
-            on:pointerleave={handleWidgetPointerUp}
         >
             {#if editMode && !widget.id.includes('dnd-shadow')}
                 <div class="absolute inset-0 bg-transparent z-10"></div>
@@ -109,7 +86,8 @@
 
             {#if editMode}
                 <button 
-                    class="absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -top-[11px] left-1/2 -translate-x-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]"
+                    class="absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg flex items-center justify-center cursor-pointer md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -top-[11px] left-1/2 -translate-x-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]
+                       {widget !== widgets[0] ? 'hidden md:flex' : 'flex'}"
                     on:click={(e) => handleAddButtonClick('top', widget, e)}
                 >
                     <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,7 +96,7 @@
                 </button>
 
                 <button 
-                    class="absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -bottom-[11px] left-1/2 -translate-x-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]"
+                    class="absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg flex items-center justify-center cursor-pointer md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -bottom-[11px] left-1/2 -translate-x-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]"
                     on:click={(e) => handleAddButtonClick('bottom', widget, e)}
                 >
                     <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,7 +105,7 @@
                 </button>
 
                 <button 
-                    class="absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -left-[11px] top-1/2 -translate-y-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]"
+                    class="hidden md:flex absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -left-[11px] top-1/2 -translate-y-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]"
                     on:click={(e) => handleAddButtonClick('left', widget, e)}
                 >
                     <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +114,7 @@
                 </button>
 
                 <button 
-                    class="absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -right-[11px] top-1/2 -translate-y-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]"
+                    class="hidden md:flex absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -right-[11px] top-1/2 -translate-y-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]"
                     on:click={(e) => handleAddButtonClick('right', widget, e)}
                 >
                     <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
