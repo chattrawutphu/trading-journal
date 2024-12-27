@@ -12,6 +12,8 @@
     import { tradeDate } from '$lib/stores/tradeDateStore';
     import Modal from '../common/Modal.svelte';
     import { api } from '$lib/utils/api';
+    import TradeViewModal from "$lib/components/trades/TradeViewModal.svelte";
+    import TradeModal from "$lib/components/trades/TradeModal.svelte";
 
     const dispatch = createEventDispatcher();
 
@@ -33,6 +35,10 @@
 
     let showDeleteConfirmModal = false;
     let deleteContext = null;
+
+    let showViewModal = false;
+    let showEditModal = false;
+    let selectedTrade = null;
 
     $: if (show && accountId) {
         loadTransactions();
@@ -182,6 +188,54 @@
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(value);
+    }
+
+    function handleTradeView(event) {
+        selectedTrade = event.detail;
+        showViewModal = true;
+    }
+
+    function handleTradeEdit(event) {
+        selectedTrade = event.detail;
+        showEditModal = true;
+    }
+
+    async function handleTradeFavorite(event) {
+        try {
+            await loadTrades();
+        } catch (error) {
+            console.error('Error updating favorite:', error);
+        }
+    }
+
+    function closeViewModal() {
+        showViewModal = false;
+        selectedTrade = null;
+    }
+
+    async function handleTradeUpdated() {
+        await loadTrades();
+        showEditModal = false;
+        selectedTrade = null;
+        dispatch('refresh');
+    }
+
+    async function loadTrades() {
+        try {
+            const response = await api.getTrades(accountId);
+            trades = response;
+            openTrades = response.filter(trade => trade.status === 'OPEN');
+            closedTrades = response.filter(trade => trade.status === 'CLOSED');
+        } catch (error) {
+            console.error('Error loading trades:', error);
+        }
+    }
+
+    async function handleTransactionUpdated() {
+        await loadTransactions();
+        showTransactionModal = false;
+        selectedTransaction = null;
+        dispatch('refresh');
     }
 </script>
 
@@ -337,9 +391,9 @@
                                     trades={openTrades}
                                     type="open"
                                     isInModal={true}
-                                    on:view
-                                    on:edit
-                                    on:favorite
+                                    on:view={handleTradeView}
+                                    on:edit={handleTradeEdit}
+                                    on:favorite={handleTradeFavorite}
                                     on:disable
                                     on:delete={handleDelete}
                                     on:deleted={() => dispatch('refresh')}
@@ -357,9 +411,9 @@
                                     type="closed"
                                     isInModal={true}
                                     dailyBalance={dailyBalance}
-                                    on:view
-                                    on:edit
-                                    on:favorite
+                                    on:view={handleTradeView}
+                                    on:edit={handleTradeEdit}
+                                    on:favorite={handleTradeFavorite}
                                     on:disable
                                     on:delete={handleDelete}
                                     on:deleted={() => dispatch('refresh')}
@@ -401,13 +455,9 @@
         showTransactionModal = false;
         showDepositModal = false;
         showWithdrawModal = false;
+        selectedTransaction = null;
     }}
-    on:transactionUpdated={async () => {
-        await loadTransactions();
-        showTransactionModal = false;
-        showDepositModal = false;
-        showWithdrawModal = false;
-    }}
+    on:transactionUpdated={handleTransactionUpdated}
 />
 
 <!-- Delete Confirmation Modal -->
@@ -445,6 +495,22 @@
             </div>
         </div>
     </Modal>
+{/if}
+
+<!-- เพิ่ม Modals -->
+{#if selectedTrade}
+    <TradeViewModal
+        bind:show={showViewModal}
+        trade={selectedTrade}
+        on:close={closeViewModal}
+    />
+
+    <TradeModal
+        bind:show={showEditModal}
+        trade={selectedTrade}
+        accountId={accountId}
+        on:tradeUpdated={handleTradeUpdated}
+    />
 {/if}
 
 <style lang="postcss">

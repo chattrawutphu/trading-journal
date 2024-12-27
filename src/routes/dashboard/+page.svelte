@@ -257,6 +257,48 @@
                       100,
               )
             : 0;
+
+    function handleTradeView(trade) {
+        selectedTrade = trade;
+        showViewModal = true;
+    }
+
+    function handleTradeEdit(trade) {
+        selectedTrade = trade;
+        showEditModal = true;
+    }
+
+    async function handleTradeFavorite(tradeId) {
+        try {
+            await loadTrades();
+        } catch (error) {
+            console.error('Error updating favorite:', error);
+        }
+    }
+
+    async function handleTransactionFavorite(transactionId) {
+        try {
+            await transactionStore.fetchTransactions($accountStore.currentAccount._id);
+        } catch (error) {
+            console.error('Error updating favorite:', error);
+        }
+    }
+
+    async function handleTradeDelete(event) {
+        try {
+            const { items } = event;
+            await api.deleteTrades(items);
+            await loadTrades();
+        } catch (error) {
+            console.error('Error deleting trades:', error);
+        }
+    }
+
+    async function handleTradeUpdated() {
+        await loadTrades();
+        showEditModal = false;
+        selectedTrade = null;
+    }
 </script>
 
 
@@ -526,7 +568,7 @@
         bind:show={showEditModal}
         trade={selectedTrade}
         accountId={$accountStore.currentAccount._id}
-        on:tradeUpdated={loadTrades}
+        on:tradeUpdated={handleTradeUpdated}
     />
 
     <TradeViewModal

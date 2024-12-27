@@ -265,7 +265,9 @@
         updateChart();
     }
 
-    $: chartHeight = typeof height === 'number' ? height - 165 : 'auto';
+    $: chartHeight = typeof height === 'number' 
+        ? height - 165 
+        : window.innerWidth < 768 ? 300 : 'auto';
 
     function handleResize() {
         if (chart) {
@@ -285,6 +287,15 @@
             window.removeEventListener('resize', handleResize);
         };
     });
+
+    $: if (browser && chartCanvas && selectedView === 'chart') {
+        window.addEventListener('resize', () => {
+            chartHeight = typeof height === 'number' 
+                ? height - 165 
+                : window.innerWidth < 768 ? 300 : 'auto';
+            handleResize();
+        });
+    }
 </script>
 
 <div class="h-full flex flex-col bg-light-card dark:bg-dark-card rounded-lg shadow-sm" 
@@ -362,7 +373,8 @@
     <!-- Content -->
     <div class="flex-1 p-4 min-h-0">
         {#if selectedView === 'chart'}
-            <div class="h-full" style="height: {chartHeight}px">
+            <div class="h-full relative" 
+                 style="height: {chartHeight}px; {typeof height === 'auto' ? 'min-height: 300px;' : ''}">
                 <canvas bind:this={chartCanvas}></canvas>
             </div>
         {:else}
@@ -420,6 +432,12 @@
     @media (max-width: 768px) {
         .grid-cols-2 {
             grid-template-columns: 1fr;
+        }
+        
+        /* ปรับปรุง style สำหรับ container ของ chart */
+        :global(.chart-container) {
+            min-height: 300px;
+            height: 300px !important;
         }
     }
 

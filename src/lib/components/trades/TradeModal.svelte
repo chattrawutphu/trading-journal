@@ -20,33 +20,8 @@
     let errors = {};
     let previousSymbol = "";
 
-    const emotionOptions = [
-        { value: "confident", label: "😊 Confident" },
-        { value: "fearful", label: "😨 Fearful" },
-        { value: "angry", label: "😡 Angry" },
-        { value: "disappointed", label: "😔 Disappointed" },
-        { value: "uncertain", label: "🤔 Uncertain" },
-        { value: "calm", label: "😌 Calm" },
-        { value: "frustrated", label: "😤 Frustrated" },
-        { value: "excited", label: "🤩 Excited" },
-        { value: "anxious", label: "😰 Anxious" },
-        { value: "neutral", label: "😐 Neutral" },
-    ];
-
-    function getCurrentDate() {
-        const now = new Date();
-        now.setHours(12, 0, 0, 0);
-        return now.toISOString().slice(0, 10);
-    }
-
-    function getCurrentDateTime() {
-        const now = new Date();
-        now.setSeconds(0, 0);
-        return now.toLocaleString('sv-SE', { hour12: false }).slice(0, 16); // Use local date and time
-    }
-
     let form = {
-        entryDate: '', // เริ่มต้นค่า entryDate
+        entryDate: getCurrentDateTime(),
         exitDate: getCurrentDateTime(),
         symbol: "",
         status: "OPEN",
@@ -70,7 +45,31 @@
         leverage: 1,
     };
 
-    // Helper function to format ISO date to 'YYYY-MM-DDTHH:mm'
+    const emotionOptions = [
+        { value: "confident", label: "😊 Confident" },
+        { value: "fearful", label: "😨 Fearful" },
+        { value: "angry", label: "😡 Angry" },
+        { value: "disappointed", label: "😔 Disappointed" },
+        { value: "uncertain", label: "🤔 Uncertain" },
+        { value: "calm", label: "😌 Calm" },
+        { value: "frustrated", label: "😤 Frustrated" },
+        { value: "excited", label: "🤩 Excited" },
+        { value: "anxious", label: "😰 Anxious" },
+        { value: "neutral", label: "😐 Neutral" },
+    ];
+
+    function getCurrentDate() {
+        const now = new Date();
+        now.setHours(12, 0, 0, 0);
+        return now.toISOString().slice(0, 10);
+    }
+
+    function getCurrentDateTime() {
+        const now = new Date();
+        now.setSeconds(0, 0);
+        return now.toLocaleString('sv-SE', { hour12: false }).slice(0, 16);
+    }
+
     function formatDateTimeLocal(dateInput) {
         let date;
         if (dateInput instanceof Date) {
@@ -78,12 +77,10 @@
         } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
             date = new Date(dateInput);
         } else {
-            // ถ้า dateInput เป็น null หรือ undefined ให้ใช้วันที่ปัจจุบัน
             date = new Date();
         }
 
         if (isNaN(date.getTime())) {
-            // ถ้าไม่สามารถแปลงเป็น Date ที่ถูกต้องได้ ให้ใช้วันที่ปัจจุบัน
             date = new Date();
         }
 
@@ -92,42 +89,18 @@
         return localDate.toISOString().slice(0,16);
     }
 
-    // ใช้ statement แบบ reactive เพื่ออัพเดต form.entryDate
-    $: if (show) {
-        if (trade && trade.entryDate) {
-            form.entryDate = formatDateTimeLocal(trade.entryDate);
-        } else if ($tradeDate) {
-            // ตั้งเวลาเป็น 7:00 น. เมื่อใช้วันที่จาก store
-            const dateFromStore = new Date($tradeDate);
-            dateFromStore.setHours(7, 0, 0, 0);
-            form.entryDate = formatDateTimeLocal(dateFromStore);
-            tradeDate.set(null); // รีเซ็ต tradeDate หลังจากใช้งาน
-        } else {
-            // ใช้วันที่และเวลา local ปัจจุบัน
-            form.entryDate = formatDateTimeLocal(new Date());
-        }
-    }
-
-    // If editing an existing trade, populate form with trade data
-    if (trade) {
+    $: if (trade) {
         form = {
+            ...form,
             ...trade,
-            entryDate: trade.entryDate
+            entryDate: trade.entryDate 
                 ? formatDateTimeLocal(trade.entryDate)
                 : getCurrentDateTime(),
             exitDate: trade.exitDate
-                ? new Date(trade.exitDate).toISOString().slice(0, 16)
+                ? formatDateTimeLocal(trade.exitDate)
                 : getCurrentDateTime(),
         };
         previousSymbol = trade.symbol;
-    } else {
-        // Use the tradeDate store value if available
-        $: if ($tradeDate) {
-            form.entryDate = formatDateTimeLocal($tradeDate);
-            tradeDate.set(null); // Clear the store after using
-        } else {
-            form.entryDate = formatDateTimeLocal(new Date().toISOString()); // Default to current date
-        }
     }
 
     $: if (form.status === "CLOSED" && !form.exitDate) {
@@ -135,7 +108,6 @@
     }
 
     function calculatePnL() {
-        // ตรวจสอบ amount ก่อนคำนวณ
         if (!form.amount || form.amount <= 0) {
             errors.amount = "Amount must be greater than 0";
             return;

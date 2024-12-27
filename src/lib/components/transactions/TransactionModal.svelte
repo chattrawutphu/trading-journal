@@ -11,37 +11,66 @@
     const dispatch = createEventDispatcher();
 
     export let show = false;
-    export let type = "deposit";
-    export let accountId = null;
     export let transaction = null;
+    export let accountId;
+    export let type = 'deposit';
 
-    let transactionAmount = 0;
-    let transactionDateInput;
-    let transactionNote = '';
+    let form = {
+        date: getCurrentDateTime(),
+        type: type,
+        amount: '',
+        note: '',
+    };
 
-    // Use the store's value for transactionDateInput
-    $: transactionDateInput = $transactionDate 
-        ? new Date($transactionDate).toLocaleString('sv-SE', { hour12: false }).slice(0, 16) 
-        : new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16);
+    // เพิ่ม reactive statement เพื่ออัพเดต form เมื่อ transaction เปลี่ยน
+    $: if (transaction) {
+        form = {
+            ...form,
+            ...transaction,
+            date: formatDateTimeLocal(transaction.date),
+            type: transaction.type || type,
+            amount: transaction.amount || '',
+            note: transaction.note || '',
+        };
+    }
 
-    if (transaction) {
-        transactionAmount = transaction.amount;
-        transactionDateInput = new Date(transaction.date).toLocaleString('sv-SE', { hour12: false }).slice(0, 16);
-        transactionNote = transaction.note;
+    function formatDateTimeLocal(dateInput) {
+        let date;
+        if (dateInput instanceof Date) {
+            date = dateInput;
+        } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
+            date = new Date(dateInput);
+        } else {
+            date = new Date();
+        }
+
+        if (isNaN(date.getTime())) {
+            date = new Date();
+        }
+
+        const offset = date.getTimezoneOffset();
+        const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+        return localDate.toISOString().slice(0,16);
+    }
+
+    function getCurrentDateTime() {
+        const now = new Date();
+        now.setSeconds(0, 0);
+        return now.toLocaleString('sv-SE', { hour12: false }).slice(0, 16);
     }
 
     async function handleSubmit() {
-        if (transactionAmount > 0) {
+        if (form.amount > 0) {
             try {
                 loadingStore.set(true);
 
-                const transactionType = type === "deposit" ? "deposit" : "withdrawal";
+                const transactionType = form.type === "deposit" ? "deposit" : "withdrawal";
                 await transactionStore.createTransaction(
                     accountId,
                     transactionType,
-                    transactionAmount,
-                    new Date(transactionDateInput),
-                    transactionNote
+                    form.amount,
+                    new Date(form.date),
+                    form.note
                 );
 
                 // เคลียร์ transactionDateStore หลังจากบันทึก transaction
@@ -52,9 +81,9 @@
                 dispatch("close");
                 dispatch("transactionUpdated", { accountId });
                 
-                transactionAmount = 0;
-                transactionDateInput = new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16);
-                transactionNote = '';
+                form.amount = 0;
+                form.date = getCurrentDateTime();
+                form.note = '';
 
                 // Refresh the current page
                 goto(window.location.pathname);
@@ -76,7 +105,7 @@
     <div class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
         <div class="card w-full max-w-md mx-auto relative transform ease-out">
             <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">
-                <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">{type === "deposit" ? "Deposit" : "Withdraw"}</h2>
+                <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">{form.type === "deposit" ? "Deposit" : "Withdraw"}</h2>
                 <button class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover " on:click={closeModal}>
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -85,9 +114,28 @@
             </div>
             <div class="px-8 py-6 space-y-4">
                 <form on:submit|preventDefault={handleSubmit}>
-                    <Input label="Amount" type="number" bind:value={transactionAmount} min="0" step="0.01" placeholder="0.00" />
-                    <Input label="Date" type="datetime-local" bind:value={transactionDateInput} max={new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16)} />
-                    <Input label="Note" type="text" bind:value={transactionNote} placeholder="Add a note..." />
+                    <div class="input-wrapper">
+                        <Input
+                            label="Amount"
+                            type="number"
+                            bind:value={form.amount}
+                            placeholder="Enter amount"
+                        />
+                    </div>
+                    <div class="input-wrapper">
+                        <Input
+                            label="Date"
+                            type="datetime-local"
+                            bind:value={form.date}
+                        />
+                    </div>
+                    <div class="input-wrapper">
+                        <Input
+                            label="Note"
+                            bind:value={form.note}
+                            placeholder="Add a note (optional)"
+                        />
+                    </div>
                 </form>
             </div>
             <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10">
@@ -95,7 +143,7 @@
                     Cancel
                 </Button>
                 <Button type="submit" variant="primary" on:click={handleSubmit}>
-                    {type === "deposit" ? "Deposit" : "Withdraw"}
+                    {form.type === "deposit" ? "Deposit" : "Withdraw"}
                 </Button>
             </div>
         </div>

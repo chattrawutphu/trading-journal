@@ -1,6 +1,13 @@
 <script>
-    import { onMount, afterUpdate } from 'svelte';
-    import { fade, slide } from 'svelte/transition';
+    import { onMount, createEventDispatcher } from 'svelte';
+    import { slide } from 'svelte/transition';
+    import { deleteModalStore } from '$lib/stores/modalStore';
+    import { goto } from '$app/navigation';
+    import { api } from '$lib/utils/api';
+    import TradeViewModal from "$lib/components/trades/TradeViewModal.svelte";
+    import TradeModal from "$lib/components/trades/TradeModal.svelte";
+
+    const dispatch = createEventDispatcher();
 
     export let trades = [];
     export let height;
@@ -8,67 +15,169 @@
     export let isPreview = false;
 
     let openPositions = [];
-    let totalValue = 0;
-    let totalPnL = 0;
-    let pnlPercentage = 0;
+    let totalInvested = 0;
     let showAllPositions = false;
+    let showViewModal = false;
+    let showEditModal = false;
+    let selectedTrade = null;
 
     $: if (trades) {
         calculatePositions();
     }
 
     function calculatePositions() {
-        openPositions = trades.filter(t => t.status === 'OPEN')
+        if (!Array.isArray(trades)) {
+            openPositions = [];
+            totalInvested = 0;
+            return;
+        }
+
+        openPositions = trades.filter(t => t && t.status === 'OPEN')
             .map(position => {
-                const currentPrice = position.lastPrice || position.entryPrice || 0;
-                const size = position.size || 0;
-                const entryPrice = position.entryPrice || 0;
+                if (!position) return null;
                 
-                const positionValue = currentPrice * size;
-                const unrealizedPnL = (currentPrice - entryPrice) * size;
-                const pnlPercentage = entryPrice ? (unrealizedPnL / (entryPrice * size)) * 100 : 0;
+                const entryPrice = position.entryPrice || 0;
+                const quantity = position.quantity || 0;
+                const amount = entryPrice * quantity;
                 
                 return {
                     ...position,
-                    currentPrice,
-                    positionValue,
-                    unrealizedPnL,
-                    pnlPercentage,
-                    size,
-                    entryPrice
+                    amount,
+                    entryDate: new Date(position.entryDate || Date.now())
                 };
             })
-            .sort((a, b) => Math.abs(b.unrealizedPnL) - Math.abs(a.unrealizedPnL));
+            .filter(Boolean)
+            .sort((a, b) => (b.amount || 0) - (a.amount || 0));
 
-        totalValue = openPositions.reduce((sum, pos) => sum + (pos.positionValue || 0), 0);
-        totalPnL = openPositions.reduce((sum, pos) => sum + (pos.unrealizedPnL || 0), 0);
-        pnlPercentage = totalValue ? (totalPnL / totalValue) * 100 : 0;
+        totalInvested = openPositions.reduce((sum, pos) => sum + (pos.amount || 0), 0);
     }
 
     function formatCurrency(value) {
-        if (value === undefined || value === null) return '$0';
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(value);
-    }
-
-    function formatPercentage(value) {
-        if (value === undefined || value === null) return '0%';
-        return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
-    }
-
-    function formatCompactNumber(value) {
-        if (value === undefined || value === null) return '0';
-        if (Math.abs(value) >= 1000000) {
-            return (value / 1000000).toFixed(1) + 'M';
-        } else if (Math.abs(value) >= 1000) {
-            return (value / 1000).toFixed(1) + 'K';
+        if (value === undefined || value === null || isNaN(value)) {
+            return '$0';
         }
-        return value.toFixed(0);
+        try {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value);
+        } catch (error) {
+            console.error('Error formatting currency:', error);
+            return '$0';
+        }
     }
+
+    function formatDate(date) {
+        if (!date) return '-';
+        try {
+            return new Date(date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            console.error('Error formatting date:', error);
+            return '-';
+        }
+    }
+
+    function getDaysSinceEntry(entryDate) {
+        if (!entryDate) return 0;
+        try {
+            const diffTime = Math.abs(new Date() - new Date(entryDate));
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays;
+        } catch (error) {
+            console.error('Error calculating days:', error);
+            return 0;
+        }
+    }
+
+    async function handleView(position) {
+        selectedTrade = position;
+        showViewModal = true;
+    }
+
+    async function handleEdit(position) {
+        selectedTrade = position;
+        showEditModal = true;
+    }
+
+    async function handleFavorite(id) {
+        try {
+            const position = openPositions.find(p => p._id === id);
+            if (!position) return;
+
+            console.log('Updating trade:', id, { favorite: !position.favorite });
+
+            const updatedTrade = await api.updateTrade(id, { 
+                favorite: !position.favorite,
+                symbol: position.symbol,
+                side: position.side,
+                entryPrice: position.entryPrice,
+                quantity: position.quantity,
+                status: position.status
+            });
+
+            console.log('Updated trade:', updatedTrade);
+
+            // อัพเดท local state
+            openPositions = openPositions.map(p => 
+                p._id === id ? { ...p, favorite: !p.favorite } : p
+            );
+
+            dispatch('favorite', id);
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+        }
+    }
+
+    async function handleDelete(position) {
+        deleteModalStore.set({
+            show: true,
+            type: 'single',
+            context: 'trades',
+            count: 1,
+            itemName: `trade ${position.symbol}`,
+            onConfirm: async () => {
+                try {
+                    await api.deleteTrade(position._id);
+                    dispatch('delete', {
+                        type: 'single',
+                        context: 'trades',
+                        items: [position._id]
+                    });
+                } catch (error) {
+                    console.error('Error deleting trade:', error);
+                }
+            }
+        });
+    }
+
+    function getPositionAnimationClass(side) {
+        return side === 'LONG' ? 'pulse-green' : 'pulse-red';
+    }
+
+    function closeViewModal() {
+        showViewModal = false;
+        selectedTrade = null;
+    }
+
+    function handleTradeUpdated() {
+        dispatch('refresh'); // เพื่อโหลดข้อมูลใหม่
+        showEditModal = false;
+        selectedTrade = null;
+    }
+
+    onMount(() => {
+        return () => {
+            openPositions = [];
+            totalInvested = 0;
+        };
+    });
 </script>
 
 <div class="h-full flex flex-col bg-light-card dark:bg-dark-card rounded-lg shadow-sm">
@@ -101,23 +210,17 @@
         </div>
 
         <!-- Summary Stats -->
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-2 gap-3">
             <div class="p-3 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30">
-                <p class="text-xs text-light-text-muted dark:text-dark-text-muted mb-1">Total Value</p>
+                <p class="text-xs text-light-text-muted dark:text-dark-text-muted mb-1">Total Amount</p>
                 <p class="text-base font-bold text-light-text dark:text-dark-text">
-                    {formatCurrency(totalValue)}
+                    {formatCurrency(totalInvested)}
                 </p>
             </div>
             <div class="p-3 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30">
-                <p class="text-xs text-light-text-muted dark:text-dark-text-muted mb-1">Unrealized P&L</p>
-                <p class="text-base font-bold {totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}">
-                    {formatCurrency(totalPnL)}
-                </p>
-            </div>
-            <div class="p-3 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30">
-                <p class="text-xs text-light-text-muted dark:text-dark-text-muted mb-1">Return</p>
-                <p class="text-base font-bold {pnlPercentage >= 0 ? 'text-green-500' : 'text-red-500'}">
-                    {formatPercentage(pnlPercentage)}
+                <p class="text-xs text-light-text-muted dark:text-dark-text-muted mb-1">Active Positions</p>
+                <p class="text-base font-bold text-theme-500">
+                    {openPositions.length}
                 </p>
             </div>
         </div>
@@ -129,44 +232,82 @@
             <div class="space-y-3">
                 {#each openPositions.slice(0, showAllPositions ? undefined : 3) as position}
                     <div 
-                        class="p-3 rounded-lg border border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover transition-colors"
+                        class="p-3 rounded-lg border border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover transition-colors relative {getPositionAnimationClass(position.side)}"
                         transition:slide
                     >
                         <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-2">
+                            <div class="flex  items-center gap-2">
                                 <span class="text-base font-medium text-light-text dark:text-dark-text">
                                     {position.symbol}
                                 </span>
-                                <span class="text-xs px-2 py-0.5 rounded-full {position.side === 'BUY' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
+                                <span class="text-xs relative font-bold px-2 py-0.5 rounded-full {position.side === 'LONG' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
                                     {position.side}
+                                    <div class=" absolute h-full w-full top-0 right-0 animate-ping px-2 py-0.5 rounded-full {position.side === 'LONG' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}"></div>
                                 </span>
+                                
                             </div>
-                            <div class="text-right">
-                                <p class="text-sm font-medium {position.unrealizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}">
-                                    {formatCurrency(position.unrealizedPnL)}
-                                </p>
-                                <p class="text-xs {position.pnlPercentage >= 0 ? 'text-green-500' : 'text-red-500'}">
-                                    {formatPercentage(position.pnlPercentage)}
-                                </p>
+                            <div class="flex items-center gap-1">
+                                <div class="text-right mr-4">
+                                    <p class="text-sm font-medium text-light-text dark:text-dark-text">
+                                        {formatCurrency(position.amount)}
+                                    </p>
+                                    <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                                        {getDaysSinceEntry(position.entryDate)} days
+                                    </p>
+                                </div>
+                                <!-- Action Buttons -->
+                                <div class="flex gap-1 relative z-10">
+                                    <button 
+                                        class="icon-button text-theme-500 hover:text-theme-600 cursor-pointer"
+                                        on:click={() => handleView(position)}
+                                        title="View details"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </button>
+                                    <button 
+                                        class="icon-button text-theme-500 hover:text-theme-600 cursor-pointer"
+                                        on:click={() => handleEdit(position)}
+                                        title="Edit trade"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                    </button>
+                                    <button 
+                                        class="icon-button text-theme-500 hover:text-theme-600 cursor-pointer"
+                                        on:click={() => handleFavorite(position._id)}
+                                        title={position.favorite ? 'Remove from favorites' : 'Add to favorites'}
+                                    >
+                                        <svg class="w-4 h-4" fill={position.favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                                        </svg>
+                                    </button>
+                                    <button 
+                                        class="icon-button text-red-500 hover:text-red-600 cursor-pointer"
+                                        on:click={() => handleDelete(position)}
+                                        title="Delete trade"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-2 text-xs text-light-text-muted dark:text-dark-text-muted">
+                        <div class="grid grid-cols-2 gap-2 text-xs text-light-text-muted dark:text-dark-text-muted">
                             <div>
-                                <p class="mb-0.5">Size</p>
+                                <p class="mb-0.5">Entry Price</p>
                                 <p class="font-medium text-light-text dark:text-dark-text">
-                                    {formatCompactNumber(position.size || 0)}
+                                    ${position.entryPrice.toFixed(2)}
                                 </p>
                             </div>
                             <div>
-                                <p class="mb-0.5">Entry</p>
+                                <p class="mb-0.5">Entry Date</p>
                                 <p class="font-medium text-light-text dark:text-dark-text">
-                                    ${(position.entryPrice || 0).toFixed(2)}
-                                </p>
-                            </div>
-                            <div>
-                                <p class="mb-0.5">Current</p>
-                                <p class="font-medium text-light-text dark:text-dark-text">
-                                    ${(position.currentPrice || 0).toFixed(2)}
+                                    {formatDate(position.entryDate)}
                                 </p>
                             </div>
                         </div>
@@ -183,6 +324,21 @@
         {/if}
     </div>
 </div>
+
+{#if selectedTrade}
+    <TradeViewModal
+        bind:show={showViewModal}
+        trade={selectedTrade}
+        on:close={closeViewModal}
+    />
+
+    <TradeModal
+        bind:show={showEditModal}
+        trade={selectedTrade}
+        accountId={selectedTrade.account}
+        on:tradeUpdated={handleTradeUpdated}
+    />
+{/if}
 
 <style>
     /* Smooth scrolling for position list */
@@ -202,5 +358,79 @@
     .overflow-y-auto::-webkit-scrollbar-thumb {
         background-color: var(--theme-500);
         border-radius: 2px;
+    }
+
+    .icon-button {
+        @apply p-1 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover text-sm 
+               transition-colors duration-200 cursor-pointer relative z-10;
+    }
+
+    /* Animation styles */
+    .pulse-green {
+        position: relative;
+    }
+    
+    .pulse-green::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border: 2px solid rgb(34 197 94); /* green-500 */
+        border-radius: 0.5rem;
+        animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .pulse-red {
+        position: relative;
+    }
+    
+    .pulse-red::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border: 2px solid rgb(239 68 68); /* red-500 */
+        border-radius: 0.5rem;
+        animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    @keyframes pulse-green {
+        0%, 100% {
+            opacity: 0;
+        }
+        50% {
+            opacity: 0.3;
+        }
+    }
+
+    @keyframes pulse-red {
+        0%, 100% {
+            opacity: 0;
+        }
+        50% {
+            opacity: 0.3;
+        }
+    }
+
+    /* ปรบ hover effect ให้ทำงานร่วมกับ animation */
+    .pulse-green:hover::before,
+    .pulse-red:hover::before {
+        animation-play-state: paused;
+    }
+
+    /* Dark mode adjustments */
+    :global(.dark) .pulse-green::before {
+        border-color: rgb(34 197 94 / 0.5); /* green-500 with opacity */
+    }
+
+    :global(.dark) .pulse-red::before {
+        border-color: rgb(239 68 68 / 0.5); /* red-500 with opacity */
+    }
+
+    /* ปรับปรุง position card */
+    .position-card {
+        @apply relative;
     }
 </style>
