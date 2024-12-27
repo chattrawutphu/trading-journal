@@ -114,6 +114,8 @@
     let showWidgetModal = false;
     let previewWidget = null;
     let activeWidget = null;
+    let handleWidgetSelect;
+    let pendingWidgetData = null;
 
     onMount(() => {
         mounted = true;
@@ -291,6 +293,62 @@
     $: if (typeof editMode !== 'boolean') {
         console.error('editMode prop must be a boolean');
     }
+
+    function handleAddWidgetAtPosition(targetWidgetId, position) {
+        const targetIndex = widgets.findIndex(w => w.id === targetWidgetId);
+        if (targetIndex === -1) return;
+
+        let insertIndex;
+
+        switch (position) {
+            case 'top':
+                insertIndex = targetIndex;
+                break;
+            case 'bottom':
+                insertIndex = targetIndex + 1;
+                break;
+            case 'left':
+                insertIndex = targetIndex;
+                break;
+            case 'right':
+                insertIndex = targetIndex + 1;
+                break;
+            default:
+                insertIndex = widgets.length;
+        }
+
+        // เก็บข้อมูลสำหรับการเพิ่ม widget
+        pendingWidgetData = {
+            insertIndex,
+            position
+        };
+
+        // เปิด modal เพื่อเลือกชนิดของวิดเจ็ต
+        showWidgetModal = true;
+    }
+
+    // แก้ไข handleWidgetTypeSelect ให้ใช้ค่าเริ่มต้นของแต่ละ widget type
+    function handleWidgetTypeSelect(widgetType) {
+        if (!pendingWidgetData) return;
+
+        const defaultConfig = getDefaultConfig(widgetType);
+        
+        const newWidget = {
+            id: createUniqueId(widgetType),
+            config: { ...defaultConfig },
+            props: getWidgetProps(widgetType, defaultConfig)
+        };
+
+        const updatedWidgets = [
+            ...widgets.slice(0, pendingWidgetData.insertIndex),
+            newWidget,
+            ...widgets.slice(pendingWidgetData.insertIndex)
+        ];
+
+        dispatch('updateWidgets', updatedWidgets);
+        showWidgetModal = false;
+        pendingWidgetData = null;
+    }
 </script>
 
 <div class="relative w-full {editMode ? 'edit-mode edit-mode-background px-3 pb-3' : ''}">
@@ -354,6 +412,7 @@
                 {handleWidgetPointerDown}
                 {handleWidgetPointerMove}
                 {handleWidgetPointerUp}
+                onAddWidgetAtPosition={handleAddWidgetAtPosition}
                 on:view
                 on:edit
                 on:delete
@@ -370,6 +429,7 @@
             show={showWidgetModal}
             on:close={() => {
                 showWidgetModal = false;
+                pendingWidgetData = null;
             }}
             title="Available Widgets" 
             maxWidth="max-w-4xl"
@@ -378,10 +438,13 @@
                 {availableWidgetsWithCount}
                 {widgetLimits}
                 {widgets}
-                {handleAddWidget}
+                handleAddWidget={handleWidgetTypeSelect}
                 {getWidgetDescription}
                 {getComponentByName}
-                onClose={() => showWidgetModal = false}
+                onClose={() => {
+                    showWidgetModal = false;
+                    pendingWidgetData = null;
+                }}
             />
         </Modal>
     {/if}

@@ -8,6 +8,11 @@ function createWidgetStore() {
         set,
         update,
         addWidget: (widget) => update(widgets => [...widgets, widget]),
+        insertWidgetAt: (widget, index) => update(widgets => {
+            const newWidgets = [...widgets];
+            newWidgets.splice(index, 0, widget);
+            return newWidgets;
+        }),
         removeWidget: (widgetId) => update(widgets => widgets.filter(w => w.id !== widgetId)),
         updateWidget: (widgetId, newConfig) => update(widgets =>
             widgets.map(w => w.id === widgetId ? {...w, config: newConfig } : w)

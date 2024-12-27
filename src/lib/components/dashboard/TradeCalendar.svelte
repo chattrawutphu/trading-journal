@@ -190,7 +190,6 @@
     $: {
         dailyBalances = {};
         let cumulativeBalance = $accountStore.currentAccount?.initialBalance || 0;
-        console.log('Initial Balance:', cumulativeBalance); // Debug log
 
         // Sort all dates chronologically
         const allDates = [...new Set([
