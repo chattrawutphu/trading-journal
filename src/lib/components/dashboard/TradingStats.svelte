@@ -225,7 +225,8 @@
     </div>
 
     <!-- Desktop Layout -->
-    <div class="hidden md:grid grid-cols-5 gap-4">
+    <div class="hidden md:grid gap-4" 
+        style="grid-template-columns: repeat({$tradingStatsStore.selectedPeriods.length}, minmax(0, 1fr));">
         {#if selectedPeriod && stats[selectedPeriod]}
             {#each $tradingStatsStore.selectedPeriods as period}
                 {@const data = stats[period] || { pnl: 0, trades: 0, balanceChange: 0 }}
@@ -261,7 +262,7 @@
             {/each}
         {:else}
             <!-- Skeleton Loading for Desktop -->
-            {#each Array(5) as _, i}
+            {#each Array($tradingStatsStore.selectedPeriods.length) as _, i}
                 <div class="card p-4">
                     <div class="animate-pulse space-y-4">
                         <!-- Header -->
@@ -303,11 +304,6 @@
 <style lang="postcss">
     .card {
         @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg;
-    }
-
-    /* Add smooth transitions */
-    .card, button {
-        transition: all 0.2s ease-in-out;
     }
 
     /* Add active state for mobile */

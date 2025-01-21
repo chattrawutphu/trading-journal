@@ -76,7 +76,7 @@ const STORAGE_KEY = 'tradingStats';
 // Load saved periods from localStorage or use defaults
 function loadSavedPeriods() {
     if (typeof window === 'undefined') return DEFAULT_PERIODS;
-    
+
     try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
@@ -93,9 +93,11 @@ function loadSavedPeriods() {
 }
 
 function createTradingStatsStore() {
+    const MAX_PERIODS = 6;
+
     const { subscribe, set, update } = writable({
         selectedPeriods: loadSavedPeriods(),
-        maxPeriods: 5
+        maxPeriods: MAX_PERIODS
     });
 
     // Save to localStorage whenever the store updates
@@ -111,12 +113,12 @@ function createTradingStatsStore() {
 
     return {
         subscribe,
-        
+
         addPeriod: (periodId) => {
             update(state => {
                 if (state.selectedPeriods.length >= state.maxPeriods) return state;
                 if (state.selectedPeriods.includes(periodId)) return state;
-                
+
                 return {
                     ...state,
                     selectedPeriods: [...state.selectedPeriods, periodId]
@@ -128,7 +130,7 @@ function createTradingStatsStore() {
             update(state => {
                 // Don't allow removing if it's the last period
                 if (state.selectedPeriods.length <= 1) return state;
-                
+
                 return {
                     ...state,
                     selectedPeriods: state.selectedPeriods.filter(id => id !== periodId)
@@ -146,7 +148,7 @@ function createTradingStatsStore() {
         reset: () => {
             set({
                 selectedPeriods: DEFAULT_PERIODS,
-                maxPeriods: 5
+                maxPeriods: MAX_PERIODS
             });
         }
     };
