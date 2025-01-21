@@ -112,7 +112,7 @@
         <div class="card w-full max-w-5xl mx-auto relative max-h-[calc(100vh-2rem)]">
             <!-- Header -->
             <div
-                class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <h2
                     class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent"
@@ -269,7 +269,7 @@
 
             <!-- Footer -->
             <div
-                class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-8 py-5 border-t border-light-border dark:border-0 flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <Button variant="secondary" size="sm" on:click={resetConfig}>
                     Reset to Default
@@ -282,7 +282,7 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl ;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-xl ;
     }
 
     .period-item {

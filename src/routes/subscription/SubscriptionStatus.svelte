@@ -45,7 +45,7 @@
     });
 </script>
 
-<div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-2xl p-8 mb-8">
+<div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-2xl p-8 mb-8">
     <div class="flex justify-between items-start mb-6">
         <div>
             <h1 class="text-3xl font-bold text-light-text dark:text-dark-text mb-2">Your Subscription</h1>

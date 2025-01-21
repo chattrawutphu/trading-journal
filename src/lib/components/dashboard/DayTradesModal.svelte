@@ -78,7 +78,8 @@
         const formattedDate = new Date(date);
         formattedDate.setHours(7, 0, 0, 0);
         tradeDate.set(formattedDate.toISOString());
-        dispatch('newTrade');
+        selectedTrade = null;
+        showEditModal = true;
     }
 
     function formatDate(dateStr) {
@@ -157,16 +158,6 @@
         }
     }
 
-    $: openTrades = trades.filter((trade) => trade.status === "OPEN");
-    $: closedTrades = trades.filter((trade) => trade.status === "CLOSED");
-
-    // เพิ่ม watch เพื่อ log ค่า date เมื่อมีการเปลี่ยนแปลง
-    $: {
-        if (show) {
-            console.log('DayTradesModal date:', date);
-        }
-    }
-
     $: dailySummary = {
         totalPnL: trades.reduce((sum, trade) => sum + (trade.status === "CLOSED" ? (trade.pnl || 0) : 0), 0),
         winCount: trades.filter(t => t.status === "CLOSED" && t.pnl > 0).length,
@@ -214,18 +205,26 @@
     }
 
     async function handleTradeUpdated() {
+        console.log('DayTradesModal: Trade updated, reloading trades...');
         await loadTrades();
         showEditModal = false;
         selectedTrade = null;
+        console.log('DayTradesModal: Dispatching refresh event');
         dispatch('refresh');
     }
 
     async function loadTrades() {
         try {
             const response = await api.getTrades(accountId);
-            trades = response;
-            openTrades = response.filter(trade => trade.status === 'OPEN');
-            closedTrades = response.filter(trade => trade.status === 'CLOSED');
+            // Filter trades by date
+            const filteredTrades = response.filter(trade => {
+                const tradeDate = trade.status === "CLOSED" 
+                    ? new Date(trade.exitDate).toISOString().split('T')[0]
+                    : new Date(trade.entryDate).toISOString().split('T')[0];
+                return tradeDate === date;
+            });
+            
+            trades = filteredTrades;
         } catch (error) {
             console.error('Error loading trades:', error);
         }
@@ -248,7 +247,7 @@
          transition:fade={{ duration: 150 }}>
         <div class="card w-full max-w-4xl mx-auto relative transform ease-out max-h-[90vh] flex flex-col">
             <!-- Header -->
-            <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+            <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
                 <h2 class="text-xl font-bold bg-gradient-purple bg-clip-text text-transparent">
                     {displayDate || formatDate(date)}
                 </h2>
@@ -285,7 +284,7 @@
             <!-- Scrollable Content -->
             <div class="flex-1 overflow-y-auto">
                 <!-- Summary Section -->
-                <div class="px-8 py-4 border-b border-light-border dark:border-dark-border bg-light-hover/30 dark:bg-dark-hover/30">
+                <div class="px-8 py-4 border-b border-light-border dark:border-0 bg-light-hover/30 dark:bg-dark-hover/30">
                     <div class="grid grid-cols-4 gap-4">
                         <!-- Balance Summary - Always show -->
                         <div class="space-y-1">
@@ -376,19 +375,19 @@
                                       stroke-width="2" 
                                       d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
-                            <p class="text-light-text-muted dark:text-dark-text-muted ">
+                            <p class="text-light-text-muted dark:text-dark-text-muted">
                                 No trades recorded for this day. Would you like to add one?
                             </p>
                         </div>
                     {:else}
                         <!-- Tables -->
-                        {#if openTrades.length > 0}
-                            <div class="">
+                        {#if trades.filter(t => t.status === "OPEN").length > 0}
+                            <div class="mb-6">
                                 <h3 class="text-sm font-medium mb-2 text-light-text-muted dark:text-dark-text-muted">
                                     Open Trades
                                 </h3>
                                 <TradeTable
-                                    trades={openTrades}
+                                    trades={trades.filter(t => t.status === "OPEN")}
                                     type="open"
                                     isInModal={true}
                                     on:view={handleTradeView}
@@ -401,13 +400,13 @@
                             </div>
                         {/if}
 
-                        {#if closedTrades.length > 0}
-                            <div class="">
+                        {#if trades.filter(t => t.status === "CLOSED").length > 0}
+                            <div class="mb-6">
                                 <h3 class="text-sm font-medium mb-2 text-light-text-muted dark:text-dark-text-muted">
                                     Closed Trades
                                 </h3>
                                 <TradeTable
-                                    trades={closedTrades}
+                                    trades={trades.filter(t => t.status === "CLOSED")}
                                     type="closed"
                                     isInModal={true}
                                     dailyBalance={dailyBalance}
@@ -504,18 +503,23 @@
         trade={selectedTrade}
         on:close={closeViewModal}
     />
-
-    <TradeModal
-        bind:show={showEditModal}
-        trade={selectedTrade}
-        accountId={accountId}
-        on:tradeUpdated={handleTradeUpdated}
-    />
 {/if}
+
+<TradeModal
+    bind:show={showEditModal}
+    trade={selectedTrade}
+    accountId={accountId}
+    on:tradeUpdated={async () => {
+        await loadTrades();
+        showEditModal = false;
+        selectedTrade = null;
+        dispatch('refresh');
+    }}
+/>
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-xl;
     }
 
     /* Add these styles if needed */

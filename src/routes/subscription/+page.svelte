@@ -312,7 +312,7 @@
     {:else}
         {#if subscriptionData && Object.keys(subscriptionData).length > 0 && isPaidUser}
             <!-- Tab Navigation -->
-            <div class="border-b border-light-border dark:border-dark-border mb-8">
+            <div class="border-b border-light-border dark:border-0 mb-8">
                 <nav class="-mb-px flex space-x-8">
                     <button
                         class="py-4 px-1 border-b-2 font-medium text-sm  {activeTab === 'plans' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
@@ -397,7 +397,7 @@
 
             <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 {#each plans[selectedBillingPeriod] as plan}
-                    <div class="relative rounded-2xl bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border p-6 shadow-xl transition-transform duration-300 hover:scale-105">
+                    <div class="relative rounded-2xl bg-light-card dark:bg-dark-card border border-light-border dark:border-0 p-6 shadow-xl transition-transform duration-300 hover:scale-105">
                         {#if plan.isPopular}
                             <div class="absolute -top-4 left-1/2 -translate-x-1/2">
                                 <span class="bg-gradient-purple text-white px-4 py-1 rounded-full text-sm font-medium">
@@ -472,15 +472,15 @@
             <div class="mt-16 max-w-3xl mx-auto">
                 <h2 class="text-2xl font-bold text-light-text dark:text-dark-text text-center mb-8">Frequently Asked Questions</h2>
                 <div class="space-y-6">
-                    <div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-6">
+                    <div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg p-6">
                         <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-2">Can I change plans later?</h3>
                         <p class="text-light-text-muted dark:text-dark-text-muted">Yes, you can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle.</p>
                     </div>
-                    <div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-6">
+                    <div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg p-6">
                         <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-2">What payment methods do you accept?</h3>
                         <p class="text-light-text-muted dark:text-dark-text-muted">We accept credit cards through Stripe and cryptocurrency (ETH) payments through MetaMask on the Base network.</p>
                     </div>
-                    <div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-6">
+                    <div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg p-6">
                         <h3 class="text-lg font-semibold text-light-text dark:text-dark-text mb-2">Is there a refund policy?</h3>
                         <p class="text-light-text-muted dark:text-dark-text-muted">Yes, we offer a 30-day money-back guarantee if you're not satisfied with our service.</p>
                     </div>

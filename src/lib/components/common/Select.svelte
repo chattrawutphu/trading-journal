@@ -34,7 +34,7 @@
 
 <style lang="postcss">
     .select {
-        @apply w-full px-2.5 py-1.5 h-8 text-sm bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-md shadow-sm text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-theme-500 focus:border-transparent;
+        @apply w-full px-2.5 py-1.5 h-8 text-sm bg-light-bg dark:bg-dark-bg border border-light-border dark:border-0 rounded-md shadow-sm text-light-text dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-theme-500 focus:border-transparent;
     }
 
     .select:disabled {

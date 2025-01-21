@@ -250,7 +250,7 @@
 </script>
 
 <div class="card h-full flex flex-col {textSize}">
-    <div class="p-4 border-b border-light-border dark:border-dark-border">
+    <div class="p-4 border-b border-light-border dark:border-0">
         <div class="flex justify-between items-center relative">
             <div class="flex items-center justify-between w-full gap-2">
                 <span class="text-xl font-semibold text-light-text-muted dark:text-dark-text">
@@ -290,7 +290,7 @@
                 {@const stats = getMonthStats(i)}
                 <div class="relative">
                     <div
-                        class="h-full border border-light-border dark:border-dark-border rounded-md p-4
+                        class="h-full border border-light-border dark:border-0 rounded-md p-4
                                {getCardClass(stats, i)} hover:shadow {!isFutureMonth(i) && 'hover:scale-[1.02]'}"
                         on:click={() => handleMonthClick(i, stats)}
                     >
@@ -403,6 +403,6 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg;
     }
 </style>

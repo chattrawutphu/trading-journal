@@ -73,7 +73,7 @@
 
             <div class="relative">
                 <div class="absolute inset-0 flex items-center">
-                    <div class="w-full border-t border-light-border dark:border-dark-border"></div>
+                    <div class="w-full border-t border-light-border dark:border-0"></div>
                 </div>
                 <div class="relative flex justify-center text-sm">
                     <span class="px-2 bg-light-bg dark:bg-dark-bg text-light-text-muted dark:text-dark-text-muted">Or continue with</span>
@@ -149,7 +149,7 @@
                         id="terms"
                         type="checkbox"
                         required
-                        class="h-4 w-4 rounded border-light-border dark:border-dark-border text-theme-600 focus:ring-theme-500"
+                        class="h-4 w-4 rounded border-light-border dark:border-0 text-theme-600 focus:ring-theme-500"
                     />
                     <label for="terms" class="ml-2 block text-sm text-light-text dark:text-dark-text">
                         I agree to the

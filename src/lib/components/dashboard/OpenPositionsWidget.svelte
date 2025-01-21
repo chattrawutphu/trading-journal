@@ -182,7 +182,7 @@
 
 <div class="h-full flex flex-col bg-light-card dark:bg-dark-card rounded-lg shadow-sm">
     <!-- Header -->
-    <div class="p-4 border-b border-light-border dark:border-dark-border">
+    <div class="p-4 border-b border-light-border dark:border-0">
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
                 <div class="w-10 h-10 rounded-full bg-theme-500 bg-opacity-10 flex items-center justify-center">
@@ -232,7 +232,7 @@
             <div class="space-y-3">
                 {#each openPositions.slice(0, showAllPositions ? undefined : 3) as position}
                     <div 
-                        class="p-3 rounded-lg border border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover transition-colors relative {getPositionAnimationClass(position.side)}"
+                        class="p-3 rounded-lg border border-light-border dark:border-0 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors relative {getPositionAnimationClass(position.side)}"
                         transition:slide
                     >
                         <div class="flex items-center justify-between mb-2">

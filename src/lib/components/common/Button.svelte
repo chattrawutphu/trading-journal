@@ -10,7 +10,7 @@
   
     const variants = {
     primary: 'bg-gradient-purple hover:bg-gradient-purple-dark text-white shadow-lg shadow-theme-500/25',
-    secondary: 'bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text border border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover',
+    secondary: 'bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text border border-light-border dark:border-0 hover:bg-light-hover dark:hover:bg-dark-hover',
     danger: 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25',
     ghost: 'bg-transparent hover:bg-light-hover dark:hover:bg-dark-hover text-light-text dark:text-dark-text',
     tertiary: 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25' // สีฟ้าสดใส
@@ -28,7 +28,6 @@
     $: classes = `
         inline-flex items-center justify-center
         font-medium rounded-lg
-        
         focus:outline-none focus:ring-2 focus:ring-offset-2 
         focus:ring-theme-500 dark:focus:ring-offset-dark-bg
         disabled:opacity-50 disabled:cursor-not-allowed

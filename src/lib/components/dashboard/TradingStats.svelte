@@ -224,46 +224,70 @@
         {/if}
     </div>
 
-    <!-- Desktop Layout (unchanged) -->
+    <!-- Desktop Layout -->
     <div class="hidden md:grid grid-cols-5 gap-4">
-        {#each $tradingStatsStore.selectedPeriods as period}
-            {@const data = stats[period] || { pnl: 0, trades: 0, balanceChange: 0 }}
-            <div class="card p-4">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted capitalize">
-                        {PERIOD_OPTIONS[period].label}
-                    </h3>
-                    <div class="w-8 h-8 rounded-full {data.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
-                        <svg class="w-4 h-4 {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[period].icon}/>
-                        </svg>
+        {#if selectedPeriod && stats[selectedPeriod]}
+            {#each $tradingStatsStore.selectedPeriods as period}
+                {@const data = stats[period] || { pnl: 0, trades: 0, balanceChange: 0 }}
+                <div class="card p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-medium text-light-text dark:text-dark-text capitalize">
+                            {PERIOD_OPTIONS[period].label}
+                        </h3>
+                        <div class="w-8 h-8 rounded-full {data.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
+                            <svg class="w-4 h-4 {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[period].icon}/>
+                            </svg>
+                        </div>
                     </div>
-                </div>
-                <div class="space-y-2">
-                    <div class="flex flex-wrap items-baseline justify-between">
-                        <p class="text-lg {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
-                            {formatCurrency(data.pnl)}
-                        </p>
-                        {#if data.balanceChange !== 0}
-                            <p class="text-xl font-bold {data.balanceChange > 0 ? 'text-green-500' : 'text-red-500'}">
-                                {formatPercentage(data.balanceChange)}
+                    <div class="space-y-2">
+                        <div class="flex flex-wrap items-baseline justify-between">
+                            <p class="text-lg {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                {formatCurrency(data.pnl)}
                             </p>
-                        {/if}
-                    </div>
-                    <div class="flex items-baseline justify-between">
-                        <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
-                            {data.trades} trade{data.trades !== 1 ? 's' : ''}
-                        </p>
+                            {#if data.balanceChange !== 0}
+                                <p class="text-xl font-bold {data.balanceChange > 0 ? 'text-green-500' : 'text-red-500'}">
+                                    {formatPercentage(data.balanceChange)}
+                                </p>
+                            {/if}
+                        </div>
+                        <div class="flex items-baseline justify-between">
+                            <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                                {data.trades} trade{data.trades !== 1 ? 's' : ''}
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        {/each}
+            {/each}
+        {:else}
+            <!-- Skeleton Loading for Desktop -->
+            {#each Array(5) as _, i}
+                <div class="card p-4">
+                    <div class="animate-pulse space-y-4">
+                        <!-- Header -->
+                        <div class="flex items-center justify-between">
+                            <div class="h-4 w-20 bg-light-hover dark:bg-dark-hover rounded"></div>
+                            <div class="w-8 h-8 rounded-full bg-light-hover dark:bg-dark-hover"></div>
+                        </div>
+                        
+                        <!-- PnL and Stats -->
+                        <div class="space-y-2">
+                            <div class="h-6 w-32 bg-light-hover dark:bg-dark-hover rounded"></div>
+                            <div class="h-4 w-24 bg-light-hover dark:bg-dark-hover rounded"></div>
+                        </div>
+                        
+                        <!-- Trade Count -->
+                        <div class="h-4 w-16 bg-light-hover dark:bg-dark-hover rounded"></div>
+                    </div>
+                </div>
+            {/each}
+        {/if}
     </div>
 
     <!-- Config Button -->
     {#if isHovering}
         <button
-            class="absolute -top-2 -right-2 p-2 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border shadow-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
+            class="absolute -top-2 -right-2 p-2 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-0 shadow-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
             on:click={() => showConfig = true}
             transition:fade={{ duration: 100 }}
         >
@@ -278,7 +302,7 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg;
     }
 
     /* Add smooth transitions */

@@ -343,7 +343,7 @@
 
                 <!-- Layout Dropdown Menu -->
                 {#if showLayoutDropdown}
-                    <div class="absolute left-0 mt-2 w-48 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg z-50">
+                    <div class="absolute left-0 mt-2 w-48 bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg z-50">
                         <div class="py-1">
                             {#each layouts as layout, i}
                                 <button
@@ -382,7 +382,7 @@
 
                             <!-- Add New Layout Button -->
                             <button
-                                class="flex items-center w-full px-4 py-2 text-sm text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover border-t border-light-border dark:border-dark-border"
+                                class="flex items-center w-full px-4 py-2 text-sm text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover border-t border-light-border dark:border-0"
                                 on:click={() => {
                                     showNewLayoutModal = true;
                                     showLayoutDropdown = false;
@@ -404,7 +404,7 @@
                     class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md
                            text-light-text-muted dark:text-dark-text-muted
                            hover:bg-light-hover dark:hover:bg-dark-hover
-                           border border-light-border dark:border-dark-border
+                           border border-light-border dark:border-0
                            transition-colors duration-200"
                     on:click={() => editMode = true}
                 >
@@ -465,7 +465,10 @@
                     on:editModeChange={(e) => editMode = e.detail}
                     on:view={handleView}
                     on:edit={handleEdit}
-                    on:newTrade={handleNewTradeFromCalendar}
+                    on:newTrade={() => {
+                        selectedTrade = null;
+                        showEditModal = true;
+                    }}
                 />
             {:else}
                 <div class="card p-16 text-center space-y-6">
@@ -529,7 +532,7 @@
                 <input 
                     type="text"
                     bind:value={newLayoutName}
-                    class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+                    class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent"
                     placeholder="Enter layout name..."
                 />
             </div>
@@ -580,7 +583,7 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg;
     }
     
     /* Add these new styles */

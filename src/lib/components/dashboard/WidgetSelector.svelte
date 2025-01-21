@@ -63,7 +63,7 @@
             <div 
                 class="relative p-2 rounded-md transition-all duration-200 cursor-pointer
                        bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover
-                       border border-light-border dark:border-dark-border"
+                       border border-light-border dark:border-0"
                 class:ring-1={activeWidget?.id === widget.id}
                 class:ring-theme-500={activeWidget?.id === widget.id}
                 class:bg-light-hover={activeWidget?.id === widget.id}
@@ -90,14 +90,14 @@
     <!-- Widget Preview -->
     {#if previewWidget}
         <div 
-            class="relative w-4/6 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border h-full flex flex-col"
+            class="relative w-4/6 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-0 h-full flex flex-col"
             transition:fly={{ x: 20, duration: 200 }}
         >
             <!-- Close Button -->
 
 
             <!-- Widget Preview with scroll -->
-            <div class="h-[70%] bg-white dark:bg-black rounded-t-lg border-b overflow-hidden border-light-border dark:border-dark-border">
+            <div class="h-[70%] bg-white dark:bg-black rounded-t-lg border-b overflow-hidden border-light-border dark:border-0">
                 <div class="p-4 h-full overflow-auto">
                     <div 
                         class="relative pointer-events-none transform-gpu min-w-fit"
@@ -162,7 +162,7 @@
             </div>
         </div>
     {:else}
-        <div class="relative w-4/6 h-full flex items-center justify-center p-4 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border">
+        <div class="relative w-4/6 h-full flex items-center justify-center p-4 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-0">
             <!-- Close Button -->
             <button
                 class="absolute top-2 right-2 p-1.5 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover text-light-text-muted dark:text-dark-text-muted transition-colors"

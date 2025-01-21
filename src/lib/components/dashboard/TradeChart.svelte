@@ -301,7 +301,7 @@
 <div class="h-full flex flex-col bg-light-card dark:bg-dark-card rounded-lg shadow-sm" 
      style="height: {height}px">
     <!-- Header -->
-    <div class="p-4 border-b border-light-border dark:border-dark-border">
+    <div class="p-4 border-b border-light-border dark:border-0">
         <!-- Title Section -->
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-3">

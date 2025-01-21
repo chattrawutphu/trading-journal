@@ -365,7 +365,7 @@
                 <!-- Import Section -->
                 <div class="card p-6 space-y-4">
                     <h3 class="text-lg font-medium text-light-text dark:text-dark-text">Import Data</h3>
-                    <div class="border-2 border-dashed border-light-border dark:border-dark-border rounded-lg p-6 text-center">
+                    <div class="border-2 border-dashed border-light-border dark:border-0 rounded-lg p-6 text-center">
                         <input
                             type="file"
                             class="hidden"
@@ -417,7 +417,7 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg ;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg ;
     }
 
 </style>

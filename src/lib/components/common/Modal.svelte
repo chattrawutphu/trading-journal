@@ -14,11 +14,11 @@
         on:click|self={() => dispatch('close')}
     >
         <div 
-            class="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl max-w-full"
+            class="bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-xl max-w-full"
             on:click|stopPropagation
         >
             <!-- Header -->
-            <div class="px-4 py-3 border-b border-light-border dark:border-dark-border flex justify-between items-center">
+            <div class="px-4 py-3 border-b border-light-border dark:border-0 flex justify-between items-center">
                 <h2 class="text-lg font-semibold text-light-text dark:text-dark-text">{title}</h2>
                 <button 
                     class="p-1 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"

@@ -199,7 +199,7 @@
             on:focus={() => isOpen = true}
             on:keydown={handleKeydown}
             {placeholder}
-            class="input w-full pr-8 px-2.5 py-1.5 h-8 text-sm bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-md"
+            class="input w-full pr-8 px-2.5 py-1.5 h-8 text-sm bg-light-bg dark:bg-dark-bg border border-light-border dark:border-0 rounded-md"
             disabled={editingOption !== null}
         />
         <div class="absolute inset-y-0 right-0 flex items-center pr-2">
@@ -217,7 +217,7 @@
 
     <!-- Dropdown -->
     {#if isOpen}
-        <div class="absolute z-50 w-full mt-1 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-md shadow-lg divide-y divide-light-border dark:divide-dark-border max-h-[240px] overflow-auto"
+        <div class="absolute z-50 w-full mt-1 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-0 rounded-md shadow-lg divide-y divide-light-border dark:divide-dark-border max-h-[240px] overflow-auto"
             transition:fade={{ duration: 100 }}
         >
             {#if loading}
@@ -305,7 +305,7 @@
             {/if}
 
             <!-- Add New Option Button -->
-            <div class="p-2 bg-light-card dark:bg-dark-card border-t border-light-border dark:border-dark-border">
+            <div class="p-2 bg-light-card dark:bg-dark-card border-t border-light-border dark:border-0">
                 {#if searchTerm.trim() && !editingOption && !filteredOptions.some(opt => opt.value.toLowerCase() === searchTerm.trim().toLowerCase())}
                     <Button 
                         variant="primary"

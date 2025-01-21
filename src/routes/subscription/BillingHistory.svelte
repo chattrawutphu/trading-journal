@@ -5,12 +5,12 @@
     export let handleDownloadInvoice;
 </script>
 
-<div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-2xl p-8">
+<div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-2xl p-8">
     <h2 class="text-2xl font-bold text-light-text dark:text-dark-text mb-6">Billing History</h2>
     <div class="overflow-x-auto">
         <table class="w-full">
             <thead>
-                <tr class="border-b border-light-border dark:border-dark-border">
+                <tr class="border-b border-light-border dark:border-0">
                     <!-- <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Invoice</th> -->
                     <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Date</th>
                     <th class="text-left py-3 px-4 text-light-text-muted dark:text-dark-text-muted font-medium">Amount</th>

@@ -10,6 +10,7 @@
     import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
     import { goto } from '$app/navigation';
     import { tradeDate } from '$lib/stores/tradeDateStore';
+    import { api } from "$lib/utils/api";
 
     const dispatch = createEventDispatcher();
 
@@ -114,20 +115,11 @@
         }
         
         if (form.exitPrice && form.entryPrice) {
+            const units = form.amount / form.entryPrice;
             if (form.side === "LONG") {
-                form.pnl = (form.exitPrice - form.entryPrice) * form.amount;
-                if (form.pnl === 0) {
-                    errors.pnl = "Profit/Loss cannot be zero";
-                } else {
-                    delete errors.pnl;
-                }
+                form.pnl = (form.exitPrice - form.entryPrice) * units;
             } else {
-                form.pnl = (form.entryPrice - form.exitPrice) * form.amount;
-                if (form.pnl === 0) {
-                    errors.pnl = "Profit/Loss cannot be zero";
-                } else {
-                    delete errors.pnl;
-                }
+                form.pnl = (form.entryPrice - form.exitPrice) * units;
             }
         }
     }
@@ -151,8 +143,8 @@
             if (!form.exitPrice || form.exitPrice <= 0) {
                 errors.exitPrice = "Exit price must be greater than 0";
             }
-            if (!form.pnl || form.pnl === 0) {
-                errors.pnl = "Profit/Loss cannot be zero";
+            if (!form.pnl) {
+                errors.pnl = "Please enter P&L";
             }
         }
 
@@ -166,15 +158,16 @@
         }
 
         const formData = { ...form };
-
-        formData.quantity = Number(formData.quantity);
-        formData.amount = Number(formData.amount);
-        formData.entryPrice = Number(formData.entryPrice);
-        if (formData.exitPrice) formData.exitPrice = Number(formData.exitPrice);
-        if (formData.pnl) formData.pnl = Number(formData.pnl);
-        formData.confidenceLevel = Number(formData.confidenceLevel);
-        formData.greedLevel = Number(formData.greedLevel);
-        if (formData.leverage) formData.leverage = Number(formData.leverage);
+        
+        // แปลงค่าเป็นตัวเลขก่อนส่งไป API
+        formData.quantity = parseFloat(formData.quantity) || 0;
+        formData.amount = parseFloat(formData.amount);
+        formData.entryPrice = parseFloat(formData.entryPrice);
+        formData.exitPrice = formData.exitPrice ? parseFloat(formData.exitPrice) : null;
+        formData.pnl = formData.pnl ? parseFloat(formData.pnl) : null;
+        formData.confidenceLevel = parseInt(formData.confidenceLevel);
+        formData.greedLevel = parseInt(formData.greedLevel);
+        formData.leverage = parseInt(formData.leverage) || 1;
 
         try {
             if (formData.entryDate) {
@@ -189,16 +182,50 @@
                     formData.exitDate = exitDate.toISOString();
                 }
             }
-        } catch (err) {
-            console.error("Error processing dates:", err);
-        }
 
-        if (!trade) {
-            formData.account = accountId;
-        }
+            if (!trade) {
+                formData.account = accountId;
+            }
 
-        dispatch("submit", formData);
-        close();
+            if (trade) {
+                await api.updateTrade(trade._id, formData);
+            } else {
+                await api.createTrade(formData);
+            }
+            
+            dispatch("tradeUpdated");
+            // Reset form after successful submission
+            form = {
+                account: accountId,
+                entryDate: getCurrentDateTime(),
+                exitDate: getCurrentDateTime(),
+                symbol: "",
+                status: "OPEN",
+                side: "LONG",
+                quantity: "",
+                amount: "",
+                entryPrice: "",
+                exitPrice: "",
+                pnl: "",
+                entryReason: "",
+                exitReason: "",
+                strategy: "",
+                emotions: "",
+                notes: "",
+                url: "",
+                confidenceLevel: 5,
+                greedLevel: 5,
+                hasStopLoss: false,
+                hasTakeProfit: false,
+                favorite: false,
+                leverage: 1,
+            };
+            errors = {};
+            previousSymbol = "";
+            show = false;
+        } catch (error) {
+            console.error('Error saving trade:', error);
+        }
     }
 
     function handleClose() {
@@ -253,6 +280,19 @@
     function upgradePlan() {
         goto('/subscription');
     }
+
+    $: if (show) {
+        if (trade && trade.entryDate) {
+            form.entryDate = formatDateTimeLocal(trade.entryDate);
+        } else if ($tradeDate) {
+            const dateFromStore = new Date($tradeDate);
+            dateFromStore.setHours(7, 0, 0, 0);
+            form.entryDate = formatDateTimeLocal(dateFromStore);
+            tradeDate.set(null);
+        } else {
+            form.entryDate = formatDateTimeLocal(new Date());
+        }
+    }
 </script>
 
 {#if show}
@@ -262,7 +302,7 @@
         <div class="card w-full max-w-2xl mx-auto relative transform ease-out">
             <!-- Header -->
             <div
-                class="px-4 py-3 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-4 py-3 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <div class="flex-1 flex items-center gap-3">
                     <h2
@@ -629,7 +669,7 @@
                                     id="trade-notes"
                                     bind:value={form.notes}
                                     rows="3"
-                                    class="w-full px-2.5 py-1.5 text-sm rounded-md border border-light-border dark:border-dark-border bg-light-bg dark:bg-dark-bg resize-none"
+                                    class="w-full px-2.5 py-1.5 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg resize-none"
                                     placeholder="Additional notes about the trade..."
                                     disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
@@ -646,7 +686,7 @@
                                     id="trade-url"
                                     type="url"
                                     bind:value={form.url}
-                                    class="w-full px-2.5 py-1.5 h-8 text-sm rounded-md border border-light-border dark:border-dark-border bg-light-bg dark:bg-dark-bg"
+                                    class="w-full px-2.5 py-1.5 h-8 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg"
                                     placeholder="Enter a URL (e.g., TradingView chart, image, etc.)"
                                     disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
@@ -661,7 +701,7 @@
 
             <!-- Footer -->
             <div
-                class="px-4 py-2 border-t border-light-border dark:border-dark-border flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-4 py-2 border-t border-light-border dark:border-0 flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <div class="flex items-center">
                     {#if Object.keys(errors).length > 0}
@@ -705,7 +745,7 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-xl;
     }
 
 

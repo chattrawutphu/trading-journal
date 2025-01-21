@@ -42,7 +42,7 @@
 >
     <div class="card w-full max-w-4xl mx-auto relative transform ease-out">
         <!-- Header -->
-        <div class="px-4 md:px-6 py-3 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">
+        <div class="px-4 md:px-6 py-3 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">
             <div class="flex items-center gap-2">
                 <h2 class="text-xl font-bold text-light-text dark:text-dark-text">{trade.symbol}</h2>
                 <span class={`px-2 py-0.5 rounded-lg text-sm font-medium ${getSideClass(trade.side)}`}>
@@ -205,7 +205,7 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-xl;
     }
 
     /* Add smooth transitions */

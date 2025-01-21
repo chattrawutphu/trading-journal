@@ -59,13 +59,13 @@
 
 <aside class="h-screen hidden md:block p-3 pe-0">
     <div
-        class="rounded-md h-full bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col { $isCollapsed
+        class="rounded-md h-full bg-light-card dark:bg-dark-card border-r border-light-border dark:border-0 flex flex-col { $isCollapsed
             ? 'w-20'
             : 'w-64'}"
     >
         <!-- Header -->
         <div
-            class="p-4 border-b border-light-border dark:border-dark-border flex items-center {$isCollapsed ? 'justify-center' : 'justify-between'} "
+            class="p-4 border-b border-light-border dark:border-0 flex items-center {$isCollapsed ? 'justify-center' : 'justify-between'} "
         >
             {#if !$isCollapsed}
                 <h1
@@ -97,36 +97,52 @@
         </div>
 
         <!-- User Profile Section -->
-        <div class="p-4 border-b border-light-border dark:border-dark-border">
+        <div class="p-4 border-b border-light-border dark:border-0">
             <div class="flex items-center gap-3 {$isCollapsed ? 'justify-center' : ''}">
-                <div class="flex-shrink-0">
-                    <img
-                        src={$auth?.user?.avatar || 'https://ui-avatars.com/api/?name=' + getUserDisplayName($auth?.user)}
-                        alt="Profile"
-                        class="w-10 h-10 rounded-full border-2 border-theme-500"
-                    />
-                </div>
-                {#if !$isCollapsed}
-                    <div class="flex-1 min-w-0 my-2">
-                        <div class="flex items-center gap-2">
-                            <p class="text-sm font-semibold text-light-text dark:text-dark-text truncate">
-                                {getUserDisplayName($auth?.user)}
-                            </p>
-                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full {getSubscriptionBadgeStyle($subscriptionStore?.type)}">
-                                {formatSubscriptionType($subscriptionStore?.type)}
-                            </span>
-                        </div>
-                        <button
-                            class="mt-1 flex items-center gap-1 text-xs text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400"
-                            on:click={() => goto('/profile')}
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            </svg>
-                            <span>Profile Settings</span>
-                        </button>
+                {#if $auth?.user}
+                    <div class="flex-shrink-0">
+                        <img
+                            src={$auth.user.avatar || 'https://ui-avatars.com/api/?name=' + getUserDisplayName($auth.user)}
+                            alt="Profile"
+                            class="w-10 h-10 rounded-full border-2 border-theme-500"
+                        />
                     </div>
+                    {#if !$isCollapsed}
+                        <div class="flex-1 min-w-0 my-2">
+                            <div class="flex items-center gap-2">
+                                <p class="text-sm font-semibold text-light-text dark:text-dark-text truncate">
+                                    {getUserDisplayName($auth.user)}
+                                </p>
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full {getSubscriptionBadgeStyle($subscriptionStore?.type)}">
+                                    {formatSubscriptionType($subscriptionStore?.type)}
+                                </span>
+                            </div>
+                            <button
+                                class="mt-1 flex items-center gap-1 text-xs text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400"
+                                on:click={() => goto('/profile')}
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                <span>Profile Settings</span>
+                            </button>
+                        </div>
+                    {/if}
+                {:else}
+                    <!-- Skeleton Loading -->
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 rounded-full bg-light-hover dark:bg-dark-hover animate-pulse"></div>
+                    </div>
+                    {#if !$isCollapsed}
+                        <div class="flex-1 min-w-0 my-2 space-y-2">
+                            <div class="flex items-center gap-2">
+                                <div class="h-4 w-24 bg-light-hover dark:bg-dark-hover rounded animate-pulse"></div>
+                                <div class="h-4 w-12 bg-light-hover dark:bg-dark-hover rounded animate-pulse"></div>
+                            </div>
+                            <div class="h-4 w-20 bg-light-hover dark:bg-dark-hover rounded animate-pulse"></div>
+                        </div>
+                    {/if}
                 {/if}
             </div>
         </div>
@@ -157,7 +173,7 @@
         </nav>
 
         <!-- Footer -->
-        <div class="p-4 border-t border-light-border dark:border-dark-border">
+        <div class="p-4 border-t border-light-border dark:border-0">
             <div class="{$isCollapsed ? 'flex flex-col gap-4' : 'flex items-center justify-between'}">
                 <!-- Theme Toggle -->
                 <div class="{$isCollapsed ? 'mx-auto' : ''}">

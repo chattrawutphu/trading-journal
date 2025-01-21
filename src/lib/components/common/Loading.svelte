@@ -23,7 +23,7 @@
         <div class="card p-8 flex flex-col items-center space-y-4">
             {#if type === 'spinner'}
                 <div class="relative {sizeClasses[size]}">
-                    <div class="absolute inset-0 rounded-full border-2 border-light-border dark:border-dark-border"></div>
+                    <div class="absolute inset-0 rounded-full border-2 border-light-border dark:border-0"></div>
                     <div class="absolute inset-0 rounded-full border-t-2 border-theme-500 animate-spin"></div>
                 </div>
             {:else if type === 'pulse'}
@@ -46,7 +46,7 @@
     <div class="flex flex-col items-center space-y-4 p-4">
         {#if type === 'spinner'}
             <div class="relative {sizeClasses[size]}">
-                <div class="absolute inset-0 rounded-full border-2 border-light-border dark:border-dark-border"></div>
+                <div class="absolute inset-0 rounded-full border-2 border-light-border dark:border-0"></div>
                 <div class="absolute inset-0 rounded-full border-t-2 border-theme-500 animate-spin"></div>
             </div>
         {:else if type === 'pulse'}
@@ -68,7 +68,7 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg ;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg ;
     }
 
     .animate-spin {

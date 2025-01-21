@@ -184,7 +184,7 @@
 <div class="overflow-x-auto">
     <table class="w-full text-sm">
         <thead>
-            <tr class="border-b border-light-border dark:border-dark-border">
+            <tr class="border-b border-light-border dark:border-0">
                 <th class="w-8 text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
                     <input 
                         type="checkbox" 

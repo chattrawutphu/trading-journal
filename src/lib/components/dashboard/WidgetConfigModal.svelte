@@ -111,7 +111,7 @@
                             value={config?.cols}
                             on:change={(e) => handleSizeChange(e, 'cols')}
                             disabled={disabledConfig.cols}
-                            class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors
+                            class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors
                                    {disabledConfig.cols ? 'opacity-50 cursor-not-allowed' : 'hover:border-theme-500'}"
                         >
                             <option value="auto">Auto</option>
@@ -128,7 +128,7 @@
                             value={config?.rows}
                             on:change={(e) => handleSizeChange(e, 'rows')}
                             disabled={disabledConfig.rows}
-                            class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors
+                            class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors
                                    {disabledConfig.rows ? 'opacity-50 cursor-not-allowed' : 'hover:border-theme-500'}"
                         >
                             <option value="auto">Auto</option>
@@ -149,7 +149,7 @@
                     </label>
                     <select 
                         bind:value={config.textSize} 
-                        class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors hover:border-theme-500"
+                        class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors hover:border-theme-500"
                     >
                         <option value="small">Small</option>
                         <option value="medium">Medium</option>
@@ -170,7 +170,7 @@
                             </label>
                             <select 
                                 bind:value={config.period} 
-                                class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors hover:border-theme-500"
+                                class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors hover:border-theme-500"
                             >
                                 <option value="daily">Daily</option>
                                 <option value="weekly">Weekly</option>
@@ -186,7 +186,7 @@
                             <input
                                 type="number"
                                 bind:value={config.target}
-                                class="w-full border border-light-border dark:border-dark-border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors hover:border-theme-500"
+                                class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors hover:border-theme-500"
                             />
                         </div>
                     </div>
@@ -195,7 +195,7 @@
         </div>
         
         <!-- Action Buttons -->
-        <div class="flex justify-end gap-3 pt-4 border-t border-light-border dark:border-dark-border">
+        <div class="flex justify-end gap-3 pt-4 border-t border-light-border dark:border-0">
             <Button 
                 variant="secondary" 
                 size="sm"

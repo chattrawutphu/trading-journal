@@ -25,16 +25,33 @@
     let dailyBalances = {};
     let selectedDayBalance = null;
 
-    onMount(async () => {
+    async function loadData() {
         if (isPreview) return;
-
+        
         try {
+            dayTradesLoading = true;
             await transactionStore.fetchTransactions($accountStore.currentAccount._id);
             trades = await api.getTrades($accountStore.currentAccount._id);
+            
+            // Force recalculation of reactive statements
+            trades = [...trades];
+            
         } catch (err) {
-            console.error('Error initializing page:', err);
+            console.error('Error loading data:', err);
+        } finally {
+            dayTradesLoading = false;
         }
+    }
+
+    onMount(async () => {
+        await loadData();
     });
+
+    $: {
+        if ($accountStore.currentAccount?._id) {
+            loadData();
+        }
+    }
 
     // Watch for account changes
     $: if ($accountStore.currentAccount?._id !== currentAccountId && !isPreview) {
@@ -73,22 +90,98 @@
         return d;
     }
 
-    $: daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-    $: firstDayOfWeek = (new Date(selectedYear, selectedMonth, 1).getDay() + 6) % 7;
-    $: lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0).getDay();
-
     let calendarDays = [];
     let statsPerDay = {};
-    $: calendarDays = Array.from(
-        { length: 42 }, // 7 days * 6 weeks
-        (_, i) => {
-            const dayNumber = i - firstDayOfWeek + 1;
-            if (dayNumber < 1 || dayNumber > daysInMonth) return null;
-            return dayNumber;
-        },
-    );
 
-    $: if (Array.isArray(calendarDays) && dailyTrades) {
+    // Combine all calculations into one reactive block
+    $: {
+        // สร้าง object ใหม่
+        const newDailyTrades = {};
+        
+        // Process trades first
+        trades.forEach(trade => {
+            let tradeDate;
+            if (trade.status === "CLOSED") {
+                tradeDate = new Date(trade.exitDate);
+            } else {
+                tradeDate = new Date(trade.entryDate);
+            }
+
+            try {
+                if (isNaN(tradeDate.getTime())) return;
+
+                const dateKey = normalizeDate(tradeDate).toISOString().split("T")[0];
+                if (!newDailyTrades[dateKey]) {
+                    newDailyTrades[dateKey] = {
+                        trades: [],
+                        pnl: 0,
+                        symbols: new Set(),
+                        wins: 0,
+                        losses: 0,
+                        openTrades: 0,
+                        transactions: [],
+                        totalInvested: 0,
+                    };
+                }
+
+                newDailyTrades[dateKey].trades.push(trade);
+                if (trade.status === "CLOSED") {
+                    newDailyTrades[dateKey].pnl += trade.pnl || 0;
+                    if (trade.pnl > 0) newDailyTrades[dateKey].wins++;
+                    else if (trade.pnl < 0) newDailyTrades[dateKey].losses++;
+                    const investedAmount = (trade.entryPrice * trade.quantity) || 0;
+                    newDailyTrades[dateKey].totalInvested += investedAmount;
+                } else {
+                    newDailyTrades[dateKey].openTrades++;
+                }
+            } catch (err) {
+                console.error("Error processing trade date:", err);
+            }
+        });
+
+        // Then process transactions
+        if (Array.isArray($transactionStore.transactions)) {
+            $transactionStore.transactions.forEach((transaction) => {
+                const transDate = normalizeDate(transaction.date);
+                const dateKey = transDate.toISOString().split("T")[0];
+
+                if (!newDailyTrades[dateKey]) {
+                    newDailyTrades[dateKey] = {
+                        trades: [],
+                        pnl: 0,
+                        symbols: new Set(),
+                        wins: 0,
+                        losses: 0,
+                        openTrades: 0,
+                        transactions: [],
+                        totalInvested: 0,
+                    };
+                }
+
+                newDailyTrades[dateKey].transactions.push({
+                    ...transaction,
+                    date: transDate.toISOString(),
+                });
+            });
+        }
+
+        // Update dailyTrades with new object
+        dailyTrades = newDailyTrades;
+
+        // 2. Then calculate calendar days
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        const firstDayOfWeek = (new Date(selectedYear, selectedMonth, 1).getDay() + 6) % 7;
+
+        calendarDays = Array.from(
+            { length: 42 },
+            (_, i) => {
+                const dayNumber = i - firstDayOfWeek + 1;
+                if (dayNumber < 1 || dayNumber > daysInMonth) return null;
+                return dayNumber;
+            }
+        );
+
+        // 3. Finally calculate statsPerDay
         statsPerDay = {};
         calendarDays.forEach(day => {
             if (day !== null) {
@@ -96,51 +189,6 @@
             }
         });
     }
-
-    $: dailyTrades = trades.reduce((acc, trade) => {
-        let tradeDate;
-        if (trade.status === "CLOSED") {
-            tradeDate = new Date(trade.exitDate);
-        } else {
-            tradeDate = new Date(trade.entryDate);
-        }
-
-        try {
-            if (isNaN(tradeDate.getTime())) return acc;
-
-            const dateKey = normalizeDate(tradeDate)
-                .toISOString()
-                .split("T")[0];
-            if (!acc[dateKey]) {
-                acc[dateKey] = {
-                    trades: [],
-                    pnl: 0,
-                    symbols: new Set(),
-                    wins: 0,
-                    losses: 0,
-                    openTrades: 0,
-                    transactions: [],
-                    totalInvested: 0, // Ensure totalInvested is initialized
-                };
-            }
-
-            acc[dateKey].trades.push(trade);
-            if (trade.status === "CLOSED") {
-                acc[dateKey].pnl += trade.pnl || 0;
-                if (trade.pnl > 0) acc[dateKey].wins++;
-                else if (trade.pnl < 0) acc[dateKey].losses++;
-
-                // Calculate and accumulate invested amount per closed trade
-                const investedAmount = (trade.entryPrice * trade.quantity) || 0;
-                acc[dateKey].totalInvested += investedAmount;
-            } else {
-                acc[dateKey].openTrades++;
-            }
-        } catch (err) {
-            console.error("Error processing trade date:", err);
-        }
-        return acc;
-    }, {});
 
     // Calculate pnlPercentage for each day's stats
     $: {
@@ -155,34 +203,6 @@
             } else {
                 stats.pnlPercentage = null;
             }
-        }
-    }
-
-    // Process transactions into dailyTrades
-    $: {
-        const transactions = $transactionStore.transactions;
-        if (Array.isArray(transactions)) {
-            transactions.forEach((transaction) => {
-                const transDate = normalizeDate(transaction.date);
-                const dateKey = transDate.toISOString().split("T")[0];
-
-                if (!dailyTrades[dateKey]) {
-                    dailyTrades[dateKey] = {
-                        trades: [],
-                        pnl: 0,
-                        symbols: new Set(),
-                        wins: 0,
-                        losses: 0,
-                        openTrades: 0,
-                        transactions: [],
-                    };
-                }
-
-                dailyTrades[dateKey].transactions.push({
-                    ...transaction,
-                    date: transDate.toISOString(), // Store normalized date
-                });
-            });
         }
     }
 
@@ -252,12 +272,21 @@
         if (!day) return null;
         try {
             const date = normalizeDate(
-                new Date(selectedYear, selectedMonth, day),
+                new Date(selectedYear, selectedMonth, day)
             );
             if (isNaN(date.getTime())) return null;
 
             const dateKey = date.toISOString().split("T")[0];
-            return dailyTrades[dateKey] || null;
+            return dailyTrades[dateKey] || {
+                trades: [],
+                pnl: 0,
+                symbols: new Set(),
+                wins: 0,
+                losses: 0,
+                openTrades: 0,
+                transactions: [],
+                totalInvested: 0,
+            };
         } catch (err) {
             console.error("Error getting day stats:", err);
             return null;
@@ -277,25 +306,31 @@
 
     function getCardClass(stats, day) {
         if (isFutureDate(day))
-            return "opacity-50 bg-light-hover/10 dark:bg-dark-hover/10";
+            return "opacity-50 bg-light-hover/20 dark:bg-dark-hover/20";
+        
+        // ถ้าไม่มีข้อมูลใดๆ ไม่ต้องแสดง border
         if (
             !stats ||
             (!stats.pnl && !stats.openTrades && !stats.transactions?.length)
         )
-            return "cursor-pointer";
+            return "cursor-pointer rounded-md bg-light-hover/10 dark:bg-dark-hover/10";
 
         // Check for closed trades first
         const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
         if (hasClosedTrades) {
-            return `cursor-pointer ${stats.pnl > 0 ? "bg-green-100 dark:bg-green-900/20" : "bg-red-100 dark:bg-red-900/20"}`;
+            return `cursor-pointer rounded-md ${
+                stats.pnl > 0 
+                    ? "bg-green-100 border border-green-300/30 dark:border-0 dark:bg-green-900/20" 
+                    : "bg-red-100 border border-red-300/30 dark:border-0 dark:bg-red-900/20"
+            }`;
         }
 
         // If no closed trades but has open trades or transactions
         if (stats.openTrades > 0 || stats.transactions?.length > 0) {
-            return `cursor-pointer bg-yellow-50 dark:bg-yellow-900/10`;
+            return `cursor-pointer rounded-md bg-yellow-50 border border-yellow-300/30 dark:border-0 dark:bg-yellow-900/10`;
         }
 
-        return "cursor-pointer";
+        return "cursor-pointer rounded-md";
     }
 
     function getTextClass(stats) {
@@ -347,9 +382,9 @@
         selectedDisplayDate = displayDate;
         selectedDayTrades = stats?.trades || [];
         selectedDayTransactions = stats?.transactions || [];
-        
         selectedDayBalance = dailyBalances[formattedDate];
         
+        console.log('TradeCalendar: Opening day modal with date:', formattedDate);
         showDayTradesModal = true;
     }
 
@@ -358,19 +393,27 @@
     }
 
     function handleEdit(event) {
+        console.log('TradeCalendar: Handling edit event');
         dispatch('edit', event.detail);
+        loadData();
     }
 
     function handleDelete(event) {
+        console.log('TradeCalendar: Handling delete event');
         dispatch('delete', event.detail);
+        loadData();
     }
 
     function handleDeleteTransaction(event) {
+        console.log('TradeCalendar: Handling delete transaction event');
         dispatch('deleteTransaction', event.detail);
+        loadData();
     }
 
     function handleNewTrade(event) {
+        console.log('TradeCalendar: Handling new trade event');
         dispatch('newTrade');
+        loadData();
     }
 
     function previousMonth() {
@@ -404,7 +447,7 @@
 </script>
 
 <div class="card h-full flex flex-col">
-    <div class="p-4 border-b border-light-border dark:border-dark-border">
+    <div class="p-4 border-b border-light-border dark:border-0">
         <div class="flex justify-between items-center relative">
             <div class="flex items-center justify-between w-full gap-2">
                 <span
@@ -456,117 +499,153 @@
             {/each}
         </div>
 
-        <div class="grid grid-cols-7 gap-1 flex-1">
+        <div class="grid grid-cols-7 gap-1 lg:gap-1.5 flex-1 {$theme === 'dark' ? 'dark-calendar' : ''}">
             {#each calendarDays as day, index (day !== null ? day : 'empty-' + index)}
                 {#if day !== null}
                     <div class="relative calendar-day-cell">
                         <div
-                            class="absolute inset-0 border border-light-border dark:border-dark-border rounded-md
-                                   {getCardClass(statsPerDay[day], day)} 
+                            class="absolute inset-0 {getCardClass(statsPerDay[day], day)} 
                                    hover:shadow 
                                    {!isFutureDate(day) && 'transform hover:scale-[1.04] transition-transform duration-300 ease-in-out'} 
                                    {isToday(day) ? ' bg-indigo-300/50 dark:bg-indigo-600/20' : ''}"
                             on:click={() => handleDayClick(day, statsPerDay[day])}
                         >
-                            <div
-                                class="pt-0.5 px-1 pb-0 {!isToday(day) ? 'float-end' : ''} text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
-                            >
-                            <div class="flex w-full justify-between">
-                                {#if isToday(day)}
-                                    <span hidden md:flex>to day!</span>
-                                {/if}
-                                <span>{day}</span>
-                            </div>
-                            </div>
-
-                            {#if statsPerDay[day]}
-                                <div
-                                    class="absolute top-0 md:-top-2 inset-0 p-1.5 pt-5 flex flex-col"
-                                >
-                                <div class={`border-s border-s-[2.25px] border-transparent ${statsPerDay[day].pnl === 0 ? '' : statsPerDay[day].pnl < 0 ? 'dark:border-red-600 ps-1' : 'dark:border-green-600 ps-1'}`}>
-                                    {#if statsPerDay[day].trades.length > 0}
-                                        <div class="trade-stats space-y-0.5">
-                                            <div class="flex items-center gap-1 flex-wrap">
-                                                {#if statsPerDay[day].openTrades > 0}
-                                                    <span class="text-xs whitespace-nowrap text-yellow-600 dark:text-yellow-400">
-                                                        {statsPerDay[day].openTrades} open{statsPerDay[day].openTrades !== 1 ? "s" : ""}
-                                                    </span>
-                                                {/if}
-                                                <div class="trade-results hidden md:flex gap-1 text-xs">
-                                                    {#if statsPerDay[day].wins > 0}
-                                                        <span class="whitespace-nowrap text-green-600 dark:text-green-400">
-                                                            {statsPerDay[day].wins} win{statsPerDay[day].wins !== 1 ? "s" : ""}
-                                                        </span>
-                                                    {/if}
-                                                    {#if statsPerDay[day].losses > 0}
-                                                        <span class="whitespace-nowrap text-red-600 dark:text-red-400">
-                                                            {statsPerDay[day].losses} loss{statsPerDay[day].losses !== 1 ? "es" : ""}
-                                                        </span>
-                                                    {/if}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {/if}
-
-                                    {#if statsPerDay[day].pnl !== 0}
-                                        {@const dateKey = formatDateForInput(new Date(selectedYear, selectedMonth, day))}
-                                        {@const balance = dailyBalances[dateKey]?.endBalance}
-                                        {@const pnl = statsPerDay[day].pnl}
-                                        <div class="pnl-stats mt-auto flex flex-col md:flex-row justify-between items-start md:items-center">
-                                            <span class="text-sm font-bold whitespace-nowrap  {getTextClass(statsPerDay[day])}">
-                                                {formatPnL(statsPerDay[day].pnl)}
-                                            </span>
-                                            {#if pnl !== 0 && balance > 0}
-                                                <span class="pnl-percentage whitespace-nowrap text-xs {pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
-                                                    {((pnl / balance) * 100).toFixed(1)}%
-                                                </span>
-                                            {/if}
-                                        </div>
-                                    {/if}
-
-                                    {#if statsPerDay[day].transactions?.length > 0}
-                                        <div
-                                            class="absolute  bottom-1 right-1 flex gap-0.5 items-center opacity-60 dark:opacity-80"
-                                        >
-                                            {#if statsPerDay[day].transactions.some((t) => t.type === "deposit")}
-                                                <div class="flex items-center">
-                                                    <svg
-                                                        class="w-[14px] h-[14px] text-green-600 dark:text-green-400"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                        />
-                                                    </svg>
-                                                </div>
-                                            {/if}
-                                            {#if statsPerDay[day].transactions.some((t) => t.type === "withdrawal")}
-                                                <div class="flex items-center">
-                                                    <svg
-                                                        class="w-[14px] h-[14px] text-red-600 dark:text-red-400"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                        />
-                                                    </svg>
-                                                </div>
-                                            {/if}
-                                        </div>
-                                    {/if}
-                                </div>
+                            <!-- วันที่ว่างเท่านั้นที่จะมี hover effect -->
+                            {#if !statsPerDay[day]?.pnl && !statsPerDay[day]?.openTrades && !statsPerDay[day]?.transactions?.length && !isFutureDate(day)}
+                                <div class="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 z-30">
+                                    <svg
+                                        class="w-8 h-8 text-gray-400/50 dark:text-gray-500/50"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 4v16m8-8H4"
+                                        />
+                                    </svg>
                                 </div>
                             {/if}
+
+                            <!-- เนื้อหาปกติ -->
+                            <div class="relative h-full flex flex-col z-20">
+                                <div class="pt-0.5 px-1 pb-0 text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                                    <div class="flex w-full justify-end">
+                                        {#if isToday(day)}
+                                            <span class="mr-auto hidden md:block">to day!</span>
+                                        {/if}
+                                        <span>{day}</span>
+                                    </div>
+                                </div>
+
+                                {#if statsPerDay[day]}
+                                    <div
+                                        class="absolute top-0 md:-top-2 inset-0 p-1.5 pt-5 flex flex-col"
+                                    >
+                                    <div class={`border-s border-s-[2.25px] border-transparent ${statsPerDay[day].pnl === 0 ? '' : statsPerDay[day].pnl < 0 ? 'dark:border-red-600 ps-1' : 'dark:border-green-600 ps-1'}`}>
+                                        {#if statsPerDay[day].trades.length > 0}
+                                        {@const isShowAllState = !(statsPerDay[day].openTrades > 0 && statsPerDay[day].wins > 0 && statsPerDay[day].losses > 0)}
+                                            <div class="trade-stats space-y-0.5 overflow-y-auto">
+                                                <div class=" hidden md:flex items-center gap-1 flex-wrap">
+                                                    
+                                                    {#if statsPerDay[day].openTrades > 0}
+                                                        <span class="text-xs whitespace-nowrap bg-yellow-500/10 dark:bg-yellow-400/10 px-1 rounded text-yellow-600 dark:text-yellow-400">
+                                                            {statsPerDay[day].openTrades}
+                                                            {#if isShowAllState}
+                                                                open
+                                                            {:else}
+                                                                <span class="text-xxs">open</span>
+                                                            {/if}
+
+                                                        </span>
+                                                    {/if}
+                                                    <div class="trade-results gap-1 text-xs">
+                                                        {#if statsPerDay[day].wins > 0}
+                                                            <span class="whitespace-nowrap bg-green-500/10 dark:bg-green-400/10 px-1 rounded text-green-600 dark:text-green-400">
+                                                                {statsPerDay[day].wins}
+                                                                {#if isShowAllState}
+                                                                win
+                                                                {:else}
+                                                                <span class="text-xxs">win</span>
+                                                                {/if}
+                                                            </span>
+                                                        {/if}
+                                                        {#if statsPerDay[day].losses > 0}
+                                                            <span class="whitespace-nowrap bg-red-500/10 dark:bg-red-400/10 px-1 rounded text-red-600 dark:text-red-400">
+                                                                {statsPerDay[day].losses}
+                                                                {#if isShowAllState}
+                                                                    loss
+                                                                {:else}
+                                                                <span class="text-xxs">loss</span>
+                                                                {/if}
+                                                            </span>
+                                                        {/if}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {/if}
+                                        {#if statsPerDay[day].pnl !== 0}
+                                            {@const dateKey = formatDateForInput(new Date(selectedYear, selectedMonth, day))}
+                                            {@const balance = dailyBalances[dateKey]?.endBalance}
+                                            {@const pnl = statsPerDay[day].pnl}
+                                            <div class="pnl-stats mt-auto flex-wrap flex flex-col md:flex-row justify-between items-start md:items-center">
+                                                <span class="text-sm font-bold whitespace-nowrap  {pnl >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}">
+                                                    {formatPnL(statsPerDay[day].pnl)}
+                                                </span>
+                                                {#if pnl !== 0 && balance > 0}
+                                                    <span class="pnl-percentage whitespace-nowrap text-xs {pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                                        {((pnl / balance) * 100).toFixed(1)}%
+                                                    </span>
+                                                {/if}
+                                            </div>
+                                        {/if}
+
+                                        {#if statsPerDay[day].transactions.length > 0}
+                                            <div
+                                                class="absolute  bottom-1 right-1 flex gap-0.5 items-center opacity-60 dark:opacity-80"
+                                            >
+                                                {#if statsPerDay[day].transactions.some((t) => t.type === "deposit")}
+                                                    <div class="flex items-center">
+                                                        <svg
+                                                            class="w-[17px] h-[17px] text-green-600 dark:text-green-400"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                stroke-linecap="round"
+                                                                stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                            />
+                                                        </svg>
+                                                    </div>
+                                                {/if}
+                                                {#if statsPerDay[day].transactions.some((t) => t.type === "withdrawal")}
+                                                    <div class="flex items-center">
+                                                        <svg
+                                                            class="w-[17px] h-[17px] text-red-600 dark:text-red-400"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                stroke-linecap="round"
+                                                                stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                            />
+                                                        </svg>
+                                                    </div>
+                                                {/if}
+                                            </div>
+                                        {/if}
+                                    </div>
+                                </div>
+                                {/if}
+                            </div>
                         </div>
                     </div>
                 {:else}
@@ -592,7 +671,12 @@
     on:delete={handleDelete}
     on:deleteTransaction={handleDeleteTransaction}
     on:newTrade={handleNewTrade}
+    on:refresh={() => {
+        console.log('TradeCalendar: Received refresh event from modal');
+        loadData();
+    }}
     on:close={() => {
+        console.log('TradeCalendar: Modal closed');
         showDayTradesModal = false;
         selectedDayTrades = [];
         selectedDayTransactions = [];
@@ -604,7 +688,9 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg;
+        @apply bg-light-card dark:bg-dark-card 
+               border border-light-border dark:border-0
+               rounded-lg shadow-lg;
     }
 
     /* Default styles สำหรับ mobile */
@@ -646,5 +732,10 @@
         .pnl-stats {
             gap: 0.5rem;
         }
+    }
+
+    /* Dark mode styles */
+    :global(.dark) .dark-calendar {
+        @apply gap-2; /* เพิ่ม gap ระหว่าง cell ใน dark mode */
     }
 </style>

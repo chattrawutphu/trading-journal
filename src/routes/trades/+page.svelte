@@ -285,7 +285,7 @@
 
         {#if $accountStore.currentAccount}
             <!-- Tab Navigation -->
-            <div class="border-b border-light-border dark:border-dark-border">
+            <div class="border-b border-light-border dark:border-0">
                 <nav class="-mb-px flex space-x-8">
                     <button
                         class="py-4 px-1 border-b-2 font-medium text-sm  {activeTab === 'trades' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
@@ -309,7 +309,7 @@
                 {#if hasOpenTrades}
                     <!-- Open Trades -->
                     <div class="card">
-                        <div class="p-4 border-b border-light-border dark:border-dark-border">
+                        <div class="p-4 border-b border-light-border dark:border-0">
                             <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Open Positions</h2>
                         </div>
                         <TradeTable 
@@ -327,7 +327,7 @@
                 {#if hasClosedTrades}
                     <!-- Closed Trades -->
                     <div class="card">
-                        <div class="p-4 border-b border-light-border dark:border-dark-border">
+                        <div class="p-4 border-b border-light-border dark:border-0">
                             <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Positions</h2>
                         </div>
                         <TradeTable 
@@ -377,7 +377,7 @@
 
     {#if $accountStore.currentAccount}
         <!-- Tab Navigation -->
-        <div class="border-b border-light-border dark:border-dark-border">
+        <div class="border-b border-light-border dark:border-0">
             <nav class="-mb-px flex space-x-8">
                 <button
                     class="py-4 px-1 border-b-2 font-medium text-sm  {activeTab === 'trades' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
@@ -405,7 +405,7 @@
                     {#if hasOpenTrades}
                         <!-- Open Trades -->
                         <div class="card">
-                            <div class="p-4 border-b border-light-border dark:border-dark-border">
+                            <div class="p-4 border-b border-light-border dark:border-0">
                                 <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Open Positions</h2>
                             </div>
                             <TradeTable 
@@ -423,7 +423,7 @@
                     {#if hasClosedTrades}
                         <!-- Closed Trades -->
                         <div class="card">
-                            <div class="p-4 border-b border-light-border dark:border-dark-border">
+                            <div class="p-4 border-b border-light-border dark:border-0">
                                 <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Positions</h2>
                             </div>
                             <TradeTable 
@@ -513,7 +513,7 @@
                 class="card w-full max-w-md mx-auto relative transform ease-out"
             >
                 <!-- Header -->
-                <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">
+                <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">
                     <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">Deposit</h2>
                     <button 
                         class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
@@ -557,7 +557,7 @@
                 </div>
 
                 <!-- Footer -->
-                <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10">
+                <div class="px-8 py-5 border-t border-light-border dark:border-0 flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10">
                     <Button 
                         type="button" 
                         variant="secondary" 
@@ -589,7 +589,7 @@
                 class="card w-full max-w-md mx-auto relative transform ease-out"
             >
                 <!-- Header -->
-                <div class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">
+                <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">
                     <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">Withdraw</h2>
                     <button 
                         class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
@@ -633,7 +633,7 @@
                 </div>
 
                 <!-- Footer -->
-                <div class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10">
+                <div class="px-8 py-5 border-t border-light-border dark:border-0 flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10">
                     <Button 
                         type="button" 
                         variant="secondary" 
@@ -658,6 +658,6 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg ;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg ;
     }
 </style>

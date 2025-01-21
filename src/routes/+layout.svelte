@@ -191,11 +191,11 @@
     }
 
     .spinner {
-        @apply animate-spin rounded-full border-4 border-light-border dark:border-dark-border border-t-theme-500 h-8 w-8;
+        @apply animate-spin rounded-full border-4 border-light-border dark:border-0 border-t-theme-500 h-8 w-8;
     }
 
     :global(.card) {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-lg ;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-lg ;
     }
 
     :global(.btn-primary) {
@@ -203,11 +203,11 @@
     }
 
     :global(.btn-secondary) {
-        @apply bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text border border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover font-medium px-4 py-2 rounded-lg ;
+        @apply bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text border border-light-border dark:border-0 hover:bg-light-hover dark:hover:bg-dark-hover font-medium px-4 py-2 rounded-lg ;
     }
 
     :global(.input) {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text rounded-lg px-4 py-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent ;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 text-light-text dark:text-dark-text rounded-lg px-4 py-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent ;
     }
 
     :global(.link) {

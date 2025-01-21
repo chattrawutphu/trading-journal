@@ -206,7 +206,7 @@
         {#each days as date, index}
             {@const stats = getDayStats(date)}
             <div 
-                class="relative border-r last:border-r-0 border-b border-light-border dark:border-dark-border
+                class="relative border-r last:border-r-0 border-b border-light-border dark:border-0
                        transition-all duration-200 group cursor-pointer
                        hover:bg-light-hover/50 dark:hover:bg-dark-hover/50
                        {isToday(date) ? 'bg-theme-500/5 dark:bg-theme-400/5' : ''}
@@ -259,7 +259,7 @@
 
                             <!-- P&L -->
                             {#if stats.pnl !== 0}
-                                <div class="flex items-center justify-between mt-2 pt-2 border-t border-light-border dark:border-dark-border">
+                                <div class="flex items-center justify-between mt-2 pt-2 border-t border-light-border dark:border-0">
                                     <span class="text-xs text-light-text-muted dark:text-dark-text-muted">P&L</span>
                                     <span class="text-sm font-bold {getTextClass(stats)}">
                                         {formatPnL(stats.pnl)}
@@ -303,7 +303,7 @@
 
 <style>
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg overflow-hidden;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg overflow-hidden;
     }
 
     /* Make cards more compact on mobile */

@@ -48,7 +48,7 @@
 </script>
 
 <!-- Mobile Header -->
-<div class="md:hidden flex items-center p-0.5 border-b border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card">
+<div class="md:hidden flex items-center p-0.5 border-b border-light-border dark:border-0 bg-light-card dark:bg-dark-card">
     <button
         class="text-light-text-muted dark:text-dark-text-muted p-2 hover:bg-light-hover dark:hover:bg-dark-hover rounded-lg"
         on:click={toggleMenu}
@@ -79,7 +79,7 @@
             transition:fly={{ x: -320, duration: 300, easing: quintOut }}
         >
             <!-- User Profile Section -->
-            <div class="p-4 border-b border-light-border dark:border-dark-border">
+            <div class="p-4 border-b border-light-border dark:border-0">
                 <div class="flex items-center gap-3">
                     <img
                         src={$auth?.user?.avatar || 'https://ui-avatars.com/api/?name=' + getUserDisplayName($auth?.user)}
@@ -105,7 +105,7 @@
 
             <!-- Account Section -->
             {#if $auth?.isAuthenticated && $accountStore?.currentAccount}
-                <div class="p-4 border-b border-light-border dark:border-dark-border">
+                <div class="p-4 border-b border-light-border dark:border-0">
                     <!-- Account Selector -->
                     <button 
                         class="w-full flex items-center justify-between mb-2"
@@ -129,7 +129,7 @@
 
                     {#if showAccountMenu}
                         <div 
-                            class="mb-2 border-t border-light-border dark:border-dark-border pt-2"
+                            class="mb-2 border-t border-light-border dark:border-0 pt-2"
                             transition:slide={{ duration: 200 }}
                         >
                             <AccountManager on:close={() => showAccountMenu = false} />
@@ -188,7 +188,7 @@
             </nav>
 
             <!-- Footer Actions -->
-            <div class="p-4 border-t border-light-border dark:border-dark-border">
+            <div class="p-4 border-t border-light-border dark:border-0">
                 <div class="flex items-center justify-between mb-4">
                     <span class="text-light-text-muted dark:text-dark-text-muted">Theme</span>
                     <ThemeToggle />

@@ -232,7 +232,7 @@
     {/if}
 
     <!-- Add Account Button -->
-    <div class="border-t border-light-border dark:border-dark-border px-4 py-2">
+    <div class="border-t border-light-border dark:border-0 px-4 py-2">
         <button
             id="add-account"
             class="w-full text-left px-3 py-2 rounded-lg text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover flex items-center"
@@ -265,7 +265,7 @@
         <div class="card w-full max-w-md mx-auto relative transform ease-out">
             <!-- Header -->
             <div
-                class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <h2
                     class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent"
@@ -319,7 +319,7 @@
 
             <!-- Footer -->
             <div
-                class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-8 py-5 border-t border-light-border dark:border-0 flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <Button
                     type="button"
@@ -353,7 +353,7 @@
         <div class="card w-full max-w-md mx-auto relative transform ease-out">
             <!-- Header -->
             <div
-                class="px-8 py-5 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <h2
                     class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent"
@@ -398,7 +398,7 @@
 
             <!-- Footer -->
             <div
-                class="px-8 py-5 border-t border-light-border dark:border-dark-border flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-8 py-5 border-t border-light-border dark:border-0 flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <Button
                     type="button"
@@ -424,6 +424,6 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-xl;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-xl;
     }
 </style>

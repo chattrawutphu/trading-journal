@@ -65,7 +65,7 @@
                     type="text"
                     readonly
                     value="{referralData.referralLink || 'https://yourapp.com/signup?ref=YOUR_CODE'}"
-                    class="flex-1 max-w-md px-4 py-3 border border-light-border dark:border-dark-border rounded-l-lg text-center"
+                    class="flex-1 max-w-md px-4 py-3 border border-light-border dark:border-0 rounded-l-lg text-center"
                 />
                 <Button on:click={handleCopyReferralLink} class="rounded-l-none">
                     Copy Link
@@ -181,7 +181,7 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg;
     }
 
     table {

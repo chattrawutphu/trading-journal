@@ -35,7 +35,7 @@
 </script>
 
 {#if showDatePicker}
-    <div bind:this={datePickerElement} class="absolute top-7 left-0 z-10 mt-2 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg p-3 w-56 backdrop-blur-sm" on:click|stopPropagation>
+    <div bind:this={datePickerElement} class="absolute top-7 left-0 z-10 mt-2 bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg p-3 w-56 backdrop-blur-sm" on:click|stopPropagation>
         <div class="flex justify-between items-center mb-2">
             <button 
                 on:click={() => selectedMonth = (selectedMonth - 1 + 12) % 12}
@@ -79,10 +79,10 @@
             {/each}
         </div>
 
-        <div class="mt-3 flex justify-between items-center border-t border-light-border dark:border-dark-border pt-3">
+        <div class="mt-3 flex justify-between items-center border-t border-light-border dark:border-0 pt-3">
             <select 
                 bind:value={selectedYear} 
-                class="flex-1 px-2 py-0.5 rounded-md bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border text-xs dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-theme-500"
+                class="flex-1 px-2 py-0.5 rounded-md bg-light-background dark:bg-dark-background border border-light-border dark:border-0 text-xs dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-theme-500"
             >
                 {#each years as year}
                     <option value={year}>{year}</option>

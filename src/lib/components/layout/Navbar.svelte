@@ -160,7 +160,7 @@
                             </button>
     
                             {#if showAccountMenu}
-                                <div class="absolute right-0 mt-2 w-64 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border ring-1 ring-black ring-opacity-5 z-50 ">
+                                <div class="absolute right-0 mt-2 w-64 rounded-lg shadow-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-0 ring-1 ring-black ring-opacity-5 z-50 ">
                                     <AccountManager on:close={() => showAccountMenu = false} />
                                 </div>
                             {/if}

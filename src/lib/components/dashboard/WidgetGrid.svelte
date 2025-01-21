@@ -49,7 +49,7 @@
 >
     {#each widgets as widget (widget.id)}
         <div 
-            class="widget relative group transition-all duration-300 ease-in-out flex flex-col md:col-span-[var(--widget-cols)] md:row-span-[var(--widget-rows)] md:h-[var(--widget-height)] sm:col-span-12 sm:h-auto"
+            class="widget relative group flex flex-col md:col-span-[var(--widget-cols)] md:row-span-[var(--widget-rows)] md:h-[var(--widget-height)] sm:col-span-12 sm:h-auto"
             id={"widget-" + widget.id}
             style="--widget-cols: {getWidgetCols(widget)}; 
                    --widget-rows: {getWidgetRows(widget)}; 

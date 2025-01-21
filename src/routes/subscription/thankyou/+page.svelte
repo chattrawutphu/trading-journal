@@ -41,7 +41,7 @@
         <h1 class="text-4xl font-bold text-light-text dark:text-dark-text mb-4">Payment Successful!</h1>
         <p class="text-light-text-muted dark:text-dark-text-muted mb-8">Thank you for your purchase. Here are your subscription details:</p>
         
-        <div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-2xl p-8 mb-8 max-w-2xl mx-auto">
+        <div class="bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-2xl p-8 mb-8 max-w-2xl mx-auto">
             <div class="grid md:grid-cols-2 gap-6 mb-8">
                 <div class="bg-light-hover dark:bg-dark-hover rounded-lg p-4">
                     <div class="text-light-text-muted dark:text-dark-text-muted text-sm mb-1">Plan</div>
