@@ -108,12 +108,10 @@
     }
 
     function handleDeposit() {
-        transactionDate.set(date);
         showDepositModal = true;
     }
 
     function handleWithdraw() {
-        transactionDate.set(date);
         showWithdrawModal = true;
     }
 
@@ -450,6 +448,7 @@
     transaction={selectedTransaction}
     {accountId}
     type={showDepositModal ? 'deposit' : showWithdrawModal ? 'withdraw' : selectedTransaction?.type || 'deposit'}
+    initialDate={date ? new Date(date) : null}
     on:close={() => {
         showTransactionModal = false;
         showDepositModal = false;

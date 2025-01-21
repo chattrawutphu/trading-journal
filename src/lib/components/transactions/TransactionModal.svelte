@@ -14,9 +14,10 @@
     export let transaction = null;
     export let accountId;
     export let type = 'deposit';
+    export let initialDate = null;
 
     let form = {
-        date: getCurrentDateTime(),
+        date: initialDate ? formatDateTimeLocal(initialDate) : getCurrentDateTime(),
         type: type,
         amount: '',
         note: '',
@@ -31,6 +32,12 @@
             type: transaction.type || type,
             amount: transaction.amount || '',
             note: transaction.note || '',
+        };
+    } else if (initialDate) {
+        // ถ้าไม่มี transaction แต่มี initialDate ให้ใช้ initialDate
+        form = {
+            ...form,
+            date: formatDateTimeLocal(initialDate),
         };
     }
 
