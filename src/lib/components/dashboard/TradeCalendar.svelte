@@ -507,7 +507,7 @@
                             class="absolute inset-0 {getCardClass(statsPerDay[day], day)} 
                                    hover:shadow 
                                    {!isFutureDate(day) && 'transform hover:scale-[1.04] transition-transform duration-300 ease-in-out'} 
-                                   {isToday(day) ? ' bg-indigo-300/50 dark:bg-indigo-600/20' : ''}"
+                                   {isToday(day) ? 'today-card' : ''}"
                             on:click={() => handleDayClick(day, statsPerDay[day])}
                         >
                             <!-- วันที่ว่างเท่านั้นที่จะมี hover effect -->
@@ -737,5 +737,64 @@
     /* Dark mode styles */
     :global(.dark) .dark-calendar {
         @apply gap-2; /* เพิ่ม gap ระหว่าง cell ใน dark mode */
+    }
+
+    /* เพิ่ม styles สำหรับ today card animation */
+    @keyframes border-dance {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    :global(.today-card) {
+        position: relative;
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        background-color: theme(colors.indigo.50/0.1);
+    }
+
+    :global(.today-card)::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        z-index: 1;
+        border-radius: 0.5rem;
+        padding: 2px;
+        pointer-events: none;
+        background: linear-gradient(
+            45deg,
+            theme(colors.purple.400),
+            theme(colors.blue.400),
+            theme(colors.indigo.400),
+            theme(colors.purple.400)
+        );
+        background-size: 300% 300%;
+        animation: border-dance 4s ease infinite;
+        -webkit-mask: 
+            linear-gradient(#fff 0 0) content-box, 
+            linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+    }
+
+    :global(.today-card > *) {
+        position: relative;
+        z-index: 2;
+    }
+
+    :global(.dark .today-card) {
+        background-color: theme(colors.indigo.900/0.1);
+    }
+
+    :global(.today-card:hover)::before {
+        animation: border-dance 2s ease infinite;
     }
 </style>

@@ -122,7 +122,11 @@
 
     async function confirmDelete() {
         if (deleteContext) {
-            dispatch('delete', deleteContext);
+            try {
+                await handleDelete(deleteContext);
+            } catch (err) {
+                console.error('Error in confirmDelete:', err);
+            }
         }
         showDeleteConfirmModal = false;
         deleteContext = null;
@@ -139,6 +143,7 @@
                         continue;
                     }
                 }
+                await loadTrades();
                 dispatch('refresh');
             } else if (context === 'transactions') {
                 for (const transactionId of items) {
