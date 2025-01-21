@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 const tradeOptionSchema = new mongoose.Schema({
     type: {
         type: String,
-        enum: ['SYMBOL', 'STRATEGY'],
+        enum: ['SYMBOL', 'STRATEGY', 'TAG'],
         required: true
     },
     value: {

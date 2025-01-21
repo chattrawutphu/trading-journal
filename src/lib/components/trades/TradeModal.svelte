@@ -11,6 +11,8 @@
     import { goto } from '$app/navigation';
     import { tradeDate } from '$lib/stores/tradeDateStore';
     import { api } from "$lib/utils/api";
+    import { tradeTagStore } from '$lib/stores/tradeTagStore';
+    import { onMount } from 'svelte';
 
     const dispatch = createEventDispatcher();
 
@@ -44,6 +46,7 @@
         hasTakeProfit: false,
         favorite: false,
         leverage: 1,
+        tags: [],
     };
 
     const emotionOptions = [
@@ -90,18 +93,28 @@
         return localDate.toISOString().slice(0,16);
     }
 
-    $: if (trade) {
-        form = {
-            ...form,
-            ...trade,
-            entryDate: trade.entryDate 
-                ? formatDateTimeLocal(trade.entryDate)
-                : getCurrentDateTime(),
-            exitDate: trade.exitDate
-                ? formatDateTimeLocal(trade.exitDate)
-                : getCurrentDateTime(),
-        };
-        previousSymbol = trade.symbol;
+    $: {
+        if (show) {
+            if (trade && !form.symbol) {
+                form = {
+                    ...form,
+                    ...trade,
+                    entryDate: trade.entryDate 
+                        ? formatDateTimeLocal(trade.entryDate)
+                        : getCurrentDateTime(),
+                    exitDate: trade.exitDate
+                        ? formatDateTimeLocal(trade.exitDate)
+                        : getCurrentDateTime(),
+                    tags: trade.tags || [],
+                };
+                previousSymbol = trade.symbol;
+            } else if (!trade && $tradeDate) {
+                const dateFromStore = new Date($tradeDate);
+                dateFromStore.setHours(7, 0, 0, 0);
+                form.entryDate = formatDateTimeLocal(dateFromStore);
+                tradeDate.set(null);
+            }
+        }
     }
 
     $: if (form.status === "CLOSED" && !form.exitDate) {
@@ -219,6 +232,7 @@
                 hasTakeProfit: false,
                 favorite: false,
                 leverage: 1,
+                tags: [],
             };
             errors = {};
             previousSymbol = "";
@@ -230,34 +244,37 @@
 
     function handleClose() {
         show = false;
+        setTimeout(() => {
+            form = {
+                account: accountId,
+                entryDate: getCurrentDateTime(),
+                exitDate: getCurrentDateTime(),
+                symbol: "",
+                status: "OPEN",
+                side: "LONG",
+                quantity: "",
+                amount: "",
+                entryPrice: "",
+                exitPrice: "",
+                pnl: "",
+                entryReason: "",
+                exitReason: "",
+                strategy: "",
+                emotions: "",
+                notes: "",
+                url: "",
+                confidenceLevel: 5,
+                greedLevel: 5,
+                hasStopLoss: false,
+                hasTakeProfit: false,
+                favorite: false,
+                leverage: 1,
+                tags: [],
+            };
+            errors = {};
+            previousSymbol = "";
+        }, 150);
         dispatch('close');
-        form = {
-            account: accountId,
-            entryDate: getCurrentDateTime(),
-            exitDate: getCurrentDateTime(),
-            symbol: "",
-            status: "OPEN",
-            side: "LONG",
-            quantity: "",
-            amount: "",
-            entryPrice: "",
-            exitPrice: "",
-            pnl: "",
-            entryReason: "",
-            exitReason: "",
-            strategy: "",
-            emotions: "",
-            notes: "",
-            url: "",
-            confidenceLevel: 5,
-            greedLevel: 5,
-            hasStopLoss: false,
-            hasTakeProfit: false,
-            favorite: false,
-            leverage: 1,
-        };
-        errors = {};
-        previousSymbol = "";
     }
 
     const statusOptions = [
@@ -281,17 +298,46 @@
         goto('/subscription');
     }
 
-    $: if (show) {
-        if (trade && trade.entryDate) {
-            form.entryDate = formatDateTimeLocal(trade.entryDate);
-        } else if ($tradeDate) {
-            const dateFromStore = new Date($tradeDate);
-            dateFromStore.setHours(7, 0, 0, 0);
-            form.entryDate = formatDateTimeLocal(dateFromStore);
-            tradeDate.set(null);
-        } else {
-            form.entryDate = formatDateTimeLocal(new Date());
+    onMount(() => {
+        tradeTagStore.loadTags();
+    });
+
+    async function handleTagSelect(event) {
+        const tagValue = event.detail.value;
+        if (form.tags.length < 7 && !form.tags.includes(tagValue)) {
+            try {
+                if (!$tradeTagStore.tags.some(t => t.value === tagValue)) {
+                    await tradeTagStore.addTag(tagValue);
+                }
+                form.tags = [...form.tags, tagValue];
+            } catch (error) {
+                console.error('Failed to add tag:', error);
+            }
         }
+    }
+
+    function removeTag(tag) {
+        form.tags = form.tags.filter(t => t !== tag);
+    }
+
+    // เพิ่มฟังก์ชันสำหรับสร้างสีจาก tag string
+    function getTagColor(tag) {
+        const colors = [
+            { bg: 'bg-blue-500/10', text: 'text-blue-500' },
+            { bg: 'bg-green-500/10', text: 'text-green-500' },
+            { bg: 'bg-purple-500/10', text: 'text-purple-500' },
+            { bg: 'bg-orange-500/10', text: 'text-orange-500' },
+            { bg: 'bg-pink-500/10', text: 'text-pink-500' },
+            { bg: 'bg-teal-500/10', text: 'text-teal-500' },
+            { bg: 'bg-indigo-500/10', text: 'text-indigo-500' },
+        ];
+        
+        // ใช้ string hash เพื่อให้ tag เดียวกันได้สีเดิมเสมอ
+        const hash = tag.split('').reduce((acc, char) => {
+            return char.charCodeAt(0) + ((acc << 5) - acc);
+        }, 0);
+        
+        return colors[Math.abs(hash) % colors.length];
     }
 </script>
 
@@ -651,13 +697,62 @@
                         </h3>
 
                         <div class="space-y-3">
-                            <Select
-                                label="Emotions"
-                                options={emotionOptions}
-                                bind:value={form.emotions}
-                                placeholder="How did you feel during this trade?"
-                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
-                            />
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label
+                                        for="trade-emotions"
+                                        class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
+                                    >
+                                        Emotions
+                                    </label>
+                                    <Select
+                                        options={emotionOptions}
+                                        bind:value={form.emotions}
+                                        placeholder="How did you feel during this trade?"
+                                        disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                    />
+                                </div>
+                                <div class="space-y-1">
+                                    <label
+                                        for="trade-tags"
+                                        class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
+                                    >
+                                        Tags ({form.tags.length}/7)
+                                    </label>
+                                    <div class="space-y-2">
+                                        <TradeOptionSelect
+                                            type="TAG"
+                                            placeholder="Add tags..."
+                                            value=""
+                                            options={$tradeTagStore.tags.map(t => ({ value: t.value }))}
+                                            on:change={handleTagSelect}
+                                            disabled={form.tags.length >= 7 || subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                            loading={$tradeTagStore.loading}
+                                            error={$tradeTagStore.error}
+                                        />
+                                        
+                                        {#if form.tags.length > 0}
+                                            <div class="flex flex-wrap gap-2 mt-2">
+                                                {#each form.tags as tag}
+                                                    {@const tagColor = getTagColor(tag)}
+                                                    <div class="flex items-center gap-1 px-2 py-1 rounded-full {tagColor.bg} {tagColor.text} text-sm">
+                                                        <span>{tag}</span>
+                                                        <button
+                                                            type="button"
+                                                            class="hover:opacity-75"
+                                                            on:click={() => removeTag(tag)}
+                                                        >
+                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                {/each}
+                                            </div>
+                                        {/if}
+                                    </div>
+                                </div>
+                            </div>
                             <div class="space-y-1">
                                 <label
                                     for="trade-notes"

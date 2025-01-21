@@ -10,29 +10,31 @@
 
     const dispatch = createEventDispatcher();
 
-    export let type = 'SYMBOL'; // SYMBOL or STRATEGY
+    export let type = 'SYMBOL'; // SYMBOL or STRATEGY or TAG
     export let value = '';
     export let placeholder = 'Select an option';
     export let required = false;
     export let accountId = null;
+    export let options = [];
+    export let loading = false;
+    export let error = '';
 
     let isOpen = false;
     let searchTerm = '';
     let editingOption = null;
     let editValue = ''; // New state for edit mode
-    let options = [];
-    let loading = false;
-    let error = '';
 
     $: {
         if (type === 'SYMBOL') {
             options = accountId ? $accountSymbolStore.symbols.map(symbol => ({ value: symbol })) : [];
             loading = $accountSymbolStore.loading;
             error = $accountSymbolStore.error;
-        } else {
+        } else if (type === 'STRATEGY') {
             options = $userStrategyStore.strategies.map(strategy => ({ value: strategy }));
             loading = $userStrategyStore.loading;
             error = $userStrategyStore.error;
+        } else if (type === 'TAG') {
+            // ใช้ options ที่ส่งมาจาก props
         }
     }
 
@@ -66,17 +68,17 @@
         try {
             if (type === 'SYMBOL' && accountId) {
                 await accountSymbolStore.addSymbol(accountId, searchTerm.trim());
-                value = searchTerm.trim();
-                searchTerm = value;
-                isOpen = false;
-                dispatch('change', { value });
             } else if (type === 'STRATEGY') {
                 await userStrategyStore.addStrategy(searchTerm.trim());
-                value = searchTerm.trim();
-                searchTerm = value;
+            } else if (type === 'TAG') {
+                dispatch('change', { value: searchTerm.trim() });
                 isOpen = false;
-                dispatch('change', { value });
+                return;
             }
+            value = searchTerm.trim();
+            searchTerm = value;
+            isOpen = false;
+            dispatch('change', { value });
         } catch (err) {
             console.error('Failed to create option:', err);
         }

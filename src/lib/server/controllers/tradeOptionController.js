@@ -5,8 +5,8 @@ const handleError = (res, error) => {
     console.error('Trade Option Error:', error);
     const statusCode = error.statusCode || res.statusCode === 200 ? 500 : res.statusCode;
     res.status(statusCode).json({
-        message: error.message || 'Internal server error',
-        stack: process.env.NODE_ENV === 'production' ? null : error.stack
+        success: false,
+        error: error.message || 'Internal server error'
     });
 };
 
@@ -22,7 +22,6 @@ export const getOptions = async(req, res) => {
             .sort({ usageCount: -1, value: 1 });
         res.json(options);
     } catch (error) {
-        res.status(400);
         handleError(res, error);
     }
 };
@@ -31,10 +30,15 @@ export const createOption = async(req, res) => {
     try {
         const { type, value } = req.body;
 
-        // Validate type
-        if (!['SYMBOL', 'STRATEGY'].includes(type.toUpperCase())) {
+        if (!type || !value) {
             res.status(400);
-            return handleError(res, new Error('Invalid option type'));
+            throw new Error('Type and value are required');
+        }
+
+        // Validate type
+        if (!['SYMBOL', 'STRATEGY', 'TAG'].includes(type.toUpperCase())) {
+            res.status(400);
+            throw new Error('Invalid option type');
         }
 
         // Check if option already exists for this user
@@ -45,8 +49,7 @@ export const createOption = async(req, res) => {
         });
 
         if (existingOption) {
-            res.status(400);
-            return handleError(res, new Error(`${type} already exists`));
+            return res.json(existingOption); // Return existing option if found
         }
 
         const option = await TradeOption.create({
@@ -57,7 +60,6 @@ export const createOption = async(req, res) => {
 
         res.status(201).json(option);
     } catch (error) {
-        res.status(400);
         handleError(res, error);
     }
 };
@@ -67,6 +69,11 @@ export const updateOption = async(req, res) => {
         const { optionId } = req.params;
         const { value } = req.body;
 
+        if (!value) {
+            res.status(400);
+            throw new Error('Value is required');
+        }
+
         const option = await TradeOption.findOne({
             _id: optionId,
             user: req.user._id
@@ -74,7 +81,7 @@ export const updateOption = async(req, res) => {
 
         if (!option) {
             res.status(404);
-            return handleError(res, new Error('Option not found'));
+            throw new Error('Option not found');
         }
 
         // Check if new value already exists
@@ -87,7 +94,7 @@ export const updateOption = async(req, res) => {
 
         if (existingOption) {
             res.status(400);
-            return handleError(res, new Error(`${option.type} already exists`));
+            throw new Error(`${option.type} already exists`);
         }
 
         option.value = value.trim();
@@ -95,7 +102,6 @@ export const updateOption = async(req, res) => {
 
         res.json(option);
     } catch (error) {
-        res.status(400);
         handleError(res, error);
     }
 };
@@ -115,10 +121,9 @@ export const deleteOption = async(req, res) => {
         }
 
         await option.deleteOne();
-        res.json({ message: 'Option deleted successfully' });
+        res.json({ success: true, message: 'Option deleted successfully' });
     } catch (error) {
-        res.status(400);
-        throw error;
+        handleError(res, error);
     }
 };
 
@@ -141,7 +146,6 @@ export const incrementUsage = async(req, res) => {
 
         res.json(option);
     } catch (error) {
-        res.status(400);
-        throw error;
+        handleError(res, error);
     }
 };

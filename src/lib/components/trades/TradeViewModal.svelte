@@ -33,6 +33,24 @@
     function handleImageError(event) {
         event.target.style.display = 'none';
     }
+
+    function getTagColor(tag) {
+        const colors = [
+            { bg: 'bg-blue-500/10', text: 'text-blue-500' },
+            { bg: 'bg-green-500/10', text: 'text-green-500' },
+            { bg: 'bg-purple-500/10', text: 'text-purple-500' },
+            { bg: 'bg-orange-500/10', text: 'text-orange-500' },
+            { bg: 'bg-pink-500/10', text: 'text-pink-500' },
+            { bg: 'bg-teal-500/10', text: 'text-teal-500' },
+            { bg: 'bg-indigo-500/10', text: 'text-indigo-500' },
+        ];
+        
+        const hash = tag.split('').reduce((acc, char) => {
+            return char.charCodeAt(0) + ((acc << 5) - acc);
+        }, 0);
+        
+        return colors[Math.abs(hash) % colors.length];
+    }
 </script>
 
 {#if show && trade}
@@ -198,6 +216,18 @@
                     {/if}
                 </div>
             </div>
+
+            <!-- Tags -->
+            {#if trade.tags && trade.tags.length > 0}
+                <div class="flex flex-wrap gap-2 mt-4">
+                    {#each trade.tags as tag}
+                        {@const tagColor = getTagColor(tag)}
+                        <span class="px-2 py-0.5 rounded-full {tagColor.bg} {tagColor.text} text-sm">
+                            {tag}
+                        </span>
+                    {/each}
+                </div>
+            {/if}
         </div>
     </div>
 </div>

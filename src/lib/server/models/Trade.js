@@ -89,6 +89,15 @@ const tradeSchema = new mongoose.Schema({
     disabled: {
         type: Boolean,
         default: false
+    },
+    tags: {
+        type: [String],
+        validate: {
+            validator: function(v) {
+                return v.length <= 7; // Maximum 7 tags
+            },
+            message: props => 'Tags cannot exceed 7 items'
+        }
     }
 });
 
