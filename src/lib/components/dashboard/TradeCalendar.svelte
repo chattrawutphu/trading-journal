@@ -305,32 +305,40 @@
     }
 
     function getCardClass(stats, day) {
-        if (isFutureDate(day))
-            return "opacity-50 bg-light-hover/20 dark:bg-dark-hover/20";
+        let baseClasses = "";
         
-        // ถ้าไม่มีข้อมูลใดๆ ไม่ต้องแสดง border
-        if (
-            !stats ||
-            (!stats.pnl && !stats.openTrades && !stats.transactions?.length)
-        )
-            return "cursor-pointer rounded-md bg-light-hover/10 dark:bg-dark-hover/10";
-
-        // Check for closed trades first
-        const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
-        if (hasClosedTrades) {
-            return `cursor-pointer rounded-md ${
-                stats.pnl > 0 
-                    ? "bg-green-100 border border-green-300/30 dark:border-0 dark:bg-green-900/20" 
-                    : "bg-red-100 border border-red-300/30 dark:border-0 dark:bg-red-900/20"
-            }`;
+        if (isFutureDate(day)) {
+            baseClasses = "opacity-50 bg-light-hover/20 dark:bg-dark-hover/20";
+        } else if (!stats || (!stats.pnl && !stats.openTrades && !stats.transactions?.length)) {
+            baseClasses = "cursor-pointer rounded-md bg-light-hover/10 dark:bg-dark-hover/10";
+        } else {
+            // Check for closed trades first
+            const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
+            if (hasClosedTrades) {
+                baseClasses = `cursor-pointer rounded-md ${
+                    stats.pnl > 0 
+                        ? "bg-green-100 border border-green-300/30 dark:border-0 dark:bg-green-900/20" 
+                        : "bg-red-100 border border-red-300/30 dark:border-0 dark:bg-red-900/20"
+                }`;
+            } else if (stats.openTrades > 0 || stats.transactions?.length > 0) {
+                baseClasses = `cursor-pointer rounded-md bg-yellow-50 border border-yellow-300/30 dark:border-0 dark:bg-yellow-900/10`;
+            } else {
+                baseClasses = "cursor-pointer rounded-md";
+            }
         }
 
-        // If no closed trades but has open trades or transactions
-        if (stats.openTrades > 0 || stats.transactions?.length > 0) {
-            return `cursor-pointer rounded-md bg-yellow-50 border border-yellow-300/30 dark:border-0 dark:bg-yellow-900/10`;
+        // Add today card styles if it's today
+        if (isToday(day)) {
+            baseClasses += " relative bg-indigo-50/10 dark:bg-indigo-900/10" +
+                " before:content-[''] before:absolute before:inset-[-2px]" +
+                " before:z-[1] before:rounded-lg before:p-[2px]" +
+                " before:bg-gradient-to-r before:from-purple-400 before:via-blue-400 before:to-indigo-400" +
+                " before:animate-border-dance before:pointer-events-none" +
+                " before:[mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)]" +
+                " before:[mask-composite:exclude]";
         }
 
-        return "cursor-pointer rounded-md";
+        return baseClasses;
     }
 
     function getTextClass(stats) {
@@ -532,11 +540,11 @@
                             <!-- เนื้อหาปกติ -->
                             <div class="relative h-full flex flex-col z-20">
                                 <div class="pt-0.5 px-1 pb-0 text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
-                                    <div class="flex w-full justify-end">
+                                    <div class="flex w-full justify-between items-center">
                                         {#if isToday(day)}
-                                            <span class="mr-auto hidden md:block">to day!</span>
+                                            <span class="text-xs text-purple-500 dark:text-purple-400">today</span>
                                         {/if}
-                                        <span>{day}</span>
+                                        <span class="ml-auto">{day}</span>
                                     </div>
                                 </div>
 
@@ -596,7 +604,7 @@
                                                 </span>
                                                 {#if pnl !== 0 && balance > 0}
                                                     <span class="pnl-percentage whitespace-nowrap text-xs {pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
-                                                        {((pnl / balance) * 100).toFixed(1)}%
+                                                        {((pnl / balance) * 100).toFixed(2)}%
                                                     </span>
                                                 {/if}
                                             </div>
@@ -795,6 +803,21 @@
     }
 
     :global(.today-card:hover)::before {
+        animation: border-dance 2s ease infinite;
+    }
+
+    @keyframes border-dance {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    :global(.animate-border-dance) {
+        animation: border-dance 4s ease infinite;
+        background-size: 300% 300%;
+    }
+
+    :global(.animate-border-dance:hover) {
         animation: border-dance 2s ease infinite;
     }
 </style>

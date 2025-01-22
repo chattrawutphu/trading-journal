@@ -66,7 +66,7 @@
         }
 
         currentPnL = filteredTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
-        progress = Math.min(currentPnL / target, 1);
+        progress = currentPnL < 0 ? 0 : Math.min(currentPnL / target, 1);
     }
 
     function formatCompactNumber(value) {
@@ -76,6 +76,43 @@
             return (value / 1000).toFixed(1) + 'K';
         }
         return value.toFixed(0);
+    }
+
+    function formatTimeRemaining(daysLeft) {
+        const now = new Date();
+        let endDate;
+        
+        // Calculate end date based on period
+        if (period === 'daily') {
+            endDate = new Date(now);
+            endDate.setHours(23, 59, 59, 999);
+        } else if (period === 'weekly') {
+            endDate = new Date(now);
+            endDate.setDate(now.getDate() + (6 - now.getDay()));
+            endDate.setHours(23, 59, 59, 999);
+        } else if (period === 'monthly') {
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        } else if (period === 'quarterly') {
+            const quarterEnd = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 + 3, 0);
+            endDate = new Date(quarterEnd.setHours(23, 59, 59, 999));
+        } else if (period === 'yearly') {
+            endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+        }
+
+        const diffMs = endDate - now;
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+        if (diffDays >= 3) {
+            return `${Math.floor(diffDays)} days remaining`;
+        } else if (diffDays >= 1) {
+            return `${Math.floor(diffDays)} days ${diffHours}h remaining`;
+        } else {
+            return diffHours > 0 
+                ? `${diffHours}h ${diffMinutes}m remaining`
+                : `${diffMinutes} minutes remaining`;
+        }
     }
 </script>
 
@@ -94,7 +131,7 @@
                     {period} Goal
                 </h3>
                 <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                    {daysLeft} {daysLeft === 1 ? 'day' : 'days'} remaining
+                    {formatTimeRemaining(daysLeft)}
                 </p>
             </div>
         </div>
@@ -144,7 +181,7 @@
                         {period} Goal
                     </h3>
                     <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                        {daysLeft} {daysLeft === 1 ? 'day' : 'days'} remaining
+                        {formatTimeRemaining(daysLeft)}
                     </p>
                 </div>
             </div>

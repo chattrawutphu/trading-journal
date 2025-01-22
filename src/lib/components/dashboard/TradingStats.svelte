@@ -225,7 +225,7 @@
     </div>
 
     <!-- Desktop Layout -->
-    <div class="hidden md:grid gap-4" 
+    <div class="hidden md:grid gap-2 lg:gap-4" 
         style="grid-template-columns: repeat({$tradingStatsStore.selectedPeriods.length}, minmax(0, 1fr));">
         {#if selectedPeriod && stats[selectedPeriod]}
             {#each $tradingStatsStore.selectedPeriods as period}
@@ -243,11 +243,11 @@
                     </div>
                     <div class="space-y-2">
                         <div class="flex flex-wrap items-baseline justify-between">
-                            <p class="text-lg {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                            <p class="text-md {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
                                 {formatCurrency(data.pnl)}
                             </p>
                             {#if data.balanceChange !== 0}
-                                <p class="text-xl font-bold {data.balanceChange > 0 ? 'text-green-500' : 'text-red-500'}">
+                                <p class="text-sm font-bold {data.balanceChange > 0 ? 'text-green-500' : 'text-red-500'}">
                                     {formatPercentage(data.balanceChange)}
                                 </p>
                             {/if}

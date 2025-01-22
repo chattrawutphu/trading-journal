@@ -235,252 +235,143 @@
     }
 </script>
 
-<div class="space-y-4 p-8 pb-0 pt-4">
-    {#if $loadingStore}
-        <Loading message="Loading..." overlay={true} />
+<div class="space-y-4 p-1 lg:p-4 lg:py-0 py-0">
+    {#if error}
+        <div class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">
+            <div class="flex">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                <span>{error}</span>
+            </div>
+        </div>
     {/if}
 
-    <div class="transition-opacity duration-200" class:opacity-0={$loadingStore}>
-        <!-- Content -->
-        {#if error}
-            <div class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">
-                <div class="flex">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>{error}</span>
-                </div>
-            </div>
-        {/if}
-
-        <!-- Header -->
-        <div class="flex justify-between items-center">
-            <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">History</h1>
-            {#if $accountStore.currentAccount}
-                {#if activeTab === 'trades'}
-                    <Button variant="primary" size="sm" on:click={() => showEditModal = true}>
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        New Trade
-                    </Button>
-                {:else if activeTab === 'transactions'}
-                    <div class="flex gap-2">
-                        <Button variant="primary" size="sm" on:click={() => showDepositModal = true}>
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                            Deposit
-                        </Button>
-                        <Button variant="primary" size="sm" on:click={() => showWithdrawModal = true}>
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
-                            </svg>
-                            Withdraw
-                        </Button>
-                    </div>
-                {/if}
-            {/if}
-        </div>
-
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <h1 class="text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent">History</h1>
         {#if $accountStore.currentAccount}
-            <!-- Tab Navigation -->
-            <div class="border-b border-light-border dark:border-0">
-                <nav class="-mb-px flex space-x-8">
-                    <button
-                        class="py-4 px-1 border-b-2 font-medium text-sm  {activeTab === 'trades' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
-                        on:click={() => activeTab = 'trades'}
-                    >
-                        Trades
-                    </button>
-                    <button
-                        class="py-4 px-1 border-b-2 font-medium text-sm  {activeTab === 'transactions' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
-                        on:click={() => activeTab = 'transactions'}
-                    >
-                        Transactions
-                    </button>
-                </nav>
-            </div>
-
-            {#if hasTrades}
-                <!-- Filters -->
-                <TradeFilters />
-
-                {#if hasOpenTrades}
-                    <!-- Open Trades -->
-                    <div class="card">
-                        <div class="p-4 border-b border-light-border dark:border-0">
-                            <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Open Positions</h2>
-                        </div>
-                        <TradeTable 
-                            trades={openTrades}
-                            type="open"
-                            on:view={handleView}
-                            on:edit={handleEdit}
-                            on:deleted={loadTrades}
-                            on:favorite={e => handleFavorite(e.detail)}
-                            on:disable={e => handleDisable(e.detail)}
-                        />
-                    </div>
-                {/if}
-
-                {#if hasClosedTrades}
-                    <!-- Closed Trades -->
-                    <div class="card">
-                        <div class="p-4 border-b border-light-border dark:border-0">
-                            <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Positions</h2>
-                        </div>
-                        <TradeTable 
-                            trades={closedTrades}
-                            type="closed"
-                            on:view={handleView}
-                            on:edit={handleEdit}
-                            on:deleted={loadTrades}
-                            on:favorite={e => handleFavorite(e.detail)}
-                            on:disable={e => handleDisable(e.detail)}
-                        />
-                    </div>
-                {/if}
-            {:else}
-                <div class="card p-8 text-center">
-                    <div class="flex flex-col items-center justify-center space-y-4">
-                        <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">No trades found</h2>
-                        <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
-                            Start tracking your trades by clicking the "New Trade" button above.
-                        </p>
-                    </div>
-                </div>
-            {/if}
-        {:else}
-            <div class="card p-16 text-center space-y-6">
-                <div class="flex flex-col items-center justify-center space-y-4">
-                    <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            <div class="flex items-center gap-4">
+                <Button variant="primary" size="sm" on:click={() => showEditModal = true}>
+                    <svg class="w-5 h-5 mr-0 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
-                    <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">Create an account to see your trading history</h2>
-                    <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
-                        Track your trades, manage your transactions, and analyze your performance with our comprehensive trading tools.
-                    </p>
-                    <Button variant="primary" size="sm" on:click={handleAddAccount}>
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Add Account
-                    </Button>
-                </div>
+                    <span class="hidden md:flex">New Trade</span>
+                </Button>
             </div>
         {/if}
     </div>
 
-    {#if $accountStore.currentAccount}
-        <!-- Tab Navigation -->
-        <div class="border-b border-light-border dark:border-0">
-            <nav class="-mb-px flex space-x-8">
-                <button
-                    class="py-4 px-1 border-b-2 font-medium text-sm  {activeTab === 'trades' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
-                    on:click={() => activeTab = 'trades'}
-                >
-                    Trades
-                </button>
-                <button
-                    class="py-4 px-1 border-b-2 font-medium text-sm  {activeTab === 'transactions' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
-                    on:click={() => activeTab = 'transactions'}
-                >
-                    Transactions
-                </button>
-            </nav>
-        </div>
-
+    <!-- Content -->
+    <div class="relative">
         {#if $loadingStore}
             <Loading message="Loading..." overlay={true} />
-        {:else}
-            {#if activeTab === 'trades'}
-                {#if hasTrades}
-                    <!-- Filters -->
-                    <TradeFilters />
+        {/if}
+        
+        <div class="transition-opacity duration-200" class:opacity-0={$loadingStore}>
+            {#if $accountStore.currentAccount}
+                <!-- Tab Navigation -->
+                <div class="border-b border-light-border dark:border-0 mb-6">
+                    <nav class="-mb-px flex space-x-8">
+                        <button
+                            class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'trades' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
+                            on:click={() => activeTab = 'trades'}
+                        >
+                            Trades
+                        </button>
+                        <button
+                            class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'transactions' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
+                            on:click={() => activeTab = 'transactions'}
+                        >
+                            Transactions
+                        </button>
+                    </nav>
+                </div>
 
-                    {#if hasOpenTrades}
-                        <!-- Open Trades -->
-                        <div class="card">
-                            <div class="p-4 border-b border-light-border dark:border-0">
-                                <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Open Positions</h2>
+                {#if activeTab === 'trades'}
+                    {#if hasTrades}
+                        <!-- Filters -->
+                        <TradeFilters />
+
+                        {#if hasOpenTrades}
+                            <!-- Open Trades -->
+                            <div class="card mb-6">
+                                <div class="p-4 border-b border-light-border dark:border-0">
+                                    <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Open Positions</h2>
+                                </div>
+                                <TradeTable 
+                                    trades={openTrades}
+                                    type="open"
+                                    on:view={handleView}
+                                    on:edit={handleEdit}
+                                    on:deleted={loadTrades}
+                                    on:favorite={e => handleFavorite(e.detail)}
+                                    on:disable={e => handleDisable(e.detail)}
+                                />
                             </div>
-                            <TradeTable 
-                                trades={openTrades}
-                                type="open"
-                                on:view={handleView}
-                                on:edit={handleEdit}
-                                on:deleted={loadTrades}
-                                on:favorite={e => handleFavorite(e.detail)}
-                                on:disable={e => handleDisable(e.detail)}
-                            />
+                        {/if}
+
+                        {#if hasClosedTrades}
+                            <!-- Closed Trades -->
+                            <div class="card">
+                                <div class="p-4 border-b border-light-border dark:border-0">
+                                    <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Positions</h2>
+                                </div>
+                                <TradeTable 
+                                    trades={closedTrades}
+                                    type="closed"
+                                    on:view={handleView}
+                                    on:edit={handleEdit}
+                                    on:deleted={loadTrades}
+                                    on:favorite={e => handleFavorite(e.detail)}
+                                    on:disable={e => handleDisable(e.detail)}
+                                />
+                            </div>
+                        {/if}
+                    {:else}
+                        <div class="card p-8 text-center">
+                            <div class="flex flex-col items-center justify-center space-y-4">
+                                <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">No trades found</h2>
+                                <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
+                                    Start tracking your trades by clicking the "New Trade" button above.
+                                </p>
+                            </div>
                         </div>
                     {/if}
-
-                    {#if hasClosedTrades}
-                        <!-- Closed Trades -->
-                        <div class="card">
-                            <div class="p-4 border-b border-light-border dark:border-0">
-                                <h2 class="text-xl font-semibold text-light-text-muted dark:text-dark-text">Closed Positions</h2>
-                            </div>
-                            <TradeTable 
-                                trades={closedTrades}
-                                type="closed"
-                                on:view={handleView}
-                                on:edit={handleEdit}
-                                on:deleted={loadTrades}
-                                on:favorite={e => handleFavorite(e.detail)}
-                                on:disable={e => handleDisable(e.detail)}
-                            />
-                        </div>
-                    {/if}
-                {:else}
-                    <div class="card p-8 text-center">
-                        <div class="flex flex-col items-center justify-center space-y-4">
-                            <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">No trades found</h2>
-                            <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
-                                Start tracking your trades by clicking the "New Trade" button above.
-                            </p>
-                        </div>
+                {:else if activeTab === 'transactions'}
+                    <div class="card">
+                        <TransactionTable 
+                            accountId={currentAccountId}
+                            transactions={$transactionStore.transactions}
+                            readOnly={false}
+                            on:deleted={() => transactionStore.fetchTransactions(currentAccountId)}
+                        />
                     </div>
                 {/if}
-            {:else if activeTab === 'transactions'}
-                <div class="card">
-                    <!-- Step 2: Pass accountId to TransactionTable -->
-                    <TransactionTable 
-                        accountId={currentAccountId}
-                        transactions={transactionStore.transactions}
-                        readOnly={false}
-                        on:deleted={() => transactionStore.fetchTransactions(currentAccountId)}
-                    />
+            {:else}
+                <div class="card p-16 text-center space-y-6">
+                    <div class="flex flex-col items-center justify-center space-y-4">
+                        <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">Create an account to see your trading history</h2>
+                        <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
+                            Track your trades, manage your transactions, and analyze your performance with our comprehensive trading tools.
+                        </p>
+                        <Button variant="primary" size="sm" on:click={handleAddAccount}>
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add Account
+                        </Button>
+                    </div>
                 </div>
             {/if}
-        {/if}
-    {:else}
-        <div class="card p-16 text-center space-y-6">
-            <div class="flex flex-col items-center justify-center space-y-4">
-                <svg class="w-16 h-16 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">Create an account to see your trading history</h2>
-                <p class="text-light-text-muted dark:text-dark-text-muted max-w-md">
-                    Track your trades, manage your transactions, and analyze your performance with our comprehensive trading tools.
-                </p>
-                <Button variant="primary" size="sm" on:click={handleAddAccount}>
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Add Account
-                </Button>
-            </div>
         </div>
-    {/if}
+    </div>
 </div>
 
 <!-- Modals -->
@@ -493,7 +384,7 @@
     <TradeModal
         bind:show={showEditModal}
         trade={selectedTrade}
-        accountId={$accountStore.currentAccount?._id}
+        accountId={$accountStore.currentAccount._id}
         on:submit={handleSubmit}
         on:close={closeEditModal}
     />
@@ -501,163 +392,83 @@
     <TradeViewModal
         bind:show={showViewModal}
         trade={selectedTrade}
+        on:close={closeViewModal}
     />
 
-    <!-- Deposit Modal -->
+    <!-- Transaction Modals -->
     {#if showDepositModal}
-        <div 
-            class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
-            transition:fade={{ duration: 150 }}
+        <Modal 
+            bind:show={showDepositModal}
+            title="Deposit"
         >
-            <div 
-                class="card w-full max-w-md mx-auto relative transform ease-out"
-            >
-                <!-- Header -->
-                <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">
-                    <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">Deposit</h2>
-                    <button 
-                        class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
-                        on:click={() => {
-                            showDepositModal = false;
-                            selectedTransaction = null;
-                            transactionAmount = 0;
-                            transactionDate = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
-                            transactionNote = ''; // Reset note
-                        }}
-                    >
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                <!-- Content -->
-                <div class="px-8 py-6 space-y-4">
-                    <form on:submit|preventDefault={handleDeposit}>
-                        <Input
-                            label="Amount"
-                            type="number"
-                            bind:value={transactionAmount}
-                            min="0"
-                            step="0.01"
-                            placeholder="0.00"
-                        />
-                        <Input
-                            label="Date"
-                            type="datetime-local"
-                            bind:value={transactionDate}
-                        />
-                        <Input
-                            label="Note"
-                            type="text"
-                            bind:value={transactionNote}
-                            placeholder="Add a note..."
-                        />
-                    </form>
-                </div>
-
-                <!-- Footer -->
-                <div class="px-8 py-5 border-t border-light-border dark:border-0 flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10">
-                    <Button 
-                        type="button" 
-                        variant="secondary" 
-                        on:click={() => {
-                            showDepositModal = false;
-                            selectedTransaction = null;
-                            transactionAmount = 0;
-                            transactionDate = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
-                            transactionNote = ''; // Reset note
-                        }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button type="submit" variant="primary" on:click={handleDeposit}>
-                        Deposit
-                    </Button>
+            <div class="space-y-4">
+                <Input
+                    label="Amount"
+                    type="number"
+                    bind:value={transactionAmount}
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                />
+                <Input
+                    label="Date"
+                    type="datetime-local"
+                    bind:value={transactionDate}
+                />
+                <Input
+                    label="Note"
+                    type="text"
+                    bind:value={transactionNote}
+                    placeholder="Add a note..."
+                />
+                <div class="flex justify-end gap-2">
+                    <Button variant="secondary" on:click={() => showDepositModal = false}>Cancel</Button>
+                    <Button variant="primary" on:click={handleDeposit}>Deposit</Button>
                 </div>
             </div>
-        </div>
+        </Modal>
     {/if}
 
-    <!-- Withdraw Modal -->
     {#if showWithdrawModal}
-        <div 
-            class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
-            transition:fade={{ duration: 150 }}
+        <Modal 
+            bind:show={showWithdrawModal}
+            title="Withdraw"
         >
-            <div 
-                class="card w-full max-w-md mx-auto relative transform ease-out"
-            >
-                <!-- Header -->
-                <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10">
-                    <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">Withdraw</h2>
-                    <button 
-                        class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
-                        on:click={() => {
-                            showWithdrawModal = false;
-                            selectedTransaction = null;
-                            transactionAmount = 0;
-                            transactionDate = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
-                            transactionNote = ''; // Reset note
-                        }}
-                    >
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                <!-- Content -->
-                <div class="px-8 py-6 space-y-4">
-                    <form on:submit|preventDefault={handleWithdraw}>
-                        <Input
-                            label="Amount"
-                            type="number"
-                            bind:value={transactionAmount}
-                            min="0"
-                            step="0.01"
-                            placeholder="0.00"
-                        />
-                        <Input
-                            label="Date"
-                            type="datetime-local"
-                            bind:value={transactionDate}
-                        />
-                        <Input
-                            label="Note"
-                            type="text"
-                            bind:value={transactionNote}
-                            placeholder="Add a note..."
-                        />
-                    </form>
-                </div>
-
-                <!-- Footer -->
-                <div class="px-8 py-5 border-t border-light-border dark:border-0 flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10">
-                    <Button 
-                        type="button" 
-                        variant="secondary" 
-                        on:click={() => {
-                            showWithdrawModal = false;
-                            selectedTransaction = null;
-                            transactionAmount = 0;
-                            transactionDate = new Date().toLocaleString('en-GB', { hour12: false }).slice(0, 16).replace(',', '');
-                            transactionNote = ''; // Reset note
-                        }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button type="submit" variant="primary" on:click={handleWithdraw}>
-                        Withdraw
-                    </Button>
+            <div class="space-y-4">
+                <Input
+                    label="Amount"
+                    type="number"
+                    bind:value={transactionAmount}
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                />
+                <Input
+                    label="Date"
+                    type="datetime-local"
+                    bind:value={transactionDate}
+                />
+                <Input
+                    label="Note"
+                    type="text"
+                    bind:value={transactionNote}
+                    placeholder="Add a note..."
+                />
+                <div class="flex justify-end gap-2">
+                    <Button variant="secondary" on:click={() => showWithdrawModal = false}>Cancel</Button>
+                    <Button variant="primary" on:click={handleWithdraw}>Withdraw</Button>
                 </div>
             </div>
-        </div>
+        </Modal>
     {/if}
 {/if}
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg ;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg;
+    }
+
+    :global(.bg-gradient-purple) {
+        @apply bg-gradient-to-r from-theme-500 to-purple-500;
     }
 </style>

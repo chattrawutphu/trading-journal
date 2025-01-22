@@ -36,20 +36,34 @@
             .map(position => {
                 if (!position) return null;
                 
-                const entryPrice = position.entryPrice || 0;
-                const quantity = position.quantity || 0;
-                const amount = entryPrice * quantity;
+                const entryPrice = Number(position.entryPrice) || 0;
+                const quantity = Number(position.quantity) || 0;
+                const amount = parseFloat((entryPrice * quantity).toFixed(2));
+                
+                console.log('Position calculation:', {
+                    symbol: position.symbol,
+                    entryPrice,
+                    quantity,
+                    amount
+                });
                 
                 return {
                     ...position,
+                    entryPrice,
+                    quantity,
                     amount,
                     entryDate: new Date(position.entryDate || Date.now())
                 };
             })
             .filter(Boolean)
-            .sort((a, b) => (b.amount || 0) - (a.amount || 0));
+            .sort((a, b) => new Date(b.entryDate) - new Date(a.entryDate));
 
-        totalInvested = openPositions.reduce((sum, pos) => sum + (pos.amount || 0), 0);
+        totalInvested = openPositions.reduce((sum, pos) => {
+            const posAmount = Number(pos.amount) || 0;
+            return sum + posAmount;
+        }, 0);
+
+        console.log('Total invested:', totalInvested);
     }
 
     function formatCurrency(value) {
@@ -57,14 +71,15 @@
             return '$0';
         }
         try {
+            const numValue = Number(value);
             return new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD',
                 minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-            }).format(value);
+                maximumFractionDigits: 2
+            }).format(numValue);
         } catch (error) {
-            console.error('Error formatting currency:', error);
+            console.error('Error formatting currency:', error, 'Value:', value);
             return '$0';
         }
     }
@@ -191,35 +206,27 @@
                     </svg>
                 </div>
                 <div>
-                    <h3 class="text-base font-medium text-light-text dark:text-dark-text">
+                    <h3 class="text-md font-medium text-light-text dark:text-dark-text">
                         Open Positions
                     </h3>
-                    <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
                         {openPositions.length} active {openPositions.length === 1 ? 'position' : 'positions'}
                     </p>
                 </div>
             </div>
-            {#if openPositions.length > 3}
-                <button 
-                    class="text-xs text-theme-500 hover:text-theme-600 dark:hover:text-theme-400"
-                    on:click={() => showAllPositions = !showAllPositions}
-                >
-                    {showAllPositions ? 'Show Less' : 'View All'}
-                </button>
-            {/if}
         </div>
 
         <!-- Summary Stats -->
         <div class="grid grid-cols-2 gap-3">
             <div class="p-3 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30">
-                <p class="text-xs text-light-text-muted dark:text-dark-text-muted mb-1">Total Amount</p>
-                <p class="text-base font-bold text-light-text dark:text-dark-text">
+                <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Total Amount</p>
+                <p class="text-lg font-bold text-light-text dark:text-dark-text">
                     {formatCurrency(totalInvested)}
                 </p>
             </div>
             <div class="p-3 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30">
-                <p class="text-xs text-light-text-muted dark:text-dark-text-muted mb-1">Active Positions</p>
-                <p class="text-base font-bold text-theme-500">
+                <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Active Positions</p>
+                <p class="text-lg font-bold text-theme-500">
                     {openPositions.length}
                 </p>
             </div>
@@ -230,14 +237,14 @@
     <div class="flex-1 p-4 overflow-y-auto">
         {#if openPositions.length > 0}
             <div class="space-y-3">
-                {#each openPositions.slice(0, showAllPositions ? undefined : 3) as position}
+                {#each openPositions as position}
                     <div 
                         class="p-3 rounded-lg border border-light-border dark:border-0 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors relative {getPositionAnimationClass(position.side)}"
                         transition:slide
                     >
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex  items-center gap-2">
-                                <span class="text-base font-medium text-light-text dark:text-dark-text">
+                                <span class="text-md font-medium text-light-text dark:text-dark-text">
                                     {position.symbol}
                                 </span>
                                 <span class="text-xs relative font-bold px-2 py-0.5 rounded-full {position.side === 'LONG' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
@@ -251,7 +258,7 @@
                                     <p class="text-sm font-medium text-light-text dark:text-dark-text">
                                         {formatCurrency(position.amount)}
                                     </p>
-                                    <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
                                         {getDaysSinceEntry(position.entryDate)} days
                                     </p>
                                 </div>
@@ -297,16 +304,16 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 text-xs text-light-text-muted dark:text-dark-text-muted">
+                        <div class="grid grid-cols-2 gap-2 text-sm text-light-text-muted dark:text-dark-text-muted">
                             <div>
                                 <p class="mb-0.5">Entry Price</p>
-                                <p class="font-medium text-light-text dark:text-dark-text">
+                                <p class="font-medium text-md text-light-text dark:text-dark-text">
                                     ${position.entryPrice.toFixed(2)}
                                 </p>
                             </div>
                             <div>
                                 <p class="mb-0.5">Entry Date</p>
-                                <p class="font-medium text-light-text dark:text-dark-text">
+                                <p class="font-medium text-md text-light-text dark:text-dark-text">
                                     {formatDate(position.entryDate)}
                                 </p>
                             </div>

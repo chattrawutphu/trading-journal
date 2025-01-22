@@ -302,7 +302,7 @@
 </script>
 
 
-<div class="space-y-4 p-1 sm:p-8 sm:py-0">
+<div class="space-y-4 p-1 lg:p-4 lg:py-0 py-0">
     {#if error}
         <div
             class="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded-lg"

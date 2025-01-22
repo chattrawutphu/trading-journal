@@ -45,11 +45,11 @@
     }}
     on:consider={onDndConsider}
     on:finalize={onDndFinalize}
-    class="grid grid-cols-12 gap-4 relative"
+    class="grid grid-cols-12 gap-2 lg:gap-4 relative"
 >
     {#each widgets as widget (widget.id)}
         <div 
-            class="widget relative group flex flex-col md:col-span-[var(--widget-cols)] md:row-span-[var(--widget-rows)] md:h-[var(--widget-height)] sm:col-span-12 sm:h-auto"
+            class="widget relative group flex flex-col md:col-span-[var(--widget-cols)] md:row-span-[var(--widget-rows)] md:h-[var(--widget-height)] sm:col-span-12 sm:h-auto {widget.config?.textSize || 'medium'}"
             id={"widget-" + widget.id}
             style="--widget-cols: {getWidgetCols(widget)}; 
                    --widget-rows: {getWidgetRows(widget)}; 
