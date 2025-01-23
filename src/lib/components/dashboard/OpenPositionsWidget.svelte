@@ -36,21 +36,16 @@
             .map(position => {
                 if (!position) return null;
                 
-                const entryPrice = Number(position.entryPrice) || 0;
-                const quantity = Number(position.quantity) || 0;
-                const amount = parseFloat((entryPrice * quantity).toFixed(2));
-                
-                console.log('Position calculation:', {
-                    symbol: position.symbol,
-                    entryPrice,
-                    quantity,
-                    amount
-                });
+                // ใช้ค่า amount จาก API หรือคำนวณใหม่ถ้าไม่มี
+                let amount = position.amount;
+                if (!amount) {
+                    const entryPrice = Number(position.entryPrice) || 0;
+                    const quantity = Number(position.quantity) || 0;
+                    amount = parseFloat((entryPrice * quantity).toFixed(2));
+                }
                 
                 return {
                     ...position,
-                    entryPrice,
-                    quantity,
                     amount,
                     entryDate: new Date(position.entryDate || Date.now())
                 };
@@ -58,12 +53,7 @@
             .filter(Boolean)
             .sort((a, b) => new Date(b.entryDate) - new Date(a.entryDate));
 
-        totalInvested = openPositions.reduce((sum, pos) => {
-            const posAmount = Number(pos.amount) || 0;
-            return sum + posAmount;
-        }, 0);
-
-        console.log('Total invested:', totalInvested);
+        totalInvested = openPositions.reduce((sum, pos) => sum + (pos.amount || 0), 0);
     }
 
     function formatCurrency(value) {
