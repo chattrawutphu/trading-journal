@@ -130,15 +130,15 @@
     deleteModalStore.set({
       show: true,
       type: 'selected',
-      context: 'trades',
-      count: selectedTrades.length,
+      context: 'transactions',
+      count: selectedTransactions.length,
       onConfirm: () => {
         dispatch('delete', {
           type: 'selected',
-          context: 'trades',
-          items: selectedTrades
+          context: 'transactions',
+          items: selectedTransactions
         });
-        selectedTrades = [];
+        selectedTransactions = [];
       }
     });
   }
@@ -147,12 +147,12 @@
     deleteModalStore.set({
       show: true,
       type: 'all',
-      context: 'trades',
+      context: 'transactions',
       onConfirm: () => {
         dispatch('delete', {
           type: 'all',
-          context: 'trades',
-          items: trades.map(t => t._id)
+          context: 'transactions',
+          items: displayTransactions.map(t => t._id)
         });
       }
     });

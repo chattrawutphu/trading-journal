@@ -16,14 +16,27 @@
     export let type = 'deposit';
     export let initialDate = null;
 
-    let form = {
-        date: initialDate ? formatDateTimeLocal(initialDate) : getCurrentDateTime(),
-        type: type,
-        amount: '',
-        note: '',
-    };
+    // สร้างฟังก์ชันสำหรับสร้างฟอร์มเริ่มต้น
+    function createInitialForm() {
+        return {
+            date: initialDate ? formatDateTimeLocal(initialDate) : getCurrentDateTime(),
+            type: type,
+            amount: '',
+            note: '',
+        };
+    }
 
-    // เพิ่ม reactive statement เพื่ออัพเดต form เมื่อ transaction เปลี่ยน
+    let form = createInitialForm();
+
+    // รีเซ็ตฟอร์มเมื่อ type หรือ initialDate เปลี่ยน
+    $: {
+        if (!transaction) {
+            form.type = type;
+            form.date = initialDate ? formatDateTimeLocal(initialDate) : getCurrentDateTime();
+        }
+    }
+
+    // อัพเดตฟอร์มเมื่อมี transaction
     $: if (transaction) {
         form = {
             ...form,
@@ -32,12 +45,6 @@
             type: transaction.type || type,
             amount: transaction.amount || '',
             note: transaction.note || '',
-        };
-    } else if (initialDate) {
-        // ถ้าไม่มี transaction แต่มี initialDate ให้ใช้ initialDate
-        form = {
-            ...form,
-            date: formatDateTimeLocal(initialDate),
         };
     }
 
@@ -80,7 +87,6 @@
                     form.note
                 );
 
-                // เคลียร์ transactionDateStore หลังจากบันทึก transaction
                 transactionDate.set(null);
                 await accountStore.setCurrentAccount(accountId);
                 await transactionStore.fetchTransactions(accountId);
@@ -88,11 +94,9 @@
                 dispatch("close");
                 dispatch("transactionUpdated", { accountId });
                 
-                form.amount = 0;
-                form.date = getCurrentDateTime();
-                form.note = '';
+                // รีเซ็ตฟอร์มหลังจากบันทึกสำเร็จ
+                form = createInitialForm();
 
-                // Refresh the current page
                 goto(window.location.pathname);
             } catch (err) {
                 console.error(err);
@@ -104,6 +108,7 @@
 
     function closeModal() {
         transactionDate.set(null);
+        form = createInitialForm();
         dispatch("close");
     }
 </script>
