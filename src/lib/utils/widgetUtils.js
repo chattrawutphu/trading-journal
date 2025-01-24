@@ -32,7 +32,7 @@ export function getDefaultConfig(widgetType) {
         },
         TradeCalendar: {
             cols: 10,
-            rows: 8,
+            rows: 10,
             textSize: 'medium',
             disabled: { cols: false, rows: false }
         },
@@ -43,13 +43,13 @@ export function getDefaultConfig(widgetType) {
             disabled: { cols: false, rows: false }
         },
         TradeChart: {
-            cols: 4,
+            cols: 6,
             rows: 8,
             textSize: 'medium',
             disabled: { cols: false, rows: false }
         },
         ProfitTargetWidget: {
-            cols: 4,
+            cols: 6,
             rows: 'auto',
             textSize: 'medium',
             period: 'daily',
@@ -58,7 +58,7 @@ export function getDefaultConfig(widgetType) {
         },
         OpenPositionsWidget: {
             cols: 4,
-            rows: 4,
+            rows: 8,
             textSize: 'medium',
             disabled: { cols: false, rows: false }
         },
@@ -80,13 +80,13 @@ export function getDefaultConfig(widgetType) {
 }
 
 export const widgetLimits = {
-    TradeCalendar: 3,
-    MonthTradeCalendar: 3,
-    TradeChart: 3,
+    TradeCalendar: 1,
+    MonthTradeCalendar: 1,
+    TradeChart: 1,
     StatsCards: 1,
     TradingStats: 1,
     ProfitTargetWidget: 3,
-    OpenPositionsWidget: 3,
+    OpenPositionsWidget: 1,
     ShortCalendar: 1
 };
 
@@ -424,3 +424,50 @@ function createTradingStatsConfig() {
 }
 
 export const tradingStatsConfig = createTradingStatsConfig();
+
+// เพิ่ม default layout configuration
+export const DEFAULT_LAYOUT_CONFIG = {
+    name: 'Default',
+    widgets: [{
+            type: 'ProfitTargetWidget',
+            config: {
+                period: 'daily',
+                target: 100,
+            }
+        }, {
+            type: 'ProfitTargetWidget',
+            config: {
+                period: 'yearly',
+                target: 1000,
+            }
+        }, {
+            type: 'TradingStats'
+        },
+        {
+            type: 'StatsCards',
+        },
+        {
+            type: 'TradeCalendar'
+        },
+        {
+            type: 'TradeChart'
+        },
+        {
+            type: 'OpenPositionsWidget'
+        }
+    ]
+};
+
+// Helper function to create default widgets with unique IDs
+export function createDefaultLayout() {
+    return {
+        name: DEFAULT_LAYOUT_CONFIG.name,
+        widgets: DEFAULT_LAYOUT_CONFIG.widgets.map(widget => ({
+            id: createUniqueId(widget.type),
+            config: {
+                ...getDefaultConfig(widget.type),
+                ...(widget.config || {}) // merge with custom config if exists
+            }
+        }))
+    };
+}

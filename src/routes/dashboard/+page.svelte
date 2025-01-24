@@ -12,17 +12,9 @@
     import { api } from "$lib/utils/api";
     import { loadingStore } from '$lib/stores/loadingStore';
     import { layoutStore } from '$lib/stores/layoutStore';
+    import { createDefaultLayout } from '$lib/utils/widgetUtils';
 
     const dispatch = createEventDispatcher();
-
-    // Add widget configurations
-    const defaultWidgetConfigs = {
-        TradingStats: { cols: 12, rows: 2, height: 140 },
-        StatsCards: { cols: 2, rows: 8, height: 560 },
-        TradeCalendar: { cols: 6, rows: 8, height: 560 },
-        MonthTradeCalendar: { cols: 6, rows: 8, height: 560 },
-        TradeChart: { cols: 4, rows: 8, height: 560 }
-    };
 
     // Add helper functions
     function createUniqueId(baseType) {
@@ -35,27 +27,6 @@
             const v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
-    }
-
-    function getDefaultWidgets() {
-        return [
-            { 
-                id: createUniqueId('TradingStats'),
-                config: {...defaultWidgetConfigs.TradingStats}
-            },
-            { 
-                id: createUniqueId('StatsCards'),
-                config: {...defaultWidgetConfigs.StatsCards}
-            },
-            { 
-                id: createUniqueId('TradeCalendar'),
-                config: {...defaultWidgetConfigs.TradeCalendar}
-            },
-            { 
-                id: createUniqueId('TradeChart'),
-                config: {...defaultWidgetConfigs.TradeChart}
-            }
-        ];
     }
 
     // Rest of the existing script remains the same...
@@ -106,14 +77,11 @@
     async function loadLayouts() {
         try {
             const savedLayouts = await layoutStore.loadLayouts();
-            if (savedLayouts && savedLayouts.length > 0) {
+            if (savedLayouts?.length > 0) {
                 layouts = savedLayouts;
             } else {
                 // Create default layout if no layouts exist
-                layouts = [{
-                    name: 'Default',
-                    widgets: getDefaultWidgets()
-                }];
+                layouts = [createDefaultLayout()];
                 await layoutStore.saveLayouts(layouts);
             }
             // Ensure active index is valid
@@ -123,10 +91,7 @@
         } catch (error) {
             console.error('Error loading layouts:', error);
             // Reset to default if there's an error
-            layouts = [{
-                name: 'Default',
-                widgets: getDefaultWidgets()
-            }];
+            layouts = [createDefaultLayout()];
             activeLayoutIndex = 0;
         }
     }
