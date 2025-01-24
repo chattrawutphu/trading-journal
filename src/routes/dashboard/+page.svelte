@@ -1,5 +1,5 @@
 <script>
-    import { onMount } from "svelte";
+    import { onMount, createEventDispatcher } from "svelte";
     import { accountStore } from "$lib/stores/accountStore";
     import { transactionStore } from "$lib/stores/transactionStore";
     import WidgetLayout from "$lib/components/dashboard/WidgetLayout.svelte";
@@ -12,6 +12,8 @@
     import { api } from "$lib/utils/api";
     import { loadingStore } from '$lib/stores/loadingStore';
     import { layoutStore } from '$lib/stores/layoutStore';
+
+    const dispatch = createEventDispatcher();
 
     // Add widget configurations
     const defaultWidgetConfigs = {
@@ -347,10 +349,37 @@
         }
     }
 
+    // Shared function to reload layout and refresh widgets
+    async function reloadLayoutAndRefresh() {
+        dispatch('setLoading', true);
+        
+        try {
+            const savedLayouts = await layoutStore.loadLayouts();
+            
+            if (savedLayouts && savedLayouts.length > 0) {
+                layouts = savedLayouts;
+                if (layouts[activeLayoutIndex]) {
+                    layouts[activeLayoutIndex].widgets = [...layouts[activeLayoutIndex].widgets];
+                }
+            }
+        } catch (error) {
+            console.error('Error reloading layout:', error);
+        } finally {
+            dispatch('setLoading', false);
+        }
+    }
+
     async function handleTradeUpdated() {
         await loadTrades();
         showEditModal = false;
         selectedTrade = null;
+        await reloadLayoutAndRefresh();
+    }
+
+    async function cancelEdit() {
+        await reloadLayoutAndRefresh();
+        editMode = false;
+        dispatch('editModeChange', false);
     }
 
     function handleSetLoading(e) {

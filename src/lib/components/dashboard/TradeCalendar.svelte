@@ -45,6 +45,19 @@
 
     onMount(async () => {
         await loadData();
+        
+        // Add event listener for trade updates
+        const handleTradeUpdate = async () => {
+            console.log('TradeCalendar: Received trade update event');
+            await loadData();
+        };
+        
+        window.addEventListener('tradeupdate', handleTradeUpdate);
+        
+        // Cleanup listener on component destroy
+        return () => {
+            window.removeEventListener('tradeupdate', handleTradeUpdate);
+        };
     });
 
     $: {

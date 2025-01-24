@@ -1,273 +1,223 @@
 <script>
     import { fly } from 'svelte/transition';
-    import Button from '../common/Button.svelte';
-    import { getDefaultConfig, generateSampleProps } from '$lib/utils/widgetUtils';
-    import { onMount } from 'svelte';
+    import { getDefaultConfig } from '$lib/utils/widgetUtils';
     
     export let availableWidgetsWithCount;
     export let widgetLimits;
     export let widgets;
     export let handleAddWidget;
     export let getWidgetDescription;
-    export let getComponentByName;
     export let onClose;
     export let pendingWidgetData;
 
-    let activeWidget = null;
+    let searchQuery = '';
+    let selectedCategory = 'all';
+    let showPreviewModal = false;
     let previewWidget = null;
+    
+    const categories = [
+        { id: 'all', name: 'All Widgets' },
+        { id: 'analytics', name: 'Analytics' },
+        { id: 'monitoring', name: 'Monitoring' },
+        { id: 'tools', name: 'Tools' },
+    ];
 
-    onMount(() => {
-        if (availableWidgetsWithCount.length > 0) {
-            handleWidgetClick(availableWidgetsWithCount[0]);
-        }
+    $: widgetsWithCategory = availableWidgetsWithCount.map(widget => ({
+        ...widget,
+        category: widget.id.includes('chart') ? 'analytics' :
+                 widget.id.includes('monitor') ? 'monitoring' : 'tools'
+    }));
+
+    $: filteredWidgets = widgetsWithCategory.filter(widget => {
+        const matchesSearch = widget.title.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = selectedCategory === 'all' || widget.category === selectedCategory;
+        return matchesSearch && matchesCategory;
     });
-
-    $: description = previewWidget 
-        ? getWidgetDescription(previewWidget.id.split('_')[0])
-        : null;
-
-    function getPreviewHeight(widgetId) {
-        const config = getDefaultConfig(widgetId.split('_')[0]);
-        return config.height || 70;
-    }
-
-    function getPreviewWidth(widgetId) {
-        const config = getDefaultConfig(widgetId.split('_')[0]);
-        return (config.cols || 1) * 70;
-    }
 
     function getWidgetTypeCount(widgets, baseType) {
         return widgets.filter(w => w.id.startsWith(baseType)).length;
     }
 
-    function handleWidgetClick(widget) {
-        activeWidget = widget;
-        previewWidget = {
-            ...widget,
-            props: generateSampleProps(widget.id)
-        };
-    }
-
     function handleWidgetTypeSelect(widgetType) {
         handleAddWidget(widgetType, pendingWidgetData);
     }
+
+    function openPreview(widget) {
+        previewWidget = widget;
+        showPreviewModal = true;
+    }
 </script>
 
-<div class="flex gap-6 h-[65vh]">
-    <button
-    class="absolute top-2 right-2 p-1.5 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover text-light-text-muted dark:text-dark-text-muted transition-colors"
-    on:click={onClose}
->
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-    </svg>
-</button>
-    <!-- Widget List -->
-    <div class="w-2/6 space-y-1.5 overflow-y-auto">
-        {#each availableWidgetsWithCount as widget (widget.id)}
-            <div 
-                class="relative p-2 rounded-md transition-all duration-200 cursor-pointer
-                       bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover
-                       border border-light-border dark:border-0"
-                class:ring-1={activeWidget?.id === widget.id}
-                class:ring-theme-500={activeWidget?.id === widget.id}
-                class:bg-light-hover={activeWidget?.id === widget.id}
-                class:dark:bg-dark-hover={activeWidget?.id === widget.id}
-                on:click={() => handleWidgetClick(widget)}
-            >
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={widget.icon}/>
-                        </svg>
-                        <span class="text-xs font-medium text-light-text dark:text-dark-text">
-                            {widget.title}
-                        </span>
-                    </div>
-                    <span class="text-[10px] text-light-text-muted dark:text-dark-text-muted">
-                        {widget.remaining} left
-                    </span>
-                </div>
-            </div>
-        {/each}
+<div class="h-[65vh] mb-4 flex flex-col">
+    <!-- Header with Search and Categories -->
+    <div class="p-4 ">
+        <div class="mb-4">
+            <input
+                type="text"
+                bind:value={searchQuery}
+                placeholder="Search widgets..."
+                class="w-full px-3 py-2 text-base rounded-lg bg-light-input dark:bg-dark-input 
+                       border border-light-border dark:border-dark-border
+                       focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+            />
+        </div>
+
+        <div class="flex gap-2 overflow-x-auto pb-2">
+            {#each categories as category}
+                <button
+                    class="px-3 py-1.5 text-sm rounded-full whitespace-nowrap
+                           transition-colors duration-200
+                           {selectedCategory === category.id ? 
+                           'bg-theme-500 text-white' : 
+                           'bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text'}"
+                    on:click={() => selectedCategory = category.id}
+                >
+                    {category.name}
+                </button>
+            {/each}
+        </div>
     </div>
 
-    <!-- Widget Preview -->
-    {#if previewWidget}
-        <div 
-            class="relative w-4/6 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-0 h-full flex flex-col"
-            transition:fly={{ x: 20, duration: 200 }}
-        >
-            <!-- Close Button -->
-
-
-            <!-- Widget Preview with scroll -->
-            <div class="h-[70%] bg-white dark:bg-black rounded-t-lg border-b overflow-hidden border-light-border dark:border-0">
-                <div class="p-4 h-full overflow-auto">
-                    <div 
-                        class="relative pointer-events-none transform-gpu min-w-fit"
-                        style="
-                            width: {getPreviewWidth(previewWidget.id)}px; 
-                            height: {getPreviewHeight(previewWidget.id)}px;
-                            margin: 0 auto;
-                        "
-                    >
-                        {#if getComponentByName(previewWidget.id)}
-                            <svelte:component 
-                                this={getComponentByName(previewWidget.id)}
-                                {...previewWidget.props}
-                                height={getPreviewHeight(previewWidget.id)}
-                                textSize="small"
-                                isPreview={true}
-                            />
-                        {/if}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Description with scrollable area -->
-            <div class="flex-1 overflow-y-auto">
-                <div class="p-3">
-                    <div class="widget-description space-y-2 text-xs leading-relaxed text-light-text-muted dark:text-dark-text-muted">
-                        {#if description}
-                            <h3 class="font-medium text-sm text-light-text dark:text-dark-text mb-2">
-                                {description.title}
-                            </h3>
-                            <p class="mb-3">{description.description}</p>
-                            <!--{#if description.features?.length > 0}
-                                <div class="mt-2">
-                                    <h4 class="font-medium mb-1 text-light-text dark:text-dark-text">Key Features:</h4>
-                                    <ul class="list-disc list-inside space-y-1">
-                                        {#each description.features as feature}
-                                            <li>{feature}</li>
-                                        {/each}
-                                    </ul> 
+    <!-- Widget List -->
+    <div class="flex-1 overflow-y-auto p-4">
+        <div class="space-y-2">
+            {#each filteredWidgets as widget (widget.id)}
+                <div class="bg-light-card dark:bg-dark-card rounded-lg border border-light-border dark:border-dark-border">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 flex items-center justify-center rounded-lg bg-theme-500/10">
+                                    <svg class="w-4 h-4 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={widget.icon}/>
+                                    </svg>
                                 </div>
-                            {/if}-->
-                        {/if}
+                                <div>
+                                    <h3 class="text-base font-medium text-light-text dark:text-dark-text">
+                                        {widget.title}
+                                    </h3>
+                                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted mt-0.5">
+                                        {getWidgetDescription(widget.id.split('_')[0]).description.slice(0, 60)}...
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    class="p-2 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover
+                                           text-light-text-muted dark:text-dark-text-muted transition-colors"
+                                    on:click={() => openPreview(widget)}
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </button>
+                                <button
+                                    class="px-3 py-1.5 text-sm font-medium rounded-lg
+                                           bg-theme-500 hover:bg-theme-600 text-white
+                                           disabled:opacity-50 disabled:cursor-not-allowed
+                                           transition-colors duration-200"
+                                    disabled={getWidgetTypeCount(widgets, widget.id.split('_')[0]) >= 
+                                             (widgetLimits[widget.id.split('_')[0]] || 1)}
+                                    on:click={() => handleWidgetTypeSelect(widget.id.split('_')[0])}
+                                >
+                                    {getWidgetTypeCount(widgets, widget.id.split('_')[0]) >= 
+                                     (widgetLimits[widget.id.split('_')[0]] || 1)
+                                        ? 'Limit Reached'
+                                        : 'Add Widget'
+                                    }
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Add Widget button -->
-            <div class="p-2 bg-light-card dark:bg-dark-card">
-                <button
-                    class="w-full py-1.5 px-3 text-xs font-medium rounded
-                           bg-theme-500/80 hover:bg-theme-500 text-white
-                           disabled:opacity-50 disabled:cursor-not-allowed
-                           transition-colors duration-200 shadow-sm"
-                    disabled={getWidgetTypeCount(widgets, previewWidget.id.split('_')[0]) >= (widgetLimits[previewWidget.id.split('_')[0]] || 1)}
-                    on:click={() => handleWidgetTypeSelect(previewWidget.id.split('_')[0])}
-                >
-                    {getWidgetTypeCount(widgets, previewWidget.id.split('_')[0]) >= (widgetLimits[previewWidget.id.split('_')[0]] || 1) 
-                        ? 'Maximum Limit Reached' 
-                        : 'Add Widget'
-                    }
-                </button>
-            </div>
+            {/each}
         </div>
-    {:else}
-        <div class="relative w-4/6 h-full flex items-center justify-center p-4 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-0">
-            <!-- Close Button -->
-            <button
-                class="absolute top-2 right-2 p-1.5 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover text-light-text-muted dark:text-dark-text-muted transition-colors"
-                on:click={onClose}
-            >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-            <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                Select a widget to see preview
-            </span>
-        </div>
-    {/if}
+    </div>
 </div>
 
+<!-- Preview Modal -->
+{#if showPreviewModal}
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 sm:p-6 md:p-8"
+         on:click={() => showPreviewModal = false}>
+        <div class="relative bg-white dark:bg-dark-card rounded-xl shadow-xl 
+                    w-full max-w-[90vw] md:max-w-4xl lg:max-w-6xl max-h-[90vh] overflow-hidden"
+             on:click|stopPropagation>
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-6 border-b border-light-border dark:border-dark-border flex items-center justify-between">
+                <h3 class="text-xl sm:text-2xl font-medium text-light-text dark:text-dark-text">
+                    {previewWidget?.title} Preview
+                </h3>
+                <button
+                    class="p-1.5 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover
+                           text-light-text-muted dark:text-dark-text-muted transition-colors"
+                    on:click={() => showPreviewModal = false}
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Content -->
+            <div class="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-8rem)]">
+                <div class="aspect-video bg-light-hover dark:bg-dark-hover rounded-lg overflow-hidden">
+                    <img 
+                        src="/widget-previews/{previewWidget?.id}-mockup.png"
+                        alt={previewWidget?.title}
+                        class="w-full h-full object-contain"
+                        onerror="this.src='/widget-previews/default-mockup.png'"
+                    />
+                </div>
+                
+                <!-- Widget Description -->
+                <div class="mt-4 space-y-3">
+                    <p class="text-base text-light-text-muted dark:text-dark-text-muted">
+                        {getWidgetDescription(previewWidget?.id.split('_')[0]).description}
+                    </p>
+                    
+                    <div class="flex justify-end pt-4">
+                        <button
+                            class="px-4 py-2 text-base font-medium rounded-lg
+                                   bg-theme-500 hover:bg-theme-600 text-white
+                                   disabled:opacity-50 disabled:cursor-not-allowed
+                                   transition-colors duration-200"
+                            disabled={getWidgetTypeCount(widgets, previewWidget?.id.split('_')[0]) >= 
+                                     (widgetLimits[previewWidget?.id.split('_')[0]] || 1)}
+                            on:click={() => {
+                                handleWidgetTypeSelect(previewWidget?.id.split('_')[0]);
+                                showPreviewModal = false;
+                            }}
+                        >
+                            {getWidgetTypeCount(widgets, previewWidget?.id.split('_')[0]) >= 
+                             (widgetLimits[previewWidget?.id.split('_')[0]] || 1)
+                                ? 'Maximum Limit Reached'
+                                : 'Add This Widget'
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{/if}
+
 <style>
-    .widget-description {
-        height: 100%;
-        overflow-y: auto;
-    }
-
-    .overflow-auto {
-        overflow: auto;
-        max-width: 100%;
-        max-height: 400px;
-    }
-
-    .p-4.overflow-auto {
-        padding: 1rem;
+    /* Scrollbar styles */
+    .overflow-y-auto {
         scrollbar-width: thin;
         scrollbar-color: var(--theme-500) transparent;
     }
 
-    .p-4.overflow-auto::-webkit-scrollbar {
+    .overflow-y-auto::-webkit-scrollbar {
         width: 6px;
-        height: 6px;
     }
 
-    .p-4.overflow-auto::-webkit-scrollbar-track {
+    .overflow-y-auto::-webkit-scrollbar-track {
         background: transparent;
     }
 
-    .p-4.overflow-auto::-webkit-scrollbar-thumb {
+    .overflow-y-auto::-webkit-scrollbar-thumb {
         background-color: var(--theme-500);
         border-radius: 3px;
-    }
-
-    /* Preview container styles */
-    .transform-gpu {
-        transform-origin: top center;
-        will-change: transform;
-        width: 100%;
-        height: 100%;
-        display: block;
-        margin: 0 auto;
-        transition: transform 0.2s ease-out;
-    }
-
-    /* Description container styles */
-    :global(.widget-description ul) {
-        list-style-type: disc;
-        margin-left: 1rem;
-    }
-
-    :global(.widget-description li) {
-        margin-top: 0.25rem;
-    }
-
-    :global(.widget-description .title) {
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-    }
-
-    /* Horizontal scrollbar styles */
-    .overflow-x-auto {
-        scrollbar-width: thin;
-        scrollbar-color: var(--theme-500) transparent;
-    }
-
-    .overflow-x-auto::-webkit-scrollbar {
-        height: 6px;
-    }
-
-    .overflow-x-auto::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .overflow-x-auto::-webkit-scrollbar-thumb {
-        background-color: var(--theme-500);
-        border-radius: 3px;
-    }
-
-    /* Preview container styles */
-    .transform-gpu {
-        will-change: transform;
-        transition: transform 0.2s ease-out;
-    }
-
-    .min-w-fit {
-        min-width: fit-content;
     }
 </style> 
