@@ -3,7 +3,7 @@
     import { fade, fly } from "svelte/transition";
     import { accountStore } from "$lib/stores/accountStore";
     import { transactionStore } from "$lib/stores/transactionStore";
-    import { tradingStatsStore } from "$lib/stores/tradingStatsStore";
+    import { tradingStatsConfig } from "$lib/utils/widgetUtils";
     import { accountSymbolStore } from "$lib/stores/accountSymbolStore";
     import { userStrategyStore } from "$lib/stores/userStrategyStore";
     import { api } from "$lib/utils/api";

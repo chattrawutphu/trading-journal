@@ -336,4 +336,16 @@ export const api = {
             method: 'DELETE',
         });
     },
+
+    // Layout endpoints
+    async getLayouts() {
+        return fetchWithAuth('/user/layouts');
+    },
+
+    async saveLayouts(layouts) {
+        return fetchWithAuth('/user/layouts', {
+            method: 'PUT',
+            body: JSON.stringify({ layouts }),
+        });
+    },
 };

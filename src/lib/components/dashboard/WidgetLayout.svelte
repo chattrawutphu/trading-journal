@@ -30,6 +30,7 @@
         createUniqueId
     } from '$lib/utils/widgetUtils';
     import { widgetStore } from '$lib/stores/widgetStore';
+    import { layoutStore } from '$lib/stores/layoutStore';
 
     const dispatch = createEventDispatcher();
     let mounted = false;
@@ -40,9 +41,11 @@
     export let totalPnL = 0;
     export let winRate = 0;
     export let accountId = null;
-    export let widgets = []; // Now receiving widgets as a prop instead of managing internally
+    export let widgets = [];
     export let editMode = false;
     export let trades = [];
+    export let onSaveLayout;
+    export let activeLayoutIndex;
 
     // Widget configurations with predefined sizes
     const defaultWidgetConfigs = {
@@ -108,7 +111,7 @@
     ];
 
     // State management
-    let tempWidgets = null; // Store temporary layout during edit mode
+    let tempLayout = null; // Store temporary layout during edit mode
     let showConfigModal = false;
     let selectedWidgetForConfig = null;
     let showWidgetModal = false;
@@ -122,10 +125,10 @@
         return () => {
             mounted = false;
             clearTimeout(touchTimeout);
-            if (tempWidgets) {
-                dispatch('updateWidgets', tempWidgets);
+            if (tempLayout) {
+                dispatch('updateWidgets', tempLayout.widgets);
             }
-            tempWidgets = null;
+            tempLayout = null;
             selectedWidgetForConfig = null;
             previewWidget = null;
             activeWidget = null;
@@ -175,26 +178,47 @@
     // Layout management functions
     function toggleEditMode() {
         if (!editMode) {
-            tempWidgets = JSON.parse(JSON.stringify(widgets));
+            console.log('🔄 Entering edit mode, storing layout state');
+            // Deep clone current layout state
+            tempLayout = JSON.parse(JSON.stringify({
+                widgets: widgets
+            }));
+            console.log('Stored layout:', tempLayout);
         }
         editMode = !editMode;
         dispatch('editModeChange', editMode);
     }
 
     function saveLayout() {
-        widgetStore.saveToStorage(widgets);
-        tempWidgets = null;
+        console.log('💾 Saving layout from WidgetLayout');
+        onSaveLayout(widgets);
+        tempLayout = null;
         editMode = false;
         dispatch('editModeChange', false);
     }
 
-    function cancelEdit() {
-        if (tempWidgets) {
-            dispatch('updateWidgets', tempWidgets);
-            tempWidgets = null;
+    async function cancelEdit() {
+        console.log('↩️ Cancelling edit, reloading layout...');
+        try {
+            // Show loading state
+            dispatch('setLoading', true);
+            
+            // Reload layouts from API
+            const savedLayouts = await layoutStore.loadLayouts();
+            
+            if (savedLayouts && savedLayouts.length > 0) {
+                // Reset widgets to saved state
+                dispatch('updateWidgets', savedLayouts[activeLayoutIndex]?.widgets || []);
+                console.log('✅ Layout reloaded successfully');
+            }
+        } catch (error) {
+            console.error('❌ Error reloading layout:', error);
+        } finally {
+            // Hide loading state
+            dispatch('setLoading', false);
+            editMode = false;
+            dispatch('editModeChange', false);
         }
-        editMode = false;
-        dispatch('editModeChange', false);
     }
 
     function handleAddWidget(baseType) {
@@ -328,9 +352,7 @@
     }
 
     // แก้ไข handleWidgetTypeSelect ให้ใช้ค่าเริ่มต้นของแต่ละ widget type
-    function handleWidgetTypeSelect(widgetType) {
-        if (!pendingWidgetData) return;
-
+    function handleWidgetTypeSelect(widgetType, position) {
         const defaultConfig = getDefaultConfig(widgetType);
         
         const newWidget = {
@@ -339,11 +361,19 @@
             props: getWidgetProps(widgetType, defaultConfig)
         };
 
-        const updatedWidgets = [
-            ...widgets.slice(0, pendingWidgetData.insertIndex),
-            newWidget,
-            ...widgets.slice(pendingWidgetData.insertIndex)
-        ];
+        let updatedWidgets;
+        
+        if (position?.insertIndex != null) {
+            // ถ้ามีการระบุตำแหน่ง ให้แทรกที่ตำแหน่งนั้น
+            updatedWidgets = [
+                ...widgets.slice(0, position.insertIndex),
+                newWidget,
+                ...widgets.slice(position.insertIndex)
+            ];
+        } else {
+            // ถ้าไม่มีการระบุตำแหน่ง ให้เพิ่มไปท้ายสุด
+            updatedWidgets = [...widgets, newWidget];
+        }
 
         dispatch('updateWidgets', updatedWidgets);
         showWidgetModal = false;
@@ -441,6 +471,7 @@
                 handleAddWidget={handleWidgetTypeSelect}
                 {getWidgetDescription}
                 {getComponentByName}
+                {pendingWidgetData}
                 onClose={() => {
                     showWidgetModal = false;
                     pendingWidgetData = null;

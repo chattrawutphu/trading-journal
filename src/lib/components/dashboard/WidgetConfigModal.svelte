@@ -2,6 +2,7 @@
     import Modal from '../common/Modal.svelte';
     import Button from '../common/Button.svelte';
     import { calculateHeight } from '$lib/utils/widgetUtils';
+    import { tradingStatsConfig, PERIOD_OPTIONS } from '$lib/utils/widgetUtils';
     
     export let show = false;
     export let selectedWidget;
@@ -83,7 +84,7 @@
     title="Configure Widget"
     on:close={handleClose}
 >
-    <div class="space-y-6 p-2">
+    <div class="space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto p-4">
         <!-- Widget Type Header -->
         <div class="flex items-center gap-3 p-3 bg-light-hover/30 dark:bg-dark-hover/30 rounded-lg">
             <div class="p-2 bg-theme-500/10 rounded-lg">
@@ -98,58 +99,60 @@
         </div>
 
         <!-- Settings Sections -->
-        <div class="space-y-6">
+        <div class="space-y-4">
             <!-- Size Settings -->
-            <div class="space-y-4">
-                <h4 class="text-sm font-medium text-light-text dark:text-dark-text">Size Settings</h4>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
-                            Width
-                        </label>
-                        <select 
-                            value={config?.cols}
-                            on:change={(e) => handleSizeChange(e, 'cols')}
-                            disabled={disabledConfig.cols}
-                            class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors
-                                   {disabledConfig.cols ? 'opacity-50 cursor-not-allowed' : 'hover:border-theme-500'}"
-                        >
-                            <option value="auto">Auto</option>
-                            {#each Array(12) as _, i}
-                                <option value={i + 1}>{i + 1}</option>
-                            {/each}
-                        </select>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
-                            Height
-                        </label>
-                        <select 
-                            value={config?.rows}
-                            on:change={(e) => handleSizeChange(e, 'rows')}
-                            disabled={disabledConfig.rows}
-                            class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors
-                                   {disabledConfig.rows ? 'opacity-50 cursor-not-allowed' : 'hover:border-theme-500'}"
-                        >
-                            <option value="auto">Auto</option>
-                            {#each Array(12) as _, i}
-                                <option value={i + 1}>{i + 1}</option>
-                            {/each}
-                        </select>
+            {#if !disabledConfig.cols && !disabledConfig.rows}
+                <div class="space-y-2">
+                    <h4 class="text-sm font-medium text-light-text dark:text-dark-text">Size Settings</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                                Width
+                            </label>
+                            <select 
+                                value={config?.cols}
+                                on:change={(e) => handleSizeChange(e, 'cols')}
+                                disabled={disabledConfig.cols}
+                                class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors
+                                       {disabledConfig.cols ? 'opacity-50 cursor-not-allowed' : 'hover:border-theme-500'}"
+                            >
+                                <option value="auto">Auto</option>
+                                {#each Array(12) as _, i}
+                                    <option value={i + 1}>{i + 1}</option>
+                                {/each}
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                                Height
+                            </label>
+                            <select 
+                                value={config?.rows}
+                                on:change={(e) => handleSizeChange(e, 'rows')}
+                                disabled={disabledConfig.rows}
+                                class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors
+                                       {disabledConfig.rows ? 'opacity-50 cursor-not-allowed' : 'hover:border-theme-500'}"
+                            >
+                                <option value="auto">Auto</option>
+                                {#each Array(12) as _, i}
+                                    <option value={i + 1}>{i + 1}</option>
+                                {/each}
+                            </select>
+                        </div>
                     </div>
                 </div>
-            </div>
+            {/if}
 
             <!-- Text Settings -->
-            <div class="space-y-4">
+            <div class="space-y-2">
                 <h4 class="text-sm font-medium text-light-text dark:text-dark-text">Text Settings</h4>
-                <div class="space-y-2">
+                <div class="space-y-1">
                     <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
                         Text Size
                     </label>
                     <select 
                         bind:value={config.textSize} 
-                        class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors hover:border-theme-500"
+                        class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text focus:ring-2 focus:ring-theme-500 focus:border-transparent transition-colors hover:border-theme-500"
                     >
                         <option value="small">Small</option>
                         <option value="medium">Medium</option>
@@ -158,6 +161,104 @@
                     </select>
                 </div>
             </div>
+
+            <!-- Trading Stats Specific Settings -->
+            {#if selectedWidget?.id.startsWith('TradingStats')}
+                <div class="space-y-2">
+                    <h4 class="text-sm font-medium text-light-text dark:text-dark-text">Period Settings</h4>
+                    <div class="space-y-3 bg-light-hover/20 dark:bg-dark-hover/20 p-3 rounded-lg">
+                        <!-- Selected Periods -->
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                                Selected Periods ({$tradingStatsConfig.selectedPeriods.length}/{$tradingStatsConfig.maxPeriods})
+                            </span>
+                        </div>
+                        <div class="space-y-2">
+                            {#each $tradingStatsConfig.selectedPeriods as periodId, index (periodId)}
+                                <div class="flex items-center justify-between p-2 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30 hover:bg-light-hover/50 dark:hover:bg-dark-hover/50 transition-colors">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-6 h-6 rounded-full bg-theme-500/10 flex items-center justify-center">
+                                            <svg class="w-3 h-3 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[periodId].icon}/>
+                                            </svg>
+                                        </div>
+                                        <span class="text-sm text-light-text dark:text-dark-text">
+                                            {PERIOD_OPTIONS[periodId].label}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <button
+                                            class="p-1.5 rounded-lg text-light-text-muted hover:text-theme-500 hover:bg-light-card dark:hover:bg-dark-card disabled:opacity-30 transition-colors"
+                                            on:click={() => tradingStatsConfig.reorderPeriods([
+                                                ...$tradingStatsConfig.selectedPeriods.slice(0, index - 1),
+                                                $tradingStatsConfig.selectedPeriods[index],
+                                                $tradingStatsConfig.selectedPeriods[index - 1],
+                                                ...$tradingStatsConfig.selectedPeriods.slice(index + 1)
+                                            ])}
+                                            disabled={index === 0}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+                                            </svg>
+                                        </button>
+                                        <button
+                                            class="p-1.5 rounded-lg text-light-text-muted hover:text-theme-500 hover:bg-light-card dark:hover:bg-dark-card disabled:opacity-30 transition-colors"
+                                            on:click={() => tradingStatsConfig.reorderPeriods([
+                                                ...$tradingStatsConfig.selectedPeriods.slice(0, index),
+                                                $tradingStatsConfig.selectedPeriods[index + 1],
+                                                $tradingStatsConfig.selectedPeriods[index],
+                                                ...$tradingStatsConfig.selectedPeriods.slice(index + 2)
+                                            ])}
+                                            disabled={index === $tradingStatsConfig.selectedPeriods.length - 1}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                            </svg>
+                                        </button>
+                                        {#if $tradingStatsConfig.selectedPeriods.length > 1}
+                                            <button
+                                                class="p-1.5 rounded-lg text-light-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card transition-colors"
+                                                on:click={() => tradingStatsConfig.removePeriod(periodId)}
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        {/if}
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+
+                        <!-- Available Periods -->
+                        <div class="space-y-2">
+                            <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                                Add Period
+                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                {#each Object.entries(PERIOD_OPTIONS) as [periodId, period]}
+                                    {#if !$tradingStatsConfig.selectedPeriods.includes(periodId)}
+                                        <button
+                                            class="flex items-center gap-2 p-2 rounded-lg bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover disabled:opacity-50 transition-colors"
+                                            on:click={() => tradingStatsConfig.addPeriod(periodId)}
+                                            disabled={$tradingStatsConfig.selectedPeriods.length >= $tradingStatsConfig.maxPeriods}
+                                        >
+                                            <div class="w-6 h-6 rounded-full bg-theme-500/10 flex items-center justify-center">
+                                                <svg class="w-3 h-3 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={period.icon}/>
+                                                </svg>
+                                            </div>
+                                            <span class="text-sm text-light-text dark:text-dark-text">
+                                                {period.label}
+                                            </span>
+                                        </button>
+                                    {/if}
+                                {/each}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {/if}
 
             <!-- Widget Specific Settings -->
             {#if selectedWidget?.id.startsWith('ProfitTargetWidget')}
@@ -193,38 +294,46 @@
                 </div>
             {/if}
         </div>
-        
-        <!-- Action Buttons -->
-        <div class="flex justify-end gap-3 pt-4 border-t border-light-border dark:border-0">
-            <Button 
-                variant="secondary" 
-                size="sm"
-                on:click={handleClose}
-            >
-                Cancel
-            </Button>
-            <Button 
-                variant="primary" 
-                size="sm"
-                on:click={() => onSave(config)}
-            >
-                Save Changes
-            </Button>
-        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="px-4 py-3 border-t border-light-border dark:border-0 flex justify-end gap-3 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90">
+        <Button variant="secondary" size="sm" on:click={handleClose}>
+            Cancel
+        </Button>
+        <Button variant="primary" size="sm" on:click={() => onSave(config)}>
+            Save Changes
+        </Button>
     </div>
 </Modal>
 
-<style>
-    /* Optional: Add smooth transitions */
-    :global(.modal-content) {
-        transition: all 0.2s ease-in-out;
+<style lang="postcss">
+    /* Add smooth scrolling */
+    .overflow-y-auto {
+        scrollbar-width: thin;
+        scrollbar-color: var(--theme-500) transparent;
     }
 
+    .overflow-y-auto::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+        background-color: var(--theme-500);
+        border-radius: 3px;
+    }
+
+    /* Consistent form controls */
     select, input {
-        transition: all 0.2s ease-in-out;
+        @apply h-9;
     }
 
-    select:hover, input:hover {
-        transform: translateY(-1px);
+    /* Smooth transitions */
+    .transition-all {
+        transition: all 0.2s ease-in-out;
     }
 </style> 

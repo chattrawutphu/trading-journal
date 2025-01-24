@@ -25,6 +25,12 @@
         calculatePositions();
     }
 
+    $: visiblePositions = openPositions && openPositions.length > 0 
+        ? (showAllPositions || window.innerWidth >= 768 
+            ? openPositions 
+            : openPositions.slice(0, 4))
+        : [];
+
     function calculatePositions() {
         if (!Array.isArray(trades)) {
             openPositions = [];
@@ -177,6 +183,10 @@
         selectedTrade = null;
     }
 
+    function togglePositions() {
+        showAllPositions = !showAllPositions;
+    }
+
     onMount(() => {
         return () => {
             openPositions = [];
@@ -227,7 +237,7 @@
     <div class="flex-1 p-4 overflow-y-auto">
         {#if openPositions.length > 0}
             <div class="space-y-3">
-                {#each openPositions as position}
+                {#each visiblePositions as position}
                     <div 
                         class="p-3 rounded-lg border border-light-border dark:border-0 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors relative {getPositionAnimationClass(position.side)}"
                         transition:slide
@@ -310,6 +320,35 @@
                         </div>
                     </div>
                 {/each}
+
+                <!-- Toggle Button for Mobile -->
+                {#if openPositions.length > 4 && window.innerWidth < 768}
+                    <button
+                        class="w-full mt-4 p-3 rounded-lg border border-light-border dark:border-dark-hover 
+                               hover:bg-light-hover dark:hover:bg-dark-hover transition-colors
+                               text-sm text-light-text-muted dark:text-dark-text-muted
+                               flex items-center justify-center gap-2"
+                        on:click={togglePositions}
+                        transition:slide
+                    >
+                        <span>
+                            {showAllPositions ? 'Show Less' : `Show ${openPositions.length - 4} More`}
+                        </span>
+                        <svg 
+                            class="w-4 h-4 transition-transform duration-200 {showAllPositions ? 'rotate-180' : ''}"
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path 
+                                stroke-linecap="round" 
+                                stroke-linejoin="round" 
+                                stroke-width="2" 
+                                d="M19 9l-7 7-7-7"
+                            />
+                        </svg>
+                    </button>
+                {/if}
             </div>
         {:else}
             <div class="flex flex-col items-center justify-center h-full text-light-text-muted dark:text-dark-text-muted">
@@ -429,5 +468,10 @@
     /* ปรับปรุง position card */
     .position-card {
         @apply relative;
+    }
+
+    /* Add smooth transition for toggle */
+    .space-y-3 {
+        transition: all 0.2s ease-in-out;
     }
 </style>

@@ -11,6 +11,7 @@
     export let getWidgetDescription;
     export let getComponentByName;
     export let onClose;
+    export let pendingWidgetData;
 
     let activeWidget = null;
     let previewWidget = null;
@@ -45,6 +46,10 @@
             ...widget,
             props: generateSampleProps(widget.id)
         };
+    }
+
+    function handleWidgetTypeSelect(widgetType) {
+        handleAddWidget(widgetType, pendingWidgetData);
     }
 </script>
 
@@ -152,7 +157,7 @@
                            disabled:opacity-50 disabled:cursor-not-allowed
                            transition-colors duration-200 shadow-sm"
                     disabled={getWidgetTypeCount(widgets, previewWidget.id.split('_')[0]) >= (widgetLimits[previewWidget.id.split('_')[0]] || 1)}
-                    on:click={() => handleAddWidget(previewWidget.id.split('_')[0])}
+                    on:click={() => handleWidgetTypeSelect(previewWidget.id.split('_')[0])}
                 >
                     {getWidgetTypeCount(widgets, previewWidget.id.split('_')[0]) >= (widgetLimits[previewWidget.id.split('_')[0]] || 1) 
                         ? 'Maximum Limit Reached' 

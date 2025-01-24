@@ -1,10 +1,9 @@
 <script>
     import { fade, slide } from 'svelte/transition';
     import { accountStore } from '$lib/stores/accountStore';
-    import { tradingStatsStore, PERIOD_OPTIONS } from '$lib/stores/tradingStatsStore';
+    import { tradingStatsConfig, PERIOD_OPTIONS } from '$lib/utils/widgetUtils';
     import { api } from '$lib/utils/api';
     import { onMount, createEventDispatcher } from 'svelte';
-    import TradingStatsConfig from './TradingStatsConfig.svelte';
 
     const dispatch = createEventDispatcher();
     let stats = {};
@@ -42,7 +41,7 @@
             stats = {};
 
             // Create a single batch request for all periods
-            const requests = $tradingStatsStore.selectedPeriods.map(period => 
+            const requests = $tradingStatsConfig.selectedPeriods.map(period => 
                 api.getStats(accountId, period).catch(err => null)
             );
 
@@ -51,7 +50,7 @@
 
             // Process results
             let newStats = {};
-            $tradingStatsStore.selectedPeriods.forEach((period, i) => {
+            $tradingStatsConfig.selectedPeriods.forEach((period, i) => {
                 if (results[i] !== null) {
                     newStats[period] = results[i];
                 }
@@ -60,8 +59,8 @@
             stats = newStats;
 
             // Set selectedPeriod if not set
-            if (!selectedPeriod && $tradingStatsStore.selectedPeriods.length > 0) {
-                selectedPeriod = $tradingStatsStore.selectedPeriods[0];
+            if (!selectedPeriod && $tradingStatsConfig.selectedPeriods.length > 0) {
+                selectedPeriod = $tradingStatsConfig.selectedPeriods[0];
             }
         } catch (err) {
             error = err.message;
@@ -105,8 +104,8 @@
     }
 
     $: {
-        if ($tradingStatsStore.selectedPeriods?.length > 0 && !selectedPeriod) {
-            selectedPeriod = $tradingStatsStore.selectedPeriods[0];
+        if ($tradingStatsConfig.selectedPeriods?.length > 0 && !selectedPeriod) {
+            selectedPeriod = $tradingStatsConfig.selectedPeriods[0];
         }
     }
 
@@ -174,7 +173,7 @@
                     class="mt-2 rounded-lg overflow-hidden shadow-lg divide-y divide-light-border dark:divide-dark-border"
                     transition:slide={{ duration: 200 }}
                 >
-                    {#each $tradingStatsStore.selectedPeriods as period}
+                    {#each $tradingStatsConfig.selectedPeriods as period}
                         {#if stats[period]}
                             <button
                                 class="w-full flex items-center justify-between p-4 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover transition-colors {period === selectedPeriod ? 'bg-theme-500/5 border-l-4 border-theme-500' : 'border-l-4 border-transparent'}"
@@ -226,9 +225,9 @@
 
     <!-- Desktop Layout -->
     <div class="hidden md:grid gap-2 lg:gap-4" 
-        style="grid-template-columns: repeat({$tradingStatsStore.selectedPeriods.length}, minmax(0, 1fr));">
+        style="grid-template-columns: repeat({$tradingStatsConfig.selectedPeriods.length}, minmax(0, 1fr));">
         {#if selectedPeriod && stats[selectedPeriod]}
-            {#each $tradingStatsStore.selectedPeriods as period}
+            {#each $tradingStatsConfig.selectedPeriods as period}
                 {@const data = stats[period] || { pnl: 0, trades: 0, balanceChange: 0 }}
                 <div class="card p-4">
                     <div class="flex items-center justify-between mb-3">
@@ -262,7 +261,7 @@
             {/each}
         {:else}
             <!-- Skeleton Loading for Desktop -->
-            {#each Array($tradingStatsStore.selectedPeriods.length) as _, i}
+            {#each Array($tradingStatsConfig.selectedPeriods.length) as _, i}
                 <div class="card p-4">
                     <div class="animate-pulse space-y-4">
                         <!-- Header -->
@@ -289,7 +288,6 @@
     {#if isHovering}
         <button
             class="absolute -top-2 -right-2 p-2 rounded-lg bg-light-card dark:bg-dark-card border border-light-border dark:border-0 shadow-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
-            on:click={() => showConfig = true}
             transition:fade={{ duration: 100 }}
         >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,8 +296,6 @@
         </button>
     {/if}
 </div>
-
-<TradingStatsConfig bind:show={showConfig} />
 
 <style lang="postcss">
     .card {

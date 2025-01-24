@@ -11,6 +11,7 @@
     import Modal from "$lib/components/common/Modal.svelte";
     import { api } from "$lib/utils/api";
     import { loadingStore } from '$lib/stores/loadingStore';
+    import { layoutStore } from '$lib/stores/layoutStore';
 
     // Add widget configurations
     const defaultWidgetConfigs = {
@@ -77,6 +78,9 @@
     let newLayoutName = '';
     let showLayoutDropdown = false;
 
+    // Add state for temporary layout
+    let tempLayouts = null;
+
     onMount(async () => {
         try {
             loadingStore.set(true);
@@ -87,7 +91,7 @@
                     transactionStore.fetchTransactions($accountStore.currentAccount._id),
                 ]);
                 // Load layouts from localStorage
-                loadLayouts();
+                await loadLayouts();
             }
         } catch (err) {
             error = err.message;
@@ -96,31 +100,24 @@
         }
     });
 
-    // Modified loadLayouts function with better error handling
-    function loadLayouts() {
+    // Modified loadLayouts function
+    async function loadLayouts() {
         try {
-            const savedLayouts = localStorage.getItem('dashboardLayouts');
-            if (savedLayouts) {
-                layouts = JSON.parse(savedLayouts);
-                // Ensure there's always at least one layout
-                if (!layouts || layouts.length === 0) {
-                    layouts = [{
-                        name: 'Default',
-                        widgets: getDefaultWidgets()
-                    }];
-                }
+            const savedLayouts = await layoutStore.loadLayouts();
+            if (savedLayouts && savedLayouts.length > 0) {
+                layouts = savedLayouts;
             } else {
-                // Create default layout
+                // Create default layout if no layouts exist
                 layouts = [{
                     name: 'Default',
                     widgets: getDefaultWidgets()
                 }];
+                await layoutStore.saveLayouts(layouts);
             }
             // Ensure active index is valid
             if (activeLayoutIndex >= layouts.length) {
                 activeLayoutIndex = 0;
             }
-            saveLayouts();
         } catch (error) {
             console.error('Error loading layouts:', error);
             // Reset to default if there's an error
@@ -132,30 +129,86 @@
         }
     }
 
-    function saveLayouts() {
-        localStorage.setItem('dashboardLayouts', JSON.stringify(layouts));
+    // Modified saveLayouts function
+    async function saveLayouts() {
+        try {
+            await layoutStore.saveLayouts(layouts);
+        } catch (error) {
+            console.error('Error saving layouts:', error);
+            // Show error message to user
+            error = 'Failed to save layouts. Please try again.';
+        }
     }
 
-    function addNewLayout() {
+    // Modified addNewLayout function
+    async function addNewLayout() {
         if (newLayoutName.trim()) {
             layouts = [...layouts, {
                 name: newLayoutName.trim(),
                 widgets: []
             }];
-            saveLayouts();
-            activeLayoutIndex = layouts.length - 1;
-            showNewLayoutModal = false;
-            newLayoutName = '';
+            try {
+                await saveLayouts();
+                activeLayoutIndex = layouts.length - 1;
+                showNewLayoutModal = false;
+                newLayoutName = '';
+            } catch (error) {
+                // Handle error
+                console.error('Error adding new layout:', error);
+            }
         }
     }
 
-    function deleteLayout(index) {
+    // Modified deleteLayout function
+    async function deleteLayout(index) {
         if (layouts.length > 1 && confirm('Are you sure you want to delete this layout?')) {
             layouts = layouts.filter((_, i) => i !== index);
-            saveLayouts();
-            if (activeLayoutIndex >= layouts.length) {
-                activeLayoutIndex = layouts.length - 1;
+            try {
+                await saveLayouts();
+                if (activeLayoutIndex >= layouts.length) {
+                    activeLayoutIndex = layouts.length - 1;
+                }
+            } catch (error) {
+                // Handle error
+                console.error('Error deleting layout:', error);
             }
+        }
+    }
+
+    // Modified function to handle edit mode
+    function handleEditModeChange(e) {
+        editMode = e.detail;
+        if (editMode) {
+            console.log('🔄 Storing current layouts state');
+            // Store current layouts state when entering edit mode
+            tempLayouts = JSON.parse(JSON.stringify(layouts));
+        }
+    }
+
+    // Modified handleUpdateWidgets
+    function handleUpdateWidgets(e) {
+        if (layouts[activeLayoutIndex]) {
+            layouts[activeLayoutIndex].widgets = e.detail;
+            // Force update
+            layouts = [...layouts];
+        }
+    }
+
+    // Add new function to handle layout save
+    async function handleSaveLayout(widgets) {
+        try {
+            console.log('💾 Saving layout from dashboard', {
+                layoutIndex: activeLayoutIndex,
+                layoutName: layouts[activeLayoutIndex]?.name
+            });
+            
+            if (layouts[activeLayoutIndex]) {
+                layouts[activeLayoutIndex].widgets = widgets;
+                await saveLayouts();
+            }
+        } catch (error) {
+            console.error('❌ Error saving layout:', error);
+            error = 'Failed to save layout. Please try again.';
         }
     }
 
@@ -298,6 +351,10 @@
         await loadTrades();
         showEditModal = false;
         selectedTrade = null;
+    }
+
+    function handleSetLoading(e) {
+        loadingStore.set(e.detail);
     }
 </script>
 
@@ -455,14 +512,12 @@
                     {totalPnL} 
                     {winRate}
                     widgets={layouts[activeLayoutIndex]?.widgets || []}
+                    {activeLayoutIndex}
                     bind:editMode
-                    on:updateWidgets={(e) => {
-                        if (layouts[activeLayoutIndex]) {
-                            layouts[activeLayoutIndex].widgets = e.detail;
-                            saveLayouts();
-                        }
-                    }}
+                    on:updateWidgets={handleUpdateWidgets}
+                    onSaveLayout={handleSaveLayout}
                     on:editModeChange={(e) => editMode = e.detail}
+                    on:setLoading={handleSetLoading}
                     on:view={handleView}
                     on:edit={handleEdit}
                     on:newTrade={() => {
