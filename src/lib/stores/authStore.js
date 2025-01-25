@@ -7,15 +7,39 @@ function createAuthStore() {
     const { subscribe, set, update } = writable({
         isAuthenticated: false,
         user: null,
-        loading: true,  // เริ่มต้นด้วย loading true
+        loading: true,
         error: null,
-        subscriptionType: null // Add subscriptionType to the state
+        subscriptionType: null
     });
+
+    // เพิ่มฟังก์ชันเพื่อโหลดข้อมูล user จาก localStorage
+    function loadStoredAuth() {
+        if (typeof window !== 'undefined') {
+            const storedAuth = localStorage.getItem('auth');
+            if (storedAuth) {
+                try {
+                    const { user } = JSON.parse(storedAuth);
+                    if (user) {
+                        update(state => ({
+                            ...state,
+                            isAuthenticated: true,
+                            user,
+                            loading: false
+                        }));
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('Failed to parse stored auth:', error);
+                }
+            }
+        }
+        return false;
+    }
 
     async function initializeSubscription() {
         try {
             const data = await subscriptionStore.initializeSubscription();
-            update(state => ({ ...state, subscriptionType: data.type }));
+            update(state => ({...state, subscriptionType: data.type }));
             await subscriptionStore.loadInvoices();
         } catch (error) {
             console.error('Failed to initialize subscription:', error);
@@ -25,29 +49,34 @@ function createAuthStore() {
     return {
         subscribe,
         set,
-        login: async (identifier, password) => {
+        login: async(email, password) => {
             try {
-                update(state => ({ ...state, loading: true, error: null }));
-                const response = await api.login(identifier, password);
-                
+                update(state => ({...state, loading: true, error: null }));
+                const response = await api.login(email, password);
+
                 const authData = {
                     isAuthenticated: true,
                     user: {
                         ...response.user,
-                        // No need to add username since we'll format it from email in the component
+                        email: response.user.email
                     },
                     loading: false,
                     error: null,
                     subscriptionType: subscriptionStore.type
                 };
 
+                // Store in localStorage
+                localStorage.setItem('auth', JSON.stringify({
+                    user: response.user
+                }));
+
                 set(authData);
                 await initializeSubscription();
                 return response;
             } catch (error) {
-                update(state => ({ 
-                    ...state, 
-                    loading: false, 
+                update(state => ({
+                    ...state,
+                    loading: false,
                     error: error.message,
                     isAuthenticated: false,
                     user: null
@@ -55,37 +84,34 @@ function createAuthStore() {
                 throw error;
             }
         },
-        register: async (userData) => {
+        register: async(userData) => {
             try {
-                update(state => ({ ...state, loading: true, error: null }));
+                update(state => ({...state, loading: true, error: null }));
                 const response = await api.register(userData);
-                
+
+                if (!response.verified) {
+                    throw new Error('Registration verification failed');
+                }
+
                 const authData = {
                     isAuthenticated: true,
-                    user: response.user,
+                    user: response,
                     loading: false,
                     error: null
                 };
 
-                // Store in localStorage
+                // Store in localStorage with full user data
                 localStorage.setItem('auth', JSON.stringify({
-                    user: response.user,
-                    token: response.token
+                    user: response
                 }));
 
-                // Set cookie for server-side auth
-                document.cookie = `auth=${response.token}; path=/; max-age=86400; samesite=strict`;
-
                 set(authData);
-
-                // Initialize subscription after successful registration
                 await initializeSubscription();
-
                 return response;
             } catch (error) {
-                update(state => ({ 
-                    ...state, 
-                    loading: false, 
+                update(state => ({
+                    ...state,
+                    loading: false,
                     error: error.message,
                     isAuthenticated: false,
                     user: null
@@ -93,11 +119,12 @@ function createAuthStore() {
                 throw error;
             }
         },
-        logout: async () => {
+        logout: async() => {
             try {
                 await api.logout();
-                // Clear selected account ID from localStorage
+                // Clear all auth data
                 if (typeof window !== 'undefined') {
+                    localStorage.removeItem('auth');
                     localStorage.removeItem('selectedAccountId');
                 }
                 set({
@@ -106,29 +133,40 @@ function createAuthStore() {
                     loading: false,
                     error: null
                 });
-                // Reset subscription store
                 subscriptionStore.reset();
             } catch (error) {
                 console.error('Failed to logout:', error);
             }
         },
-        initialize: async () => {
+        initialize: async() => {
             try {
+                // Try loading from localStorage first
+                if (loadStoredAuth()) {
+                    await initializeSubscription();
+                    return true;
+                }
+
+                update(state => ({...state, loading: true }));
                 const response = await api.getProfile();
+
                 if (response) {
-                    set({
+                    const authData = {
                         isAuthenticated: true,
                         user: response,
                         loading: false,
                         error: null,
-                        subscriptionType: subscriptionStore.type // Set subscriptionType
-                    });
+                        subscriptionType: subscriptionStore.type
+                    };
 
-                    // Initialize subscription after profile initialization
+                    localStorage.setItem('auth', JSON.stringify({
+                        user: response
+                    }));
+
+                    set(authData);
                     await initializeSubscription();
-
                     return true;
                 }
+
                 set({ isAuthenticated: false, user: null, loading: false, error: null });
                 return false;
             } catch (error) {
@@ -138,7 +176,7 @@ function createAuthStore() {
             }
         },
         clearError: () => {
-            update(state => ({ ...state, error: null }));
+            update(state => ({...state, error: null }));
         }
     };
 }

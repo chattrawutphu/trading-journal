@@ -7,6 +7,7 @@
     import { goto } from '$app/navigation';
     import ThemeToggle from '../common/ThemeToggle.svelte';
     import { menuItems } from '../../data/menuItems.js';
+    import { onMount } from 'svelte';
     
     // Add subscription badge styles
     const subscriptionBadgeStyles = {
@@ -45,13 +46,24 @@
     }
 
     function getUserDisplayName(user) {
-        if (!user) return 'User';
-        // Format username from email (remove @domain.com)
-        if (user.email) {
-            return user.email.split('@')[0];
-        }
-        return 'User';
+        if (!user) return '';
+        return user.username || user.email?.split('@')[0] || 'User';
     }
+
+    let isLoading = true;
+
+    onMount(async () => {
+        // Initialize auth on mount
+        await auth.initialize();
+        
+        const unsubscribe = auth.subscribe(authState => {
+            isLoading = authState.loading;
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    });
 
     // Remove debug logs if no longer needed
     // $: console.log('Auth store user:', $auth?.user);
@@ -99,10 +111,25 @@
         <!-- User Profile Section -->
         <div class="p-4 border-b border-light-border dark:border-0">
             <div class="flex items-center gap-3 {$isCollapsed ? 'justify-center' : ''}">
-                {#if $auth?.user}
+                {#if isLoading || !$auth?.user}
+                    <!-- Skeleton Loading -->
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 rounded-full bg-light-hover dark:bg-dark-hover animate-pulse"></div>
+                    </div>
+                    {#if !$isCollapsed}
+                        <div class="flex-1 min-w-0 my-2 space-y-2">
+                            <div class="flex items-center gap-2">
+                                <div class="h-4 w-24 bg-light-hover dark:bg-dark-hover rounded animate-pulse"></div>
+                                <div class="h-4 w-12 bg-light-hover dark:bg-dark-hover rounded animate-pulse"></div>
+                            </div>
+                            <div class="h-4 w-20 bg-light-hover dark:bg-dark-hover rounded animate-pulse"></div>
+                        </div>
+                    {/if}
+                {:else}
+                    <!-- User Profile Content -->
                     <div class="flex-shrink-0">
                         <img
-                            src={$auth.user.avatar || 'https://ui-avatars.com/api/?name=' + getUserDisplayName($auth.user)}
+                            src={$auth.user.avatar || `https://ui-avatars.com/api/?name=${getUserDisplayName($auth.user)}&background=8b5cf6&color=fff`}
                             alt="Profile"
                             class="w-10 h-10 rounded-full border-2 border-theme-500"
                         />
@@ -127,20 +154,6 @@
                                 </svg>
                                 <span>Profile Settings</span>
                             </button>
-                        </div>
-                    {/if}
-                {:else}
-                    <!-- Skeleton Loading -->
-                    <div class="flex-shrink-0">
-                        <div class="w-10 h-10 rounded-full bg-light-hover dark:bg-dark-hover animate-pulse"></div>
-                    </div>
-                    {#if !$isCollapsed}
-                        <div class="flex-1 min-w-0 my-2 space-y-2">
-                            <div class="flex items-center gap-2">
-                                <div class="h-4 w-24 bg-light-hover dark:bg-dark-hover rounded animate-pulse"></div>
-                                <div class="h-4 w-12 bg-light-hover dark:bg-dark-hover rounded animate-pulse"></div>
-                            </div>
-                            <div class="h-4 w-20 bg-light-hover dark:bg-dark-hover rounded animate-pulse"></div>
                         </div>
                     {/if}
                 {/if}

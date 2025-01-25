@@ -23,6 +23,7 @@ export default defineConfig({
                 'express',
                 'mongoose'
             ]
-        }
+        },
+        sourcemap: false
     }
 });

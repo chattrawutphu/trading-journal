@@ -1,17 +1,18 @@
 // server/models/User.js
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { SUBSCRIPTION_TYPES } from '../../config/subscription.js';
 
 const userSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        lowercase: true,
     },
     password: {
         type: String,
-        required: true
+        required: true,
     },
     username: {
         type: String,
@@ -39,11 +40,11 @@ const userSchema = new mongoose.Schema({
 
 userSchema.pre('save', async function(next) {
     if (!this.isModified('password')) {
-        next();
+        return next();
     }
-
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    next();
 });
 
 userSchema.methods.matchPassword = async function(enteredPassword) {
@@ -52,9 +53,10 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
 
 // เพิ่มเมธอดตรวจสอบสถานะการสมัครสมาชิก
 userSchema.methods.isSubscriptionActive = function() {
-    return this.subscription.status === 'active' && 
-           this.subscription.endDate && 
-           this.subscription.endDate > new Date();
+    return this.subscription.status === 'active' &&
+        this.subscription.endDate &&
+        this.subscription.endDate > new Date();
 };
 
-export default mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
+export default User;

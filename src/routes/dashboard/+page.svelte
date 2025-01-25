@@ -613,6 +613,19 @@
 <NewAccountModal
     bind:show={showAccountModal}
     on:close={() => (showAccountModal = false)}
+    on:refreshLayout={async () => {
+        // รีโหลด layout และ refresh widgets
+        await reloadLayoutAndRefresh();
+        
+        // โหลดข้อมูล account ใหม่
+        await accountStore.loadAccounts();
+        
+        // โหลดข้อมูล trades ใหม่
+        if ($accountStore.currentAccount) {
+            await loadTrades();
+            await transactionStore.fetchTransactions($accountStore.currentAccount._id);
+        }
+    }}
 />
 
 {#if $accountStore.currentAccount}

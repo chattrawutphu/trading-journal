@@ -25,8 +25,8 @@ export function getDefaultConfig(widgetType) {
             disabled: { cols: true, rows: true }
         },
         StatsCards: {
-            cols: 12,
-            rows: 1,
+            cols: 2,
+            rows: 10,
             textSize: 'medium',
             disabled: { cols: false, rows: false }
         },
@@ -438,7 +438,7 @@ export const DEFAULT_LAYOUT_CONFIG = {
             type: 'ProfitTargetWidget',
             config: {
                 period: 'yearly',
-                target: 1000,
+                target: 500,
             }
         }, {
             type: 'TradingStats'

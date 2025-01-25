@@ -36,8 +36,7 @@ export const PLAN_PRICES = {
 };
 
 export const SUBSCRIPTION_PLANS = {
-    monthly: [
-        {
+    monthly: [{
             name: 'Basic',
             price: 'Free',
             features: [
@@ -76,8 +75,7 @@ export const SUBSCRIPTION_PLANS = {
             type: SUBSCRIPTION_TYPES.PRO_PLUS
         }
     ],
-    yearly: [
-        {
+    yearly: [{
             name: 'Basic',
             price: 'Free',
             features: [
