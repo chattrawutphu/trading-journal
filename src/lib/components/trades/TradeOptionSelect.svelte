@@ -18,6 +18,7 @@
     export let options = [];
     export let loading = false;
     export let error = '';
+    export let disabled = false;
 
     let isOpen = false;
     let searchTerm = '';
@@ -56,7 +57,19 @@
         searchTerm = value;
     });
 
-    async function handleSelect(option) {
+    function handleInput() {
+        if (disabled) return;
+        if (!isOpen) isOpen = true;
+        if (!editingOption) {
+            if (searchTerm.trim() === '') {
+                value = '';
+                dispatch('change', { value: '' });
+            }
+        }
+    }
+
+    function handleSelect(option) {
+        if (disabled) return;
         value = option.value;
         searchTerm = option.value;
         isOpen = false;
@@ -64,6 +77,7 @@
     }
 
     async function handleCreate() {
+        if (disabled) return;
         if (!searchTerm.trim()) return;
         try {
             if (type === 'SYMBOL' && accountId) {
@@ -141,16 +155,6 @@
         if (!isOpen) isOpen = true;
     }
 
-    function handleInput() {
-        if (!isOpen) isOpen = true;
-        if (!editingOption) {
-            if (searchTerm.trim() === '') {
-                value = '';
-                dispatch('change', { value: '' });
-            }
-        }
-    }
-
     function handleClickOutside() {
         isOpen = false;
         if (editingOption) {
@@ -190,7 +194,7 @@
     }
 </script>
 
-<div class="relative" use:clickOutside on:clickoutside={handleClickOutside}>
+<div class="relative {disabled ? 'opacity-50' : ''}" use:clickOutside on:clickoutside={handleClickOutside}>
     <!-- Input Field -->
     <div class="relative">
         <input
@@ -198,17 +202,19 @@
             {required}
             bind:value={searchTerm}
             on:input={handleInput}
-            on:focus={() => isOpen = true}
+            on:focus={() => !disabled && (isOpen = true)}
             on:keydown={handleKeydown}
             {placeholder}
-            class="input w-full pr-8 px-2.5 py-1.5 h-8 text-sm bg-light-bg dark:bg-dark-bg border border-light-border dark:border-0 rounded-md"
-            disabled={editingOption !== null}
+            {disabled}
+            class="input w-full pr-8 px-2.5 py-1.5 h-8 text-sm bg-light-bg dark:bg-dark-bg border border-light-border dark:border-0 rounded-md
+                {disabled ? 'cursor-not-allowed' : ''}"
         />
         <div class="absolute inset-y-0 right-0 flex items-center pr-2">
             <button
                 type="button"
                 class="text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text"
-                on:click={() => isOpen = !isOpen}
+                on:click={() => !disabled && (isOpen = !isOpen)}
+                {disabled}
             >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -218,7 +224,7 @@
     </div>
 
     <!-- Dropdown -->
-    {#if isOpen}
+    {#if isOpen && !disabled}
         <div class="absolute z-50 w-full mt-1 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-0 rounded-md shadow-lg divide-y divide-light-border dark:divide-dark-border max-h-[240px] overflow-auto"
             transition:fade={{ duration: 100 }}
         >
@@ -347,5 +353,10 @@
 
     button:hover {
         background-color: var(--hover-color);
+    }
+
+    /* แก้ไข style สำหรับ disabled state ให้มี opacity เท่ากับฟิลด์อื่นๆ */
+    :global(.input[disabled]) {
+        cursor: not-allowed;
     }
 </style>

@@ -13,6 +13,8 @@
     import { api } from "$lib/utils/api";
     import { tradeTagStore } from '$lib/stores/tradeTagStore';
     import { onMount } from 'svelte';
+    import Modal from '../common/Modal.svelte';
+    import LimitReachedModal from '../common/LimitReachedModal.svelte';
 
     const dispatch = createEventDispatcher();
 
@@ -22,6 +24,8 @@
 
     let errors = {};
     let previousSymbol = "";
+
+    let initialFormData = null;
 
     let form = {
         entryDate: getCurrentDateTime(),
@@ -93,27 +97,29 @@
         return localDate.toISOString().slice(0,16);
     }
 
-    $: {
-        if (show) {
-            if (trade && !form.symbol) {
-                form = {
-                    ...form,
-                    ...trade,
-                    entryDate: trade.entryDate 
-                        ? formatDateTimeLocal(trade.entryDate)
-                        : getCurrentDateTime(),
-                    exitDate: trade.exitDate
-                        ? formatDateTimeLocal(trade.exitDate)
-                        : getCurrentDateTime(),
-                    tags: trade.tags || [],
-                };
-                previousSymbol = trade.symbol;
-            } else if (!trade && $tradeDate) {
-                const dateFromStore = new Date($tradeDate);
-                dateFromStore.setHours(7, 0, 0, 0);
-                form.entryDate = formatDateTimeLocal(dateFromStore);
-                tradeDate.set(null);
-            }
+    $: if (show && !initialFormData) {
+        if (trade) {
+            initialFormData = {
+                ...form,
+                ...trade,
+                entryDate: trade.entryDate 
+                    ? formatDateTimeLocal(trade.entryDate)
+                    : getCurrentDateTime(),
+                exitDate: trade.exitDate
+                    ? formatDateTimeLocal(trade.exitDate)
+                    : getCurrentDateTime(),
+                tags: trade.tags || [],
+            };
+            form = { ...initialFormData };
+            previousSymbol = trade.symbol;
+        } else if ($tradeDate) {
+            resetForm();
+            const dateFromStore = new Date($tradeDate);
+            dateFromStore.setHours(7, 0, 0, 0);
+            form.entryDate = formatDateTimeLocal(dateFromStore);
+            tradeDate.set(null);
+        } else {
+            resetForm();
         }
     }
 
@@ -164,25 +170,42 @@
         return errors;
     }
 
-    async function handleSubmit() {
-        errors = validateForm(form);
-        if (Object.keys(errors).length > 0) {
-            return;
-        }
+    let showLimitWarning = false;
+    let showLimitError = false;
+    let dailyTradeCount = 0;
 
+    async function countDailyTrades(date) {
+        if (!accountId) return 0;
+        try {
+            const allTrades = await api.getTrades(accountId);
+            const targetDate = new Date(date).toISOString().split('T')[0];
+            
+            const count = allTrades.filter(trade => {
+                if (trade.status !== "CLOSED") return false;
+                const tradeExitDate = new Date(trade.exitDate).toISOString().split('T')[0];
+                return tradeExitDate === targetDate;
+            }).length;
+            
+            return count;
+        } catch (error) {
+            console.error('Error counting daily trades:', error);
+            return 0;
+        }
+    }
+
+    function prepareFormData(form) {
         const formData = { ...form };
         
-        // แปลงค่าเป็นตัวเลขก่อนส่งไป API
-        formData.quantity = parseFloat(formData.quantity) || 0;
-        formData.amount = parseFloat(formData.amount);
-        formData.entryPrice = parseFloat(formData.entryPrice);
-        formData.exitPrice = formData.exitPrice ? parseFloat(formData.exitPrice) : null;
-        formData.pnl = formData.pnl ? parseFloat(formData.pnl) : null;
-        formData.confidenceLevel = parseInt(formData.confidenceLevel);
-        formData.greedLevel = parseInt(formData.greedLevel);
-        formData.leverage = parseInt(formData.leverage) || 1;
-
         try {
+            formData.quantity = formData.quantity ? parseFloat(formData.quantity) : 0;
+            formData.amount = formData.amount ? parseFloat(formData.amount) : 0;
+            formData.entryPrice = formData.entryPrice ? parseFloat(formData.entryPrice) : 0;
+            formData.exitPrice = formData.exitPrice ? parseFloat(formData.exitPrice) : null;
+            formData.pnl = formData.pnl ? parseFloat(formData.pnl) : null;
+            formData.confidenceLevel = formData.confidenceLevel ? parseInt(formData.confidenceLevel) : 5;
+            formData.greedLevel = formData.greedLevel ? parseInt(formData.greedLevel) : 5;
+            formData.leverage = formData.leverage ? parseInt(formData.leverage) : 1;
+
             if (formData.entryDate) {
                 const entryDate = new Date(formData.entryDate);
                 if (!isNaN(entryDate.getTime())) {
@@ -196,85 +219,127 @@
                 }
             }
 
-            if (!trade) {
-                formData.account = accountId;
-            }
+            formData.status = formData.status || 'OPEN';
+            formData.side = formData.side || 'LONG';
+            formData.hasStopLoss = !!formData.hasStopLoss;
+            formData.hasTakeProfit = !!formData.hasTakeProfit;
+            formData.favorite = !!formData.favorite;
+            formData.tags = Array.isArray(formData.tags) ? formData.tags : [];
 
+            delete formData.undefined;
+            delete formData.null;
+
+            return formData;
+        } catch (error) {
+            console.error('Error preparing form data:', error);
+            throw new Error('Failed to prepare form data');
+        }
+    }
+
+    async function submitTrade() {
+        try {
+            const formData = prepareFormData(form);
+            
             if (trade) {
                 await api.updateTrade(trade._id, formData);
             } else {
-                await api.createTrade(formData);
+                const payload = {
+                    ...formData,
+                    account: accountId
+                };
+                console.log('Submitting trade payload:', payload);
+                const result = await api.createTrade(payload);
+                console.log('API response:', result);
             }
+            dispatch('tradeUpdated');
             
-            dispatch("tradeUpdated");
-            // Reset form after successful submission
-            form = {
-                account: accountId,
-                entryDate: getCurrentDateTime(),
-                exitDate: getCurrentDateTime(),
-                symbol: "",
-                status: "OPEN",
-                side: "LONG",
-                quantity: "",
-                amount: "",
-                entryPrice: "",
-                exitPrice: "",
-                pnl: "",
-                entryReason: "",
-                exitReason: "",
-                strategy: "",
-                emotions: "",
-                notes: "",
-                url: "",
-                confidenceLevel: 5,
-                greedLevel: 5,
-                hasStopLoss: false,
-                hasTakeProfit: false,
-                favorite: false,
-                leverage: 1,
-                tags: [],
-            };
-            errors = {};
-            previousSymbol = "";
+            // รีเซ็ตค่าทั้งหมดก่อนปิด modal
+            resetForm();
+            trade = null;
+            initialFormData = null;
+            showLimitWarning = false;
+            showLimitError = false;
+            dailyTradeCount = 0;
+            
             show = false;
-        } catch (error) {
-            console.error('Error saving trade:', error);
+        } catch (err) {
+            console.error('Error submitting trade:', err);
+            errors.submit = err.message || 'An unexpected error occurred';
         }
+    }
+
+    async function handleSubmit() {
+        try {
+            errors = validateTradeForm(form);
+            if (Object.keys(errors).length > 0) {
+                return;
+            }
+
+            if (subscriptionType === SUBSCRIPTION_TYPES.BASIC && form.status === "CLOSED") {
+                const count = await countDailyTrades(form.exitDate);
+                dailyTradeCount = count;
+
+                if (count >= 4) {
+                    showLimitError = true;
+                    return;
+                }
+                
+                if (count >= 3) {
+                    showLimitWarning = true;
+                    return;
+                }
+            }
+
+            await submitTrade();
+        } catch (err) {
+            console.error('Error in handleSubmit:', err);
+            errors.submit = err.message || 'An unexpected error occurred';
+        }
+    }
+
+    function resetForm() {
+        initialFormData = null;
+        form = {
+            entryDate: getCurrentDateTime(),
+            exitDate: getCurrentDateTime(),
+            symbol: "",
+            status: "OPEN",
+            side: "LONG",
+            quantity: "",
+            amount: "",
+            entryPrice: "",
+            exitPrice: "",
+            pnl: "",
+            entryReason: "",
+            exitReason: "",
+            strategy: "",
+            emotions: "",
+            notes: "",
+            url: "",
+            confidenceLevel: 5,
+            greedLevel: 5,
+            hasStopLoss: false,
+            hasTakeProfit: false,
+            favorite: false,
+            leverage: 1,
+            tags: [],
+        };
+        errors = {};
+        previousSymbol = "";
     }
 
     function handleClose() {
         show = false;
+        // รีเซ็ตค่าทั้งหมดหลังจากปิด modal
         setTimeout(() => {
-            form = {
-                account: accountId,
-                entryDate: getCurrentDateTime(),
-                exitDate: getCurrentDateTime(),
-                symbol: "",
-                status: "OPEN",
-                side: "LONG",
-                quantity: "",
-                amount: "",
-                entryPrice: "",
-                exitPrice: "",
-                pnl: "",
-                entryReason: "",
-                exitReason: "",
-                strategy: "",
-                emotions: "",
-                notes: "",
-                url: "",
-                confidenceLevel: 5,
-                greedLevel: 5,
-                hasStopLoss: false,
-                hasTakeProfit: false,
-                favorite: false,
-                leverage: 1,
-                tags: [],
-            };
-            errors = {};
-            previousSymbol = "";
-        }, 150);
-        dispatch('close');
+            resetForm();
+            trade = null;
+            initialFormData = null;
+            showLimitWarning = false;
+            showLimitError = false;
+            dailyTradeCount = 0;
+            dispatch('close');
+        }, 150); // รอให้ animation เสร็จก่อนรีเซ็ตค่า
     }
 
     const statusOptions = [
@@ -303,6 +368,8 @@
     });
 
     async function handleTagSelect(event) {
+        if (subscriptionType === SUBSCRIPTION_TYPES.BASIC) return;
+        
         const tagValue = event.detail.value;
         if (form.tags.length < 7 && !form.tags.includes(tagValue)) {
             try {
@@ -320,7 +387,6 @@
         form.tags = form.tags.filter(t => t !== tag);
     }
 
-    // เพิ่มฟังก์ชันสำหรับสร้างสีจาก tag string
     function getTagColor(tag) {
         const colors = [
             { bg: 'bg-blue-500/10', text: 'text-blue-500' },
@@ -332,12 +398,18 @@
             { bg: 'bg-indigo-500/10', text: 'text-indigo-500' },
         ];
         
-        // ใช้ string hash เพื่อให้ tag เดียวกันได้สีเดิมเสมอ
         const hash = tag.split('').reduce((acc, char) => {
             return char.charCodeAt(0) + ((acc << 5) - acc);
         }, 0);
         
         return colors[Math.abs(hash) % colors.length];
+    }
+
+    async function handleLimitWarningClose(shouldProceed) {
+        showLimitWarning = false;
+        if (shouldProceed) {
+            await submitTrade();
+        }
     }
 </script>
 
@@ -364,6 +436,31 @@
                         </div>
                     {/if}
                 </div>
+
+                {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                    <button
+                        type="button"
+                        class="upgrade-button group"
+                        on:click={upgradePlan}
+                    >
+                        <span class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                            </svg>
+                            Upgrade
+                            <svg 
+                                class="w-4 h-4 transition-transform group-hover:translate-x-0.5" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </span>
+                    </button>
+                {/if}
                 <button
                     class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
                     on:click={handleClose}
@@ -382,17 +479,6 @@
                         />
                     </svg>
                 </button>
-                {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
-                    <Button
-                        type="button"
-                        variant="link"
-                        size="small"
-                        on:click={upgradePlan}
-                        class="text-base"
-                    >
-                        Upgrade
-                    </Button>
-                {/if}
             </div>
 
             <!-- Scrollable Content -->
@@ -592,15 +678,28 @@
                         >
                             Analysis
                             {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
-                                <Button
+                                <button
                                     type="button"
-                                    variant="link"
-                                    size="small"
+                                    class="upgrade-button-section group"
                                     on:click={upgradePlan}
-                                    class="text-base"
                                 >
-                                    Upgrade
-                                </Button>
+                                    <span class="flex items-center gap-1.5">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                        </svg>
+                                        Upgrade to Pro
+                                        <svg 
+                                            class="w-4 h-4 transition-transform group-hover:translate-x-0.5" 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </span>
+                                </button>
                             {/if}
                         </h3>
 
@@ -684,15 +783,28 @@
                         >
                             Additional Information
                             {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
-                                <Button
+                                <button
                                     type="button"
-                                    variant="link"
-                                    size="small"
+                                    class="upgrade-button-section group"
                                     on:click={upgradePlan}
-                                    class="text-base"
                                 >
-                                    Upgrade
-                                </Button>
+                                    <span class="flex items-center gap-1.5">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                        </svg>
+                                        Upgrade to Pro
+                                        <svg 
+                                            class="w-4 h-4 transition-transform group-hover:translate-x-0.5" 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </span>
+                                </button>
                             {/if}
                         </h3>
 
@@ -726,7 +838,7 @@
                                             value=""
                                             options={$tradeTagStore.tags.map(t => ({ value: t.value }))}
                                             on:change={handleTagSelect}
-                                            disabled={form.tags.length >= 7 || subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                             loading={$tradeTagStore.loading}
                                             error={$tradeTagStore.error}
                                         />
@@ -735,12 +847,14 @@
                                             <div class="flex flex-wrap gap-2 mt-2">
                                                 {#each form.tags as tag}
                                                     {@const tagColor = getTagColor(tag)}
-                                                    <div class="flex items-center gap-1 px-2 py-1 rounded-full {tagColor.bg} {tagColor.text} text-sm">
+                                                    <div class="flex items-center gap-1 px-2 py-1 rounded-full {tagColor.bg} {tagColor.text} text-sm 
+                                                        {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'opacity-50 pointer-events-none' : ''}">
                                                         <span>{tag}</span>
                                                         <button
                                                             type="button"
-                                                            class="hover:opacity-75"
+                                                            class="hover:opacity-75 {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'cursor-not-allowed' : ''}"
                                                             on:click={() => removeTag(tag)}
+                                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                                         >
                                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -764,7 +878,8 @@
                                     id="trade-notes"
                                     bind:value={form.notes}
                                     rows="3"
-                                    class="w-full px-2.5 py-1.5 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg resize-none"
+                                    class="w-full px-2.5 py-1.5 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg resize-none
+                                        {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'opacity-50 cursor-not-allowed' : ''}"
                                     placeholder="Additional notes about the trade..."
                                     disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
@@ -781,7 +896,8 @@
                                     id="trade-url"
                                     type="url"
                                     bind:value={form.url}
-                                    class="w-full px-2.5 py-1.5 h-8 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg"
+                                    class="w-full px-2.5 py-1.5 h-8 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg
+                                        {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'opacity-50 cursor-not-allowed' : ''}"
                                     placeholder="Enter a URL (e.g., TradingView chart, image, etc.)"
                                     disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
@@ -838,12 +954,40 @@
     </div>
 {/if}
 
+<!-- Warning Modal (3 trades) -->
+{#if showLimitWarning}
+    <LimitReachedModal
+        show={showLimitWarning}
+        title="Daily Trade Limit"
+        description="You've used 3 of 4 daily trades. You can delete existing trades to add new ones, or upgrade to Pro for unlimited trading."
+        upgradeText="Upgrade to Pro"
+        cancelText="Cancel"
+        showContinueButton={true}
+        width="md"
+        on:close={() => handleLimitWarningClose(false)}
+        on:continue={() => handleLimitWarningClose(true)}
+        on:upgrade={upgradePlan}
+    />
+{/if}
+
+<!-- Error Modal (4 trades) -->
+{#if showLimitError}
+    <LimitReachedModal
+        show={showLimitError}
+        title="Trade Limit Reached"
+        description="Daily limit reached (4/4). Delete existing trades to add new ones, or upgrade to Pro for unlimited trading."
+        upgradeText="Upgrade to Pro"
+        cancelText="Close"
+        width="md"
+        on:close={() => showLimitError = false}
+        on:upgrade={upgradePlan}
+    />
+{/if}
+
 <style lang="postcss">
     .card {
         @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-xl;
     }
-
-
 
     .input-wrapper :global(input),
     .input-wrapper :global(.input) {
@@ -874,4 +1018,37 @@
     }
     
     /* Override global input styles */
+
+    .upgrade-button {
+        @apply px-3 py-1.5 rounded-full text-sm font-medium
+        bg-gradient-to-r from-theme-500 to-theme-600
+        text-white shadow-sm
+        transition-all duration-200
+        hover:shadow-md hover:scale-105
+        focus:outline-none focus:ring-2 focus:ring-theme-500 focus:ring-offset-2
+        dark:focus:ring-offset-dark-card;
+    }
+
+    .upgrade-button-section {
+        @apply px-3 py-1 rounded-full text-sm font-medium
+        bg-gradient-to-r from-theme-500/10 to-theme-600/10
+        text-theme-500
+        transition-all duration-200
+        hover:from-theme-500 hover:to-theme-600 hover:text-white
+        focus:outline-none focus:ring-2 focus:ring-theme-500/50;
+    }
+
+    /* Animation keyframes */
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    .upgrade-button {
+        animation: pulse 2s infinite;
+    }
+
+    .upgrade-button:hover {
+        animation: none;
+    }
 </style>

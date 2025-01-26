@@ -1,21 +1,13 @@
 // src/lib/utils/formatters.js
 
-export function formatCurrency(value) {
-    if (value === null || value === undefined) return '$0';
-
-    // Convert to number if it's a string
-    const numValue = typeof value === 'string' ? parseFloat(value) : value;
-
-    // Check if the number has decimal places
-    const hasDecimal = numValue % 1 !== 0;
-
-    // Format with appropriate decimal places
+export function formatCurrency(value, currency = 'USD') {
+    if (typeof value !== 'number' || isNaN(value)) {
+        return '$0.00';
+    }
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: hasDecimal ? 2 : 0,
-        maximumFractionDigits: 2
-    }).format(numValue);
+        currency: currency
+    }).format(value);
 }
 
 // Alias for formatCurrency
@@ -40,4 +32,18 @@ export function formatPnL(pnl) {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     }).format(pnl);
+}
+
+export function formatPercentage(value, decimals = 2) {
+    if (typeof value !== 'number' || isNaN(value)) {
+        return '0%';
+    }
+    return `${value >= 0 ? '+' : ''}${value.toFixed(decimals)}%`;
+}
+
+export function formatNumber(value, decimals = 0) {
+    if (typeof value !== 'number' || isNaN(value)) {
+        return '0';
+    }
+    return value.toFixed(decimals);
 }

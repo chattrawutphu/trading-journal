@@ -20,6 +20,7 @@
     import ProfitTargetWidget from './ProfitTargetWidget.svelte';
     import OpenPositionsWidget from './OpenPositionsWidget.svelte';
     import ShortCalendarWidget from './ShortCalendarWidget.svelte';
+    import TopTradesWidget from './TopTradesWidget.svelte';
 
     // Import utilities
     import { 
@@ -150,7 +151,8 @@
             'TradeChart': TradeChart,
             'ProfitTargetWidget': ProfitTargetWidget,
             'OpenPositionsWidget': OpenPositionsWidget,
-            'ShortCalendar': ShortCalendarWidget
+            'ShortCalendar': ShortCalendarWidget,
+            'TopTradesWidget': TopTradesWidget
         };
 
         return componentMap[baseType] || null;
@@ -170,7 +172,15 @@
                 target: config.target
             };
         } else if (baseType === 'OpenPositionsWidget') {
-            return { trades, theme: config.theme };
+            return { trades: openTrades, theme: config.theme };
+        } else if (baseType === 'TopTradesWidget') {
+            return {
+                trades: [...openTrades, ...closedTrades],
+                period: config.period || 'all',
+                metric: config.metric || 'pnl',
+                limit: config.limit || 5,
+                showChart: config.showChart ?? true
+            };
         }
         return {};
     }

@@ -68,6 +68,14 @@ export function getDefaultConfig(widgetType) {
             textSize: 'medium',
             disabled: { cols: false, rows: false },
             height: 'auto'
+        },
+        TopTradesWidget: {
+            cols: 6,
+            rows: 4,
+            textSize: 'medium',
+            period: 'all',
+            metric: 'pnl',
+            limit: 5
         }
     };
 
@@ -87,7 +95,8 @@ export const widgetLimits = {
     TradingStats: 1,
     ProfitTargetWidget: 3,
     OpenPositionsWidget: 1,
-    ShortCalendar: 1
+    ShortCalendar: 1,
+    TopTradesWidget: 2
 };
 
 export function getWidgetDescription(widgetId) {
@@ -170,6 +179,16 @@ export function getWidgetDescription(widgetId) {
                 "Quick navigation between days",
                 "Trade performance indicators",
                 "Daily profit/loss tracking"
+            ]
+        },
+        TopTradesWidget: {
+            title: "Top Trades Analysis",
+            description: "Display your best performing trades based on different metrics like highest P&L, highest win rate, or largest position size.",
+            features: [
+                "Multiple ranking metrics",
+                "Customizable time periods",
+                "Detailed trade statistics",
+                "Quick trade insights"
             ]
         }
     };
@@ -260,6 +279,12 @@ export function generateSampleProps(widgetType) {
         },
         OpenPositionsWidget: {
             trades: openTrades
+        },
+        TopTradesWidget: {
+            trades: sampleTrades,
+            period: 'all',
+            metric: 'pnl',
+            limit: 5
         }
     };
 
@@ -454,6 +479,15 @@ export const DEFAULT_LAYOUT_CONFIG = {
         },
         {
             type: 'OpenPositionsWidget'
+        },
+        {
+            type: 'TopTradesWidget',
+            config: {
+                period: 'all',
+                metric: 'pnl',
+                limit: 5,
+                showChart: true
+            }
         }
     ]
 };

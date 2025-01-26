@@ -17,14 +17,18 @@ function createTransactionStore() {
                     type,
                     amount: parseFloat(amount),
                     date: date.toISOString(),
-                    note // Include note
+                    note
                 });
+
                 if (!response.success) {
-                    throw new Error(response.error);
+                    throw new Error(response.error || 'Failed to create transaction');
                 }
+
+                await transactionStore.fetchTransactions(accountId);
                 return response.data;
             } catch (error) {
-                throw new Error(error.message || 'Failed to create transaction');
+                console.error('Transaction error:', error);
+                throw new Error('Failed to create transaction. Please try again.');
             }
         },
         updateTransaction: async(transactionId, data) => {
@@ -69,6 +73,17 @@ function createTransactionStore() {
                     transactions: []
                 }));
             }
+        },
+        getTransactions: async(accountId) => {
+            let state;
+            subscribe(s => state = s)();
+
+            if (state.transactions.length === 0) {
+                await transactionStore.fetchTransactions(accountId);
+                subscribe(s => state = s)();
+            }
+
+            return state.transactions;
         },
         reset: () => {
             set({

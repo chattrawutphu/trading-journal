@@ -7,6 +7,9 @@
     import { transactionDate } from '$lib/stores/transactionDateStore';
     import { loadingStore } from '$lib/stores/loadingStore';
     import { goto } from '$app/navigation';
+    import { subscriptionStore } from '$lib/stores/subscriptionStore';
+    import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
+    import LimitReachedModal from '../common/LimitReachedModal.svelte';
 
     const dispatch = createEventDispatcher();
 
@@ -15,6 +18,16 @@
     export let accountId;
     export let type = 'deposit';
     export let initialDate = null;
+
+    let showLimitWarning = false;
+    let showLimitError = false;
+    let dailyTransactionCount = 0;
+    let loadingCount = false;
+
+    // เพิ่มตัวแปรเพื่อเก็บค่าเริ่มต้น
+    let initialFormData = null;
+
+    let error = null;
 
     // สร้างฟังก์ชันสำหรับสร้างฟอร์มเริ่มต้น
     function createInitialForm() {
@@ -28,24 +41,24 @@
 
     let form = createInitialForm();
 
-    // รีเซ็ตฟอร์มเมื่อ type หรือ initialDate เปลี่ยน
-    $: {
-        if (!transaction) {
-            form.type = type;
-            form.date = initialDate ? formatDateTimeLocal(initialDate) : getCurrentDateTime();
-        }
-    }
-
-    // อัพเดตฟอร์มเมื่อมี transaction
-    $: if (transaction) {
-        form = {
-            ...form,
+    // อัพเดทฟอร์มเมื่อมี transaction (เฉพาะครั้งแรก)
+    $: if (transaction && !initialFormData) {
+        initialFormData = {
             ...transaction,
             date: formatDateTimeLocal(transaction.date),
             type: transaction.type || type,
             amount: transaction.amount || '',
             note: transaction.note || '',
         };
+        form = { ...initialFormData };
+    }
+
+    // รีเซ็ตฟอร์มเมื่อ type หรือ initialDate เปลี่ยน (เฉพาะกรณีสร้างใหม่)
+    $: {
+        if (!transaction && !initialFormData) {
+            form.type = type;
+            form.date = initialDate ? formatDateTimeLocal(initialDate) : getCurrentDateTime();
+        }
     }
 
     function formatDateTimeLocal(dateInput) {
@@ -73,12 +86,82 @@
         return now.toLocaleString('sv-SE', { hour12: false }).slice(0, 16);
     }
 
-    async function handleSubmit() {
-        if (form.amount > 0) {
-            try {
-                loadingStore.set(true);
+    // เพิ่มฟังก์ชันสำหรับนับจำนวน transactions ในวันนั้น
+    async function countDailyTransactions(date) {
+        if (!accountId || loadingCount) return 0;
+        
+        try {
+            loadingCount = true;
+            const transactions = await transactionStore.getTransactions(accountId);
+            const targetDate = new Date(date).toISOString().split('T')[0];
+            
+            const count = transactions.filter(transaction => {
+                const transactionDate = new Date(transaction.date).toISOString().split('T')[0];
+                return transactionDate === targetDate;
+            }).length;
+            
+            return count;
+        } catch (error) {
+            console.error('Error counting daily transactions:', error);
+            return 0;
+        } finally {
+            loadingCount = false;
+        }
+    }
 
-                const transactionType = form.type === "deposit" ? "deposit" : "withdrawal";
+    async function handleSubmit() {
+        if (form.amount <= 0) return;
+
+        try {
+            loadingStore.set(true);
+            
+            // เช็ค limit เฉพาะเมื่อสร้าง transaction ใหม่
+            if (!transaction && $subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC) {
+                const count = await countDailyTransactions(form.date);
+                dailyTransactionCount = count;
+
+                if (count >= 4) {
+                    showLimitError = true;
+                    loadingStore.set(false);
+                    return;
+                }
+                
+                if (count >= 3) {
+                    showLimitWarning = true;
+                    loadingStore.set(false);
+                    return;
+                }
+            }
+
+            await submitTransaction();
+        } catch (err) {
+            console.error('Error in handleSubmit:', err);
+        } finally {
+            loadingStore.set(false);
+        }
+    }
+
+    function handleLimitWarningClose(shouldProceed) {
+        showLimitWarning = false;
+        if (shouldProceed) {
+            submitTransaction();
+        }
+    }
+
+    // แยกฟังก์ชันสำหรับการ submit transaction
+    async function submitTransaction() {
+        try {
+            error = null;
+            const transactionType = form.type === "deposit" ? "deposit" : "withdrawal";
+            
+            if (transaction) {
+                await transactionStore.updateTransaction(transaction._id, {
+                    type: transactionType,
+                    amount: form.amount,
+                    date: new Date(form.date),
+                    note: form.note
+                });
+            } else {
                 await transactionStore.createTransaction(
                     accountId,
                     transactionType,
@@ -86,30 +169,56 @@
                     new Date(form.date),
                     form.note
                 );
-
-                transactionDate.set(null);
-                await accountStore.setCurrentAccount(accountId);
-                await transactionStore.fetchTransactions(accountId);
-                
-                dispatch("close");
-                dispatch("transactionUpdated", { accountId });
-                
-                // รีเซ็ตฟอร์มหลังจากบันทึกสำเร็จ
-                form = createInitialForm();
-
-                goto(window.location.pathname);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                loadingStore.set(false);
             }
+
+            transactionDate.set(null);
+            await accountStore.setCurrentAccount(accountId);
+            await transactionStore.fetchTransactions(accountId);
+            
+            // รีเซ็ตค่าทั้งหมดก่อนปิด modal
+            resetForm();
+            transaction = null;
+            initialFormData = null;
+            showLimitWarning = false;
+            showLimitError = false;
+            dailyTransactionCount = 0;
+
+            dispatch("close");
+            dispatch("transactionUpdated", { accountId });
+            
+            show = false;
+            goto(window.location.pathname);
+        } catch (err) {
+            console.error('Transaction Error:', err);
+            error = err.message;
+            return;
         }
     }
 
-    function closeModal() {
-        transactionDate.set(null);
+    function upgradePlan() {
+        goto('/settings/subscription');
+    }
+
+    // เพิ่มฟังก์ชันสำหรับรีเซ็ตฟอร์ม
+    function resetForm() {
+        initialFormData = null;
         form = createInitialForm();
-        dispatch("close");
+        error = null;
+    }
+
+    function closeModal() {
+        show = false;
+        // รีเซ็ตค่าทั้งหมดหลังจากปิด modal
+        setTimeout(() => {
+            transactionDate.set(null);
+            resetForm();
+            transaction = null;
+            initialFormData = null;
+            showLimitWarning = false;
+            showLimitError = false;
+            dailyTransactionCount = 0;
+            dispatch("close");
+        }, 150); // รอให้ animation เสร็จก่อนรีเซ็ตค่า
     }
 </script>
 
@@ -125,6 +234,17 @@
                 </button>
             </div>
             <div class="px-8 py-6 space-y-4">
+                {#if error}
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                        <span class="block sm:inline">
+                            {#if error.includes('Insufficient balance')}
+                                You cannot withdraw more than your current balance
+                            {:else}
+                                {error}
+                            {/if}
+                        </span>
+                    </div>
+                {/if}
                 <form on:submit|preventDefault={handleSubmit}>
                     <div class="input-wrapper">
                         <Input
@@ -160,6 +280,36 @@
             </div>
         </div>
     </div>
+{/if}
+
+<!-- Warning Modal (3 transactions) -->
+{#if showLimitWarning}
+    <LimitReachedModal
+        show={showLimitWarning}
+        title="Daily Transaction Limit"
+        description="You've used 3 of 4 daily transactions. You can delete existing transactions to add new ones, or upgrade to Pro for unlimited transactions."
+        upgradeText="Upgrade to Pro"
+        cancelText="Cancel"
+        showContinueButton={true}
+        width="md"
+        on:close={() => handleLimitWarningClose(false)}
+        on:continue={() => handleLimitWarningClose(true)}
+        on:upgrade={upgradePlan}
+    />
+{/if}
+
+<!-- Error Modal (4 transactions) -->
+{#if showLimitError}
+    <LimitReachedModal
+        show={showLimitError}
+        title="Transaction Limit Reached"
+        description="Daily limit reached (4/4). Delete existing transactions to add new ones, or upgrade to Pro for unlimited transactions."
+        upgradeText="Upgrade to Pro"
+        cancelText="Close"
+        width="md"
+        on:close={() => showLimitError = false}
+        on:upgrade={upgradePlan}
+    />
 {/if}
 
 <style lang="postcss">

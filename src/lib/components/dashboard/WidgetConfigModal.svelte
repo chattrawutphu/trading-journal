@@ -293,6 +293,69 @@
                     </div>
                 </div>
             {/if}
+
+            {#if selectedWidget?.id.startsWith('TopTradesWidget')}
+                <div class="space-y-4">
+                    <h4 class="text-sm font-medium text-light-text dark:text-dark-text">Top Trades Settings</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                                Metric
+                            </label>
+                            <select 
+                                bind:value={config.metric}
+                                class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm"
+                            >
+                                <option value="pnl">Highest P&L</option>
+                                <option value="pnlPercentage">Highest P&L %</option>
+                                <option value="amount">Largest Position Size</option>
+                                <option value="riskRewardRatio">Best Risk/Reward</option>
+                                <option value="duration">Longest Duration</option>
+                                <option value="quickest">Quickest Trades</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                                Period
+                            </label>
+                            <select 
+                                bind:value={config.period}
+                                class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm"
+                            >
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="year">This Year</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                                Number of Trades
+                            </label>
+                            <input
+                                type="number"
+                                bind:value={config.limit}
+                                min="1"
+                                max="10"
+                                class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm"
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                                Show Chart
+                            </label>
+                            <select 
+                                bind:value={config.showChart}
+                                class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm"
+                            >
+                                <option value={true}>Yes</option>
+                                <option value={false}>No</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            {/if}
         </div>
     </div>
 

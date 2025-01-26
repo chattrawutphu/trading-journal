@@ -142,9 +142,9 @@
         return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
     }
 
-    function calculatePnLPercentage(pnl, balance) {
-        if (!balance || balance === 0) return null;
-        return (pnl / Math.abs(balance)) * 100;
+    function calculatePnLPercentage(pnl, amount) {
+        if (!amount || amount === 0) return 0;
+        return (pnl / amount) * 100;
     }
 
     async function handleFavorite(id) {
@@ -315,11 +315,9 @@
                             </span>
                         </td>
                         <td class="py-1 px-2 text-right">
-                            {#if dailyBalance?.endBalance}
-                                <span class={trade.pnl >= 0 ? 'text-green-500' : 'text-red-500'}>
-                                    {formatPercentage(calculatePnLPercentage(trade.pnl, dailyBalance.endBalance))}
-                                </span>
-                            {/if}
+                            <span class={trade.pnl >= 0 ? 'text-green-500' : 'text-red-500'}>
+                                {formatPercentage(calculatePnLPercentage(trade.pnl, trade.amount))}
+                            </span>
                         </td>
                     {/if}
                     <td class="py-1 px-2">

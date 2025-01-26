@@ -10,6 +10,10 @@
     import Button from "../common/Button.svelte";
     import Input from "../common/Input.svelte";
     import Loading from "../common/Loading.svelte";
+    import { subscriptionStore } from '$lib/stores/subscriptionStore';
+    import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
+    import Modal from '../common/Modal.svelte';
+    import LimitReachedModal from '../common/LimitReachedModal.svelte';
 
     const dispatch = createEventDispatcher();
 
@@ -20,8 +24,14 @@
     let editingAccount = null;
     let error = "";
     let switchingAccount = false;
+    let showUpgradeModal = false;
 
     async function handleCreateAccount() {
+        if ($subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC && $accountStore.accounts.length > 0) {
+            showUpgradeModal = true;
+            return;
+        }
+
         if (newAccountName.trim()) {
             try {
                 error = "";
@@ -107,6 +117,12 @@
         } finally {
             switchingAccount = false;
         }
+    }
+
+    function upgradePlan() {
+        showUpgradeModal = false;
+        showNewAccountModal = false;
+        goto('/settings/subscription');
     }
 </script>
 
@@ -233,26 +249,32 @@
 
     <!-- Add Account Button -->
     <div class="border-t border-light-border dark:border-0 px-4 py-2">
-        <button
-            id="add-account"
-            class="w-full text-left px-3 py-2 rounded-lg text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover flex items-center"
-            on:click|stopPropagation={() => (showNewAccountModal = true)}
-        >
-            <svg
-                class="w-5 h-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+        {#if $subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC && $accountStore.accounts.length > 0}
+            <button
+                id="add-account"
+                class="w-full text-left px-3 py-2 rounded-lg text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover flex items-center justify-between"
+                on:click|stopPropagation={() => (showUpgradeModal = true)}
             >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4v16m8-8H4"
-                />
-            </svg>
-            Add Account
-        </button>
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Account
+                </div>
+                <span class="text-xs text-theme-500/70">Pro Feature</span>
+            </button>
+        {:else}
+            <button
+                id="add-account"
+                class="w-full text-left px-3 py-2 rounded-lg text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover flex items-center"
+                on:click|stopPropagation={() => (showNewAccountModal = true)}
+            >
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add Account
+            </button>
+        {/if}
     </div>
 </div>
 
@@ -420,6 +442,20 @@
             </div>
         </div>
     </div>
+{/if}
+
+<!-- Upgrade Modal -->
+{#if showUpgradeModal}
+    <LimitReachedModal
+        show={showUpgradeModal}
+        title="Account Limit Reached"
+        description="Basic users are limited to 1 account. Upgrade to Pro for unlimited accounts and advanced features."
+        upgradeText="Upgrade to Pro"
+        cancelText="Maybe Later"
+        width="md"
+        on:close={() => showUpgradeModal = false}
+        on:upgrade={upgradePlan}
+    />
 {/if}
 
 <style lang="postcss">

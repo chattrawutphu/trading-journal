@@ -340,14 +340,14 @@
                                             </div>
                                         </div>
                                         <div class="h-6 hidden md:flex w-px bg-light-border dark:bg-dark-border"></div>
-                                        <div class="flex items-center gap-2">
+                                        <div class="flex flex-wrap items-center gap-2">
                                             <div class="flex items-center gap-1">
                                                 <span class="text-sm font-bold text-green-500">{dailySummary.winCount}</span>
-                                                <span class="text-xs text-light-text-muted dark:text-dark-text-muted">Wins</span>
+                                                <span class="text-xs text-light-text-muted dark:text-dark-text-muted">Win</span>
                                             </div>
                                             <div class="flex items-center gap-1">
                                                 <span class="text-sm font-bold text-red-500">{dailySummary.lossCount}</span>
-                                                <span class="text-xs text-light-text-muted dark:text-dark-text-muted">Losses</span>
+                                                <span class="text-xs text-light-text-muted dark:text-dark-text-muted">Loss</span>
                                             </div>
                                             {#if dailySummary.openTradesCount > 0}
                                                 <div class="flex items-center gap-1">

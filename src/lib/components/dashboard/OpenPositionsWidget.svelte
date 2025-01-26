@@ -195,36 +195,34 @@
     });
 </script>
 
-<div class="h-full flex flex-col bg-light-card dark:bg-dark-card rounded-lg shadow-sm">
+<div class="h-full flex flex-col bg-light-card dark:bg-dark-card rounded-lg overflow-hidden shadow-sm">
     <!-- Header -->
-    <div class="p-4 border-b border-light-border dark:border-0">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-theme-500 bg-opacity-10 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="text-md font-medium text-light-text dark:text-dark-text">
-                        Open Positions
-                    </h3>
-                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
-                        {openPositions.length} active {openPositions.length === 1 ? 'position' : 'positions'}
-                    </p>
-                </div>
+    <div class="p-4 pb-2 border-b border-light-border dark:border-dark-border bg-gradient-to-r from-theme-500/5 to-transparent dark:from-theme-500/10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-theme-500/10 flex items-center justify-center">
+                <svg class="w-6 h-6 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h2 class="text-lg font-semibold text-light-text dark:text-dark-text">
+                    Open Positions
+                </h2>
+                <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                    {openPositions.length} active {openPositions.length === 1 ? 'position' : 'positions'}
+                </p>
             </div>
         </div>
 
         <!-- Summary Stats -->
-        <div class="grid grid-cols-2 gap-3">
-            <div class="p-3 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30">
+        <div class="grid grid-cols-2 gap-3 mt-2">
+            <div class="p-1.5 rounded-lg bg-light-background/50 dark:bg-dark-background/50 border border-transparent">
                 <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Total Amount</p>
                 <p class="text-lg font-bold text-light-text dark:text-dark-text">
                     {formatCurrency(totalInvested)}
                 </p>
             </div>
-            <div class="p-3 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30">
+            <div class="p-1.5 rounded-lg bg-light-background/50 dark:bg-dark-background/50 border border-transparent">
                 <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Active Positions</p>
                 <p class="text-lg font-bold text-theme-500">
                     {openPositions.length}
@@ -234,86 +232,102 @@
     </div>
 
     <!-- Positions List -->
-    <div class="flex-1 p-4 overflow-y-auto">
-        {#if openPositions.length > 0}
-            <div class="space-y-3">
+    <div class="flex-1 overflow-y-auto p-3">
+        {#if openPositions.length === 0}
+            <div class="h-full flex items-center justify-center text-center p-4">
+                <div class="space-y-3">
+                    <div class="w-16 h-16 rounded-full bg-theme-500/5 flex items-center justify-center mx-auto">
+                        <svg class="w-8 h-8 text-theme-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-medium text-light-text dark:text-dark-text">
+                            No open positions
+                        </p>
+                        <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                            Your active trades will appear here
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {:else}
+            <div class="space-y-2">
                 {#each visiblePositions as position}
                     <div 
-                        class="p-3 rounded-lg border border-light-border dark:border-0 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors relative {getPositionAnimationClass(position.side)}"
+                        class="w-full p-2 rounded-lg bg-light-background/50 dark:bg-dark-background/50 hover:bg-theme-500/5 dark:hover:bg-theme-500/10 
+                               transition-all duration-200 relative border border-transparent hover:border-theme-500/20"
                         transition:slide
                     >
                         <div class="flex items-center justify-between mb-2">
-                            <div class="flex  items-center gap-2">
-                                <span class="text-md font-medium text-light-text dark:text-dark-text">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="font-medium text-light-text dark:text-dark-text">
                                     {position.symbol}
                                 </span>
-                                <span class="text-xs relative font-bold px-2 py-0.5 rounded-full {position.side === 'LONG' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
+                                <span class="text-xs relative px-2 py-0.5 rounded-full font-bold
+                                            {position.side === 'LONG' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
                                     {position.side}
-                                    <div class=" absolute h-full w-full top-0 right-0 animate-ping px-2 py-0.5 rounded-full {position.side === 'LONG' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}"></div>
+                                    <div class="absolute h-full w-full top-0 right-0 animate-ping rounded-full 
+                                              {position.side === 'LONG' ? 'bg-green-500/10' : 'bg-red-500/10'}">
+                                    </div>
                                 </span>
-                                
                             </div>
-                            <div class="flex items-center gap-1">
-                                <div class="text-right mr-4">
-                                    <p class="text-sm font-medium text-light-text dark:text-dark-text">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-light-text dark:text-dark-text">
                                         {formatCurrency(position.amount)}
                                     </p>
-                                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                                    <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
                                         {getDaysSinceEntry(position.entryDate)} days
                                     </p>
                                 </div>
                                 <!-- Action Buttons -->
-                                <div class="flex gap-1 relative z-10">
+                                <div class="flex gap-1">
                                     <button 
-                                        class="icon-button text-theme-500 hover:text-theme-600 cursor-pointer"
+                                        class="p-2 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
                                         on:click={() => handleView(position)}
-                                        title="View details"
                                     >
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                         </svg>
                                     </button>
                                     <button 
-                                        class="icon-button text-theme-500 hover:text-theme-600 cursor-pointer"
+                                        class="p-2 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
                                         on:click={() => handleEdit(position)}
-                                        title="Edit trade"
                                     >
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                         </svg>
                                     </button>
                                     <button 
-                                        class="icon-button text-theme-500 hover:text-theme-600 cursor-pointer"
+                                        class="p-2 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
                                         on:click={() => handleFavorite(position._id)}
-                                        title={position.favorite ? 'Remove from favorites' : 'Add to favorites'}
                                     >
                                         <svg class="w-4 h-4" fill={position.favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
                                         </svg>
                                     </button>
                                     <button 
-                                        class="icon-button text-red-500 hover:text-red-600 cursor-pointer"
+                                        class="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"
                                         on:click={() => handleDelete(position)}
-                                        title="Delete trade"
                                     >
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                         </svg>
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 text-sm text-light-text-muted dark:text-dark-text-muted">
+                        <div class="grid grid-cols-2 gap-4 mt-2">
                             <div>
-                                <p class="mb-0.5">Entry Price</p>
-                                <p class="font-medium text-md text-light-text dark:text-dark-text">
+                                <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Entry Price</p>
+                                <p class="font-medium text-light-text dark:text-dark-text">
                                     ${position.entryPrice.toFixed(2)}
                                 </p>
                             </div>
                             <div>
-                                <p class="mb-0.5">Entry Date</p>
-                                <p class="font-medium text-md text-light-text dark:text-dark-text">
+                                <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Entry Date</p>
+                                <p class="font-medium text-light-text dark:text-dark-text">
                                     {formatDate(position.entryDate)}
                                 </p>
                             </div>
@@ -324,12 +338,11 @@
                 <!-- Toggle Button for Mobile -->
                 {#if openPositions.length > 4 && window.innerWidth < 768}
                     <button
-                        class="w-full mt-4 p-3 rounded-lg border border-light-border dark:border-dark-hover 
-                               hover:bg-light-hover dark:hover:bg-dark-hover transition-colors
+                        class="w-full mt-4 p-3 rounded-lg bg-light-background/50 dark:bg-dark-background/50 
+                               hover:bg-theme-500/5 dark:hover:bg-theme-500/10 transition-colors
                                text-sm text-light-text-muted dark:text-dark-text-muted
-                               flex items-center justify-center gap-2"
+                               flex items-center justify-center gap-2 border border-transparent hover:border-theme-500/20"
                         on:click={togglePositions}
-                        transition:slide
                     >
                         <span>
                             {showAllPositions ? 'Show Less' : `Show ${openPositions.length - 4} More`}
@@ -340,22 +353,10 @@
                             stroke="currentColor" 
                             viewBox="0 0 24 24"
                         >
-                            <path 
-                                stroke-linecap="round" 
-                                stroke-linejoin="round" 
-                                stroke-width="2" 
-                                d="M19 9l-7 7-7-7"
-                            />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
                 {/if}
-            </div>
-        {:else}
-            <div class="flex flex-col items-center justify-center h-full text-light-text-muted dark:text-dark-text-muted">
-                <svg class="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                </svg>
-                <p class="text-sm">No open positions</p>
             </div>
         {/if}
     </div>
@@ -473,5 +474,26 @@
     /* Add smooth transition for toggle */
     .space-y-3 {
         transition: all 0.2s ease-in-out;
+    }
+
+    /* Improved hover effects */
+    button {
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+
+    /* Desktop optimizations */
+    @media (min-width: 1024px) {
+        .p-3 {
+            padding: 1rem;
+        }
+
+        .gap-3 {
+            gap: 1rem;
+        }
+
+        .text-lg {
+            font-size: 1.125rem;
+        }
     }
 </style>

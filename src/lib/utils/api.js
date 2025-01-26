@@ -224,10 +224,10 @@ export const api = {
         return fetchWithAuth(`/transactions/${accountId}`);
     },
 
-    async createTransaction(transactionData) {
+    async createTransaction(data) {
         return fetchWithAuth('/transactions', {
             method: 'POST',
-            body: JSON.stringify(transactionData),
+            body: JSON.stringify(data)
         });
     },
 
