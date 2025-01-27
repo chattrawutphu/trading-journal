@@ -7,6 +7,7 @@
     import Select from "../common/Select.svelte";
     import DatePicker from '../common/DatePicker.svelte';
     import { api } from '$lib/utils/api';
+    import { dailyBalancesStore } from '$lib/stores/dailyBalancesStore';
 
     const dispatch = createEventDispatcher();
 
@@ -24,6 +25,16 @@
     let dailyTrades = {};
     let dailyBalances = {};
     let selectedDayBalance = null;
+
+    // เพิ่ม reactive statement สำหรับ monthly stats โดยให้ track dailyBalances ด้วย
+    $: monthlyStats = calculateMonthlyStats(statsPerDay, dailyBalances);
+
+    // ทำให้ monthlyStats update เมื่อ selectedMonth หรือ selectedYear หรือ dailyBalances เปลี่ยน
+    $: {
+        if (selectedMonth !== undefined && selectedYear !== undefined && dailyBalances) {
+            monthlyStats = calculateMonthlyStats(statsPerDay, dailyBalances);
+        }
+    }
 
     async function loadData() {
         if (isPreview) return;
@@ -222,16 +233,22 @@
     // Compute daily balances based on transactions and trades
     $: {
         dailyBalances = {};
+        
+        // หา balance สุดท้ายของเดือนก่อนหน้า
+        const prevMonthLastDay = new Date(selectedYear, selectedMonth, 0);
+        const prevMonthLastDayKey = formatDateForInput(prevMonthLastDay);
+        
+        // เริ่มต้นด้วย initial balance หรือ balance สุดท้ายของเดือนก่อนหน้า
         let cumulativeBalance = $accountStore.currentAccount?.initialBalance || 0;
-
-        // Sort all dates chronologically
-        const allDates = [...new Set([
+        
+        // หา balance ทั้งหมดก่อนเดือนที่เลือก
+        const allDatesBeforeMonth = [...new Set([
             ...trades.map(t => normalizeDate(t.status === "CLOSED" ? t.exitDate : t.entryDate).toISOString().split('T')[0]),
             ...$transactionStore.transactions.map(t => normalizeDate(t.date).toISOString().split('T')[0])
-        ])].sort();
+        ])].sort().filter(date => date < formatDateForInput(new Date(selectedYear, selectedMonth, 1)));
 
-        // Calculate running balance for each date
-        allDates.forEach(dateKey => {
+        // คำนวณ balance สะสมจนถึงวันสุดท้ายของเดือนก่อนหน้า
+        allDatesBeforeMonth.forEach(dateKey => {
             const dayTransactions = $transactionStore.transactions.filter(t => 
                 normalizeDate(t.date).toISOString().split('T')[0] === dateKey
             );
@@ -245,40 +262,58 @@
                 sum + (t.type === "deposit" ? t.amount : -t.amount), 0
             );
             
-            const tradeChange = dayTrades.reduce((sum, t) => {
-                const pnl = Number(t.pnl) || 0;
-                return sum + pnl;
-            }, 0);
+            const tradeChange = dayTrades.reduce((sum, t) => 
+                sum + (Number(t.pnl) || 0), 0
+            );
 
-            // Store the balance for this date
+            cumulativeBalance += transactionChange + tradeChange;
+        });
+
+        // คำนวณ balance สำหรับเดือนปัจจุบัน
+        const currentMonthDates = [...new Set([
+            ...trades.map(t => normalizeDate(t.status === "CLOSED" ? t.exitDate : t.entryDate).toISOString().split('T')[0]),
+            ...$transactionStore.transactions.map(t => normalizeDate(t.date).toISOString().split('T')[0])
+        ])].sort().filter(date => {
+            const currentDate = new Date(date);
+            return currentDate.getMonth() === selectedMonth && currentDate.getFullYear() === selectedYear;
+        });
+
+        // Fill in all days of the current month
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        for (let day = 1; day <= daysInMonth; day++) {
+            const currentDate = new Date(selectedYear, selectedMonth, day);
+            const dateKey = formatDateForInput(currentDate);
+            
+            const dayTransactions = $transactionStore.transactions.filter(t => 
+                normalizeDate(t.date).toISOString().split('T')[0] === dateKey
+            );
+
+            const dayTrades = trades.filter(t => 
+                t.status === "CLOSED" && 
+                normalizeDate(t.exitDate).toISOString().split('T')[0] === dateKey
+            );
+
+            const transactionChange = dayTransactions.reduce((sum, t) => 
+                sum + (t.type === "deposit" ? t.amount : -t.amount), 0
+            );
+            
+            const tradeChange = dayTrades.reduce((sum, t) => 
+                sum + (Number(t.pnl) || 0), 0
+            );
+
             dailyBalances[dateKey] = {
                 startBalance: cumulativeBalance,
                 endBalance: cumulativeBalance + transactionChange + tradeChange,
                 transactions: dayTransactions,
-                trades: dayTrades
+                trades: dayTrades,
+                hasActivity: dayTransactions.length > 0 || dayTrades.length > 0
             };
 
-            // Update cumulative balance after storing
             cumulativeBalance += transactionChange + tradeChange;
-        });
-
-        // Fill in any missing dates in the current month
-        const currentMonthStart = new Date(selectedYear, selectedMonth, 1);
-        const currentMonthEnd = new Date(selectedYear, selectedMonth + 1, 0);
-
-        let currentDate = new Date(currentMonthStart);
-        while (currentDate <= currentMonthEnd) {
-            const dateKey = currentDate.toISOString().split('T')[0];
-            if (!dailyBalances[dateKey]) {
-                dailyBalances[dateKey] = {
-                    startBalance: cumulativeBalance,
-                    endBalance: cumulativeBalance,
-                    transactions: [],
-                    trades: []
-                };
-            }
-            currentDate.setDate(currentDate.getDate() + 1);
         }
+
+        // Update dailyBalancesStore
+        dailyBalancesStore.set(dailyBalances);
     }
 
     function getDayStats(day) {
@@ -378,13 +413,10 @@
         return "";
     }
 
-    function formatPnL(pnl) {
-        return new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(pnl);
+    function formatPnL(value) {
+        if (!value) return '$0';
+        const prefix = value >= 0 ? '+$' : '-$';
+        return `${prefix}${Math.abs(value).toFixed(2)}`;
     }
 
     function handleDayClick(day, stats) {
@@ -437,6 +469,7 @@
         loadData();
     }
 
+    // แก้ไขฟังก์ชัน previousMonth และ nextMonth ให้ไม่ต้องเรียก loadData
     function previousMonth() {
         if (selectedMonth === 0) {
             selectedMonth = 11;
@@ -465,48 +498,176 @@
         );
     }
 
+    // เพิ่มฟังก์ชันใหม่เพื่อคำนวณ stats จาก statsPerDay
+    function calculateMonthlyStats(statsPerDay, dailyBalances) {
+        let stats = {
+            openTrades: 0,
+            wins: 0,
+            losses: 0,
+            pnl: 0,
+            volume: 0,
+            monthlyPercentage: 0
+        };
+
+        // วนลูปผ่านทุกวันในเดือน
+        Object.values(statsPerDay).forEach(dayStats => {
+            if (!dayStats) return;
+            
+            stats.openTrades += dayStats.openTrades || 0;
+            stats.wins += dayStats.wins || 0;
+            stats.losses += dayStats.losses || 0;
+            stats.pnl += dayStats.pnl || 0;
+            stats.volume += dayStats.totalInvested || 0;
+        });
+
+        // คำนวณ ROI
+        stats.roi = stats.volume > 0 ? ((stats.pnl / stats.volume) * 100).toFixed(1) : 0;
+
+        // คำนวณ monthly percentage จาก start balance ของวันแรก และ end balance ของวันสุดท้าย/ปัจจุบัน
+        const monthStartDate = new Date(selectedYear, selectedMonth, 1);
+        const today = new Date();
+        const isCurrentMonth = selectedYear === today.getFullYear() && selectedMonth === today.getMonth();
+        const monthEndDate = isCurrentMonth ? today : new Date(selectedYear, selectedMonth + 1, 0);
+        
+        const startDateKey = formatDateForInput(monthStartDate);
+        const endDateKey = formatDateForInput(monthEndDate);
+
+        // ตรวจสอบว่ามี dailyBalances และมีข้อมูลของวันที่ต้องการ
+        if (dailyBalances && dailyBalances[startDateKey]) {
+            const startBalance = dailyBalances[startDateKey].startBalance;
+            if (startBalance && startBalance !== 0) {
+                // คำนวณ percentage โดยไม่รวม transactions
+                const monthlyPnL = stats.pnl; // ใช้เฉพาะ P&L จาก trades
+                stats.monthlyPercentage = ((monthlyPnL / Math.abs(startBalance)) * 100).toFixed(2);
+            }
+        }
+
+        return stats;
+    }
+
+    // เพิ่มฟังก์ชันสำหรับหา end of month balance ของเดือนก่อนหน้า
+    function getPreviousMonthEndBalance() {
+        // หาวันสุดท้ายของเดือนก่อนหน้า
+        const lastDayPrevMonth = new Date(selectedYear, selectedMonth, 0);
+        const dateKey = formatDateForInput(lastDayPrevMonth);
+        
+        // ถ้ามี balance ของวันนั้น ให้ใช้ endBalance
+        if (dailyBalances[dateKey]) {
+            return dailyBalances[dateKey].endBalance;
+        }
+        
+        // ถ้าไม่มี ให้หา balance ล่าสุดก่อนวันนั้น
+        const allDates = Object.keys(dailyBalances).sort();
+        const prevDate = allDates.filter(date => date < dateKey).pop();
+        
+        return prevDate ? dailyBalances[prevDate].endBalance : 0;
+    }
+
+    // เพิ่มฟังก์ชันที่จำเป็นกลับเข้าไป
+    function formatAmount(amount) {
+        if (!amount) return '0';
+        if (amount >= 1000000) {
+            return (amount / 1000000).toFixed(1) + 'M';
+        }
+        if (amount >= 1000) {
+            return (amount / 1000).toFixed(1) + 'K';
+        }
+        return amount.toFixed(0);
+    }
+
+    function getMonthlyPnLClass() {
+        const pnl = monthlyStats.pnl;
+        if (pnl > 0) return 'text-green-500 dark:text-green-400';
+        if (pnl < 0) return 'text-red-500 dark:text-red-400';
+        return 'text-light-text dark:text-dark-text';
+    }
+
 </script>
 
 <div class="card h-full flex flex-col">
-    <div class="p-4 border-b border-light-border dark:border-0">
-        <div class="flex justify-between items-center relative">
-            <div class="flex items-center justify-between w-full gap-2">
-                <span
-                    class="text-xl font-semibold cursor-pointer text-light-text-muted dark:text-dark-text"
-                    on:click={() => showDatePicker = !showDatePicker}
-                >
+    <!-- Header -->
+    <div class="p-3 border-b border-light-border dark:border-dark-border bg-gradient-to-r from-theme-500/5 to-transparent dark:from-theme-500/10">
+        <div class="flex items-center gap-3">
+            <!-- Left: Calendar icon & Month selector -->
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-theme-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <span class="cursor-pointer text-base font-semibold text-light-text dark:text-dark-text flex items-center gap-1" 
+                      on:click={() => showDatePicker = !showDatePicker}>
                     {months[selectedMonth]} {selectedYear}
-                    <svg class="w-5 h-5 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                 </span>
-                <div class="flex items-center">
-                    <button
-                        class="p-1"
-                        on:click={previousMonth}
-                        aria-label="Previous month"
-                    >
-                    <svg class="h-6 w-6 text-white bg-purple-500 hover:bg-purple-700  rounded-md"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <polyline points="11 7 6 12 11 17" />  <polyline points="17 7 12 12 17 17" /></svg>
-                    </button>
-                    <button
-                        class="p-1"
-                        on:click={nextMonth}
-                        aria-label="Next month"
-                    >
-                    <svg class="h-6 w-6 text-white bg-purple-500 hover:bg-purple-700 rounded-md"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <polyline points="13 17 18 12 13 7" />  <polyline points="6 17 11 12 6 7" /></svg>
-                    </button>
+            </div>
+
+            <!-- Center: Monthly Stats (Card-like) -->
+            <div class="flex-1 rounded-lg bg-light-background/50 dark:bg-dark-background/50 p-1.5 flex items-center">
+                <div class="flex items-center gap-1 flex-wrap">
+                    <!-- Open Trades -->
+                    {#if monthlyStats.openTrades > 0}
+                        <span class="text-xs whitespace-nowrap bg-yellow-500/10 dark:bg-yellow-400/10 px-1 rounded text-yellow-600 dark:text-yellow-400">
+                            {monthlyStats.openTrades} open
+                        </span>
+                    {/if}
+                    <!-- Win Trades -->
+                    {#if monthlyStats.wins > 0}
+                        <span class="text-xs whitespace-nowrap bg-green-500/10 dark:bg-green-400/10 px-1 rounded text-green-600 dark:text-green-400">
+                            {monthlyStats.wins} win
+                        </span>
+                    {/if}
+                    <!-- Loss Trades -->
+                    {#if monthlyStats.losses > 0}
+                        <span class="text-xs whitespace-nowrap bg-red-500/10 dark:bg-red-400/10 px-1 rounded text-red-600 dark:text-red-400">
+                            {monthlyStats.losses} loss
+                        </span>
+                    {/if}
+                </div>
+                <div class="ms-auto flex items-center gap-2">
+                    <span class="text-sm font-bold {getMonthlyPnLClass()}">
+                        {formatPnL(monthlyStats.pnl)}
+                    </span>
+                    <!-- แสดง monthly percentage ถ้ามีค่า -->
+                    {#if monthlyStats.monthlyPercentage !== 0}
+                        <span class="text-xs {monthlyStats.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                            {monthlyStats.monthlyPercentage}%
+                        </span>
+                    {/if}
+                    <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                        ${formatAmount(monthlyStats.volume)}
+                    </span>
                 </div>
             </div>
-            {#if showDatePicker}
-                <DatePicker
-                    bind:selectedMonth
-                    bind:selectedYear
-                    bind:showDatePicker
-                    months={months}
-                    years={years}
-                />
-            {/if}
+
+            <!-- Right: Navigation -->
+            <div class="flex items-center gap-1">
+                <button class="p-1" on:click={previousMonth} aria-label="Previous month">
+                    <svg class="h-6 w-6 text-white bg-theme-500 hover:bg-theme-600 rounded-md" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z"/>
+                        <polyline points="15 6 9 12 15 18" />
+                    </svg>
+                </button>
+                <button class="p-1" on:click={nextMonth} aria-label="Next month">
+                    <svg class="h-6 w-6 text-white bg-theme-500 hover:bg-theme-600 rounded-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z"/>
+                        <polyline points="9 6 15 12 9 18" />
+                    </svg>
+                </button>
+            </div>
         </div>
+
+        {#if showDatePicker}
+            <DatePicker
+                bind:selectedMonth
+                bind:selectedYear
+                bind:showDatePicker
+                months={months}
+                years={years}
+            />
+        {/if}
     </div>
 
     <div class="flex-1 p-4 flex flex-col">
@@ -531,35 +692,22 @@
                                    {isToday(day) ? 'today-card' : ''}"
                             on:click={() => handleDayClick(day, statsPerDay[day])}
                         >
-                            <!-- วันที่ว่างเท่านั้นที่จะมี hover effect -->
-                            {#if !statsPerDay[day]?.pnl && !statsPerDay[day]?.openTrades && !statsPerDay[day]?.transactions?.length && !isFutureDate(day)}
-                                <div class="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 z-30">
-                                    <svg
-                                        class="w-8 h-8 text-gray-400/50 dark:text-gray-500/50"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M12 4v16m8-8H4"
-                                        />
-                                    </svg>
-                                </div>
-                            {/if}
 
                             <!-- เนื้อหาปกติ -->
                             <div class="relative h-full flex flex-col z-20">
-                                <div class="pt-0.5 px-1 pb-0 text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                                <div class=" absolute top-0 end-0 pt-0.5 px-1 pb-0 text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
                                     <div class="flex w-full justify-between items-center">
-                                        {#if isToday(day)}
-                                            <span class="text-xs text-purple-500 dark:text-purple-400">today</span>
-                                        {/if}
+
                                         <span class="ml-auto">{day}</span>
                                     </div>
                                 </div>
+<div class=" absolute top-0 start-0 pt-0.5 px-1 pb-0 text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                                    <div class="flex w-full justify-between items-center">
+                                {#if isToday(day)}
+                                <span class="text-xs text-purple-500 dark:text-purple-400">today</span>
+                            {/if}
+                        </div>
+                    </div>
 
                                 {#if statsPerDay[day]}
                                     <div
@@ -665,6 +813,25 @@
                                         {/if}
                                     </div>
                                 </div>
+                                {/if}
+
+                                <!-- วันที่ว่างเท่านั้นที่จะมี hover effect -->
+                                {#if !statsPerDay[day]?.pnl && !statsPerDay[day]?.openTrades && !statsPerDay[day]?.transactions?.length && !isFutureDate(day)}
+                                    <div class="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 z-30">
+                                        <svg
+                                            class="w-8 h-8 text-gray-400/50 dark:text-gray-500/50"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M12 4v16m8-8H4"
+                                            />
+                                        </svg>
+                                    </div>
                                 {/if}
                             </div>
                         </div>

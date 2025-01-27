@@ -97,6 +97,38 @@
         return localDate.toISOString().slice(0,16);
     }
 
+    function resetForm() {
+        initialFormData = null;
+        const currentForm = { ...form };
+        form = {
+            entryDate: getCurrentDateTime(),
+            exitDate: getCurrentDateTime(),
+            symbol: currentForm.symbol || "",
+            status: currentForm.status || "OPEN",
+            side: currentForm.side || "LONG",
+            quantity: currentForm.quantity || "",
+            amount: currentForm.amount || "",
+            entryPrice: currentForm.entryPrice || "",
+            exitPrice: currentForm.exitPrice || "",
+            pnl: currentForm.pnl || "",
+            entryReason: currentForm.entryReason || "",
+            exitReason: currentForm.exitReason || "",
+            strategy: currentForm.strategy || "",
+            emotions: currentForm.emotions || "",
+            notes: currentForm.notes || "",
+            url: currentForm.url || "",
+            confidenceLevel: currentForm.confidenceLevel || 5,
+            greedLevel: currentForm.greedLevel || 5,
+            hasStopLoss: currentForm.hasStopLoss || false,
+            hasTakeProfit: currentForm.hasTakeProfit || false,
+            favorite: currentForm.favorite || false,
+            leverage: currentForm.leverage || 1,
+            tags: currentForm.tags || [],
+        };
+        errors = {};
+        previousSymbol = currentForm.symbol || "";
+    }
+
     $: if (show && !initialFormData) {
         if (trade) {
             initialFormData = {
@@ -111,15 +143,18 @@
                 tags: trade.tags || [],
             };
             form = { ...initialFormData };
-            previousSymbol = trade.symbol;
         } else if ($tradeDate) {
+            const currentForm = { ...form };
             resetForm();
-            const dateFromStore = new Date($tradeDate);
-            dateFromStore.setHours(7, 0, 0, 0);
-            form.entryDate = formatDateTimeLocal(dateFromStore);
+            form = {
+                ...currentForm,
+                entryDate: formatDateTimeLocal(new Date($tradeDate).setHours(7, 0, 0, 0))
+            };
             tradeDate.set(null);
         } else {
+            const currentForm = { ...form };
             resetForm();
+            form = { ...currentForm };
         }
     }
 
@@ -291,41 +326,16 @@
             }
 
             await submitTrade();
+
+            // Dispatch events
+            window.dispatchEvent(new CustomEvent('tradeupdate'));
+            window.dispatchEvent(new CustomEvent('tradeupdated'));
+
+            show = false;
         } catch (err) {
             console.error('Error in handleSubmit:', err);
             errors.submit = err.message || 'An unexpected error occurred';
         }
-    }
-
-    function resetForm() {
-        initialFormData = null;
-        form = {
-            entryDate: getCurrentDateTime(),
-            exitDate: getCurrentDateTime(),
-            symbol: "",
-            status: "OPEN",
-            side: "LONG",
-            quantity: "",
-            amount: "",
-            entryPrice: "",
-            exitPrice: "",
-            pnl: "",
-            entryReason: "",
-            exitReason: "",
-            strategy: "",
-            emotions: "",
-            notes: "",
-            url: "",
-            confidenceLevel: 5,
-            greedLevel: 5,
-            hasStopLoss: false,
-            hasTakeProfit: false,
-            favorite: false,
-            leverage: 1,
-            tags: [],
-        };
-        errors = {};
-        previousSymbol = "";
     }
 
     function handleClose() {

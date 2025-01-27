@@ -4,6 +4,7 @@
     import { tradingStatsConfig, PERIOD_OPTIONS } from '$lib/utils/widgetUtils';
     import { api } from '$lib/utils/api';
     import { onMount, createEventDispatcher } from 'svelte';
+    import { dailyBalancesStore } from '$lib/stores/dailyBalancesStore';
 
     const dispatch = createEventDispatcher();
     let stats = {};
@@ -18,53 +19,170 @@
     export let textSize;
     export let isPreview = false;
 
+    // ปรับปรุงฟังก์ชัน loadStats
+    let loadStatsTimeout;
+    async function loadStats() {
+        if (loadStatsTimeout) {
+            clearTimeout(loadStatsTimeout);
+        }
+
+        loadStatsTimeout = setTimeout(async () => {
+            if (!$accountStore.currentAccount) return;
+            
+            const accountId = $accountStore.currentAccount._id;
+
+            try {
+                error = '';
+                stats = {};
+
+                const requests = $tradingStatsConfig.selectedPeriods.map(async period => {
+                    const { startDate, endDate } = getPeriodDates(period);
+                    
+                    // ดึงข้อมูล stats
+                    const periodStats = await api.getStats(accountId, period);
+                    if (!periodStats) return null;
+
+                    // ใช้ dailyBalances จาก store
+                    const balances = $dailyBalancesStore;
+                    
+                    // หา start balance และ current balance
+                    let startBalance = 0;
+                    let currentBalance = 0;
+
+                    if (balances && Object.keys(balances).length > 0) {
+                        // เรียงวันที่
+                        const sortedDates = Object.keys(balances).sort();
+                        
+                        if (period === 'all') {
+                            // สำหรับ all-time หาวันแรกที่มีกิจกรรม (trade หรือ transaction)
+                            for (const date of sortedDates) {
+                                if (balances[date].hasActivity) {
+                                    startBalance = balances[date].endBalance;
+                                    break;
+                                }
+                            }
+                            // ใช้ end balance ของวันล่าสุด
+                            const lastDate = sortedDates[sortedDates.length - 1];
+                            currentBalance = balances[lastDate].endBalance;
+                        } else if (startDate) {
+                            // สำหรับช่วงเวลาอื่นๆ ใช้ start balance ของวันแรกของช่วง
+                            const firstDate = startDate.toISOString().split('T')[0];
+                            
+                            // ถ้าไม่มีข้อมูลของวันแรก ให้หาวันที่ใกล้เคียงที่สุด
+                            if (!balances[firstDate]) {
+                                const nearestDate = sortedDates.find(date => date >= firstDate);
+                                if (nearestDate) {
+                                    startBalance = balances[nearestDate].startBalance;
+                                }
+                            } else {
+                                startBalance = balances[firstDate].startBalance;
+                            }
+                            
+                            // ใช้ end balance ของวันสุดท้ายในช่วง
+                            const endDateStr = endDate.toISOString().split('T')[0];
+                            const lastAvailableDate = sortedDates
+                                .filter(date => date <= endDateStr)
+                                .pop();
+                            if (lastAvailableDate) {
+                                currentBalance = balances[lastAvailableDate].endBalance;
+                            }
+                        }
+                    }
+
+                    // คำนวณ percentage จาก balance
+                    let balanceChange = 0;
+                    if (startBalance !== 0) {
+                        if (period === 'all') {
+                            // สำหรับ all-time ใช้ผลต่างของ balance
+                            balanceChange = ((currentBalance - startBalance) / Math.abs(startBalance)) * 100;
+                        } else {
+                            // สำหรับช่วงเวลาอื่นๆ ใช้ P&L
+                            balanceChange = ((periodStats.pnl / Math.abs(startBalance)) * 100);
+                        }
+                    }
+
+                    return {
+                        ...periodStats,
+                        balanceChange
+                    };
+                });
+
+                const results = await Promise.all(requests);
+
+                let newStats = {};
+                $tradingStatsConfig.selectedPeriods.forEach((period, i) => {
+                    if (results[i] !== null) {
+                        newStats[period] = results[i];
+                    }
+                });
+                
+                stats = newStats;
+
+                if (!selectedPeriod && $tradingStatsConfig.selectedPeriods.length > 0) {
+                    selectedPeriod = $tradingStatsConfig.selectedPeriods[0];
+                }
+            } catch (err) {
+                error = err.message;
+                console.error('Error loading stats:', err);
+            }
+        }, 100);
+    }
+
+    // เพิ่ม event listeners สำหรับ trade และ transaction updates
     onMount(async () => {
         if (isPreview) return;
         if ($accountStore.currentAccount) {
             await loadStats();
         }
 
-        // Subscribe to trade updates
-        window.addEventListener('tradeupdate', loadStats);
+        // Subscribe to trade and transaction updates
+        const handleUpdate = () => {
+            console.log('TradingStats: Received update event');
+            loadStats();
+        };
+        
+        window.addEventListener('tradeupdate', handleUpdate);
+        window.addEventListener('transactionupdate', handleUpdate);
+        
         return () => {
-            window.removeEventListener('tradeupdate', loadStats);
+            window.removeEventListener('tradeupdate', handleUpdate);
+            window.removeEventListener('transactionupdate', handleUpdate);
+            if (loadStatsTimeout) {
+                clearTimeout(loadStatsTimeout);
+            }
         };
     });
 
-    async function loadStats() {
-        if (!$accountStore.currentAccount) return;
+    // เพิ่มฟังก์ชันสำหรับหาวันแรกและวันสุดท้ายของแต่ละช่วงเวลา
+    function getPeriodDates(period) {
+        const today = new Date();
+        let startDate = new Date();
         
-        const accountId = $accountStore.currentAccount._id;
-
-        try {
-            error = '';
-            stats = {};
-
-            // Create a single batch request for all periods
-            const requests = $tradingStatsConfig.selectedPeriods.map(period => 
-                api.getStats(accountId, period).catch(err => null)
-            );
-
-            // Wait for all requests to complete
-            const results = await Promise.all(requests);
-
-            // Process results
-            let newStats = {};
-            $tradingStatsConfig.selectedPeriods.forEach((period, i) => {
-                if (results[i] !== null) {
-                    newStats[period] = results[i];
-                }
-            });
-            
-            stats = newStats;
-
-            // Set selectedPeriod if not set
-            if (!selectedPeriod && $tradingStatsConfig.selectedPeriods.length > 0) {
-                selectedPeriod = $tradingStatsConfig.selectedPeriods[0];
-            }
-        } catch (err) {
-            error = err.message;
+        switch (period) {
+            case 'day':
+                startDate = new Date(today.setHours(0, 0, 0, 0));
+                break;
+            case 'week':
+                // หาวันแรกของสัปดาห์ (จันทร์)
+                const day = today.getDay();
+                const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+                startDate = new Date(today.setDate(diff));
+                startDate.setHours(0, 0, 0, 0);
+                break;
+            case 'month':
+                // วันแรกของเดือน
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                break;
+            case 'year':
+                // วันแรกของปี
+                startDate = new Date(today.getFullYear(), 0, 1);
+                break;
+            case 'all':
+                // ใช้วันแรกที่มีการเทรด
+                return { startDate: null, endDate: today };
         }
+        
+        return { startDate, endDate: today };
     }
 
     // Watch for account changes
@@ -76,8 +194,10 @@
     }
 
     function formatPercentage(value) {
-        const sign = value > 0 ? '+' : '';
-        return `${sign}${value.toFixed(2)}%`;
+        // แปลงเป็น number ก่อนใช้งาน
+        const numValue = Number(value);
+        const sign = numValue > 0 ? '+' : '';
+        return `${sign}${numValue.toFixed(2)}%`;
     }
 
     function formatCurrency(value) {

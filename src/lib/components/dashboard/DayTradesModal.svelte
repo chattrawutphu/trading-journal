@@ -293,7 +293,11 @@
                         <div class="space-y-1">
                             <h4 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">End of Day Balance</h4>
                             <p class="text-lg font-bold text-light-text dark:text-dark-text">
-                                {formatCurrency(dailyBalance?.endBalance || 0)}
+                                {formatCurrency(
+                                    (!trades.length && !transactions.length) 
+                                        ? (dailyBalance?.startBalance || 0)
+                                        : (dailyBalance?.endBalance || 0)
+                                )}
                             </p>
                         </div>
 

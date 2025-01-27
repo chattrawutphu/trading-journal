@@ -32,6 +32,8 @@
     } from '$lib/utils/widgetUtils';
     import { widgetStore } from '$lib/stores/widgetStore';
     import { layoutStore } from '$lib/stores/layoutStore';
+    import { accountStore } from '$lib/stores/accountStore';
+    import { api } from '$lib/utils/api';
 
     const dispatch = createEventDispatcher();
     let mounted = false;
@@ -120,6 +122,8 @@
     let activeWidget = null;
     let handleWidgetSelect;
     let pendingWidgetData = null;
+    let loading = false;
+    let error = null;
 
     onMount(() => {
         mounted = true;
@@ -389,6 +393,43 @@
         showWidgetModal = false;
         pendingWidgetData = null;
     }
+
+    // เพิ่มฟังก์ชันสำหรับ reload ข้อมูลทั้งหมด
+    async function reloadAllData() {
+        if (!$accountStore.currentAccount) return;
+        
+        try {
+            loading = true;
+            error = null;
+
+            // เรียก API ที่จำเป็นทั้งหมด
+            await Promise.all([
+                api.getTrades($accountStore.currentAccount._id),
+                api.getTransactions($accountStore.currentAccount._id),
+                // เพิ่ม API อื่นๆ ที่ต้อง reload ตรงนี้
+            ]);
+
+            // Dispatch event เพื่อให้ components อื่นๆ update
+            window.dispatchEvent(new CustomEvent('layoutupdate'));
+
+        } catch (err) {
+            error = err.message;
+            console.error('Error reloading data:', err);
+        } finally {
+            loading = false;
+        }
+    }
+
+    onMount(() => {
+        // รับ event จาก TradeModal และ TransactionModal
+        window.addEventListener('tradeupdated', reloadAllData);
+        window.addEventListener('transactionupdated', reloadAllData);
+
+        return () => {
+            window.removeEventListener('tradeupdated', reloadAllData);
+            window.removeEventListener('transactionupdated', reloadAllData);
+        };
+    });
 </script>
 
 <div class="relative w-full {editMode ? 'edit-mode edit-mode-background px-3 pb-3' : ''}">
@@ -506,6 +547,13 @@
                 showConfigModal = false;
             }}
         />
+    {/if}
+
+    <!-- แสดง loading state ถ้าต้องการ -->
+    {#if loading}
+        <div class="loading-overlay">
+            Loading...
+        </div>
     {/if}
 </div>
 

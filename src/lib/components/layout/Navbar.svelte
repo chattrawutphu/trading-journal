@@ -8,7 +8,8 @@
     import Button from '../common/Button.svelte'; // Added import for Button component
     import TransactionModal from '../transactions/TransactionModal.svelte'; // Added import for TransactionModal component
     import { onMount } from 'svelte';
-  
+    import { api } from '$lib/utils/api';
+
     let showAccountMenu = false;
     let accountMenuRef;
     let showSubscriptionWarning = false;
@@ -77,9 +78,28 @@
         return type.toLowerCase();
     }
 
+    // เพิ่มฟังก์ชันสำหรับ reload account balance
+    async function reloadAccountBalance() {
+        if (!$accountStore.currentAccount?._id) return;
+        
+        try {
+            // Reload account data to get updated balance
+            await accountStore.setCurrentAccount($accountStore.currentAccount._id);
+        } catch (err) {
+            console.error('Error reloading account balance:', err);
+        }
+    }
+
     onMount(() => {
+        // Subscribe to layout updates
+        window.addEventListener('layoutupdate', reloadAccountBalance);
+        
         // Check localStorage for previous warning dismissal
         warningDismissed = localStorage.getItem('subscriptionWarningDismissed') === 'true';
+
+        return () => {
+            window.removeEventListener('layoutupdate', reloadAccountBalance);
+        };
     });
 
     // Reactive statement to check subscription expiry

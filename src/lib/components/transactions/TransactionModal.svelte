@@ -188,6 +188,10 @@
             
             show = false;
             goto(window.location.pathname);
+
+            // Dispatch events
+            window.dispatchEvent(new CustomEvent('transactionupdate'));
+            window.dispatchEvent(new CustomEvent('transactionupdated'));
         } catch (err) {
             console.error('Transaction Error:', err);
             error = err.message;

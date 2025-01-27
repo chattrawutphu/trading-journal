@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@kurkle/color": "^0.3.2",
+    "@neodrag/svelte": "^2.3.0",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.1",

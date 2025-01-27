@@ -105,15 +105,18 @@
     deleteModalStore.set({
       show: true,
       type: 'single',
-      context: 'trades',
+      context: 'transactions',
       count: 1,
-      itemName: `trade ${transaction.symbol}`,
-      onConfirm: () => {
+      itemName: `transaction`,
+      onConfirm: async () => {
         dispatch('delete', {
           type: 'single',
-          context: 'trades',
+          context: 'transactions',
           items: [transaction._id]
         });
+        // Dispatch events เมื่อลบสำเร็จ
+        window.dispatchEvent(new CustomEvent('transactionupdate'));
+        window.dispatchEvent(new CustomEvent('transactionupdated'));
       }
     });
   }
@@ -132,13 +135,16 @@
       type: 'selected',
       context: 'transactions',
       count: selectedTransactions.length,
-      onConfirm: () => {
+      onConfirm: async () => {
         dispatch('delete', {
           type: 'selected',
           context: 'transactions',
           items: selectedTransactions
         });
         selectedTransactions = [];
+        // Dispatch events เมื่อลบสำเร็จ
+        window.dispatchEvent(new CustomEvent('transactionupdate'));
+        window.dispatchEvent(new CustomEvent('transactionupdated'));
       }
     });
   }
@@ -148,12 +154,15 @@
       show: true,
       type: 'all',
       context: 'transactions',
-      onConfirm: () => {
+      onConfirm: async () => {
         dispatch('delete', {
           type: 'all',
           context: 'transactions',
           items: displayTransactions.map(t => t._id)
         });
+        // Dispatch events เมื่อลบสำเร็จ
+        window.dispatchEvent(new CustomEvent('transactionupdate'));
+        window.dispatchEvent(new CustomEvent('transactionupdated'));
       }
     });
   }

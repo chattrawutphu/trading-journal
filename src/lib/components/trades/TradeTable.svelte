@@ -96,12 +96,15 @@
             context: 'trades',
             count: 1,
             itemName: `trade ${trade.symbol}`,
-            onConfirm: () => {
+            onConfirm: async () => {
                 dispatch('delete', {
                     type: 'single',
                     context: 'trades',
                     items: [trade._id]
                 });
+                // Dispatch events เมื่อลบสำเร็จ
+                window.dispatchEvent(new CustomEvent('tradeupdate'));
+                window.dispatchEvent(new CustomEvent('tradeupdated'));
             }
         });
     }
@@ -112,13 +115,16 @@
             type: 'selected',
             context: 'trades',
             count: selectedTrades.length,
-            onConfirm: () => {
+            onConfirm: async () => {
                 dispatch('delete', {
                     type: 'selected',
                     context: 'trades',
                     items: selectedTrades
                 });
                 selectedTrades = [];
+                // Dispatch events เมื่อลบสำเร็จ
+                window.dispatchEvent(new CustomEvent('tradeupdate'));
+                window.dispatchEvent(new CustomEvent('tradeupdated'));
             }
         });
     }
@@ -128,12 +134,15 @@
             show: true,
             type: 'all',
             context: 'trades',
-            onConfirm: () => {
+            onConfirm: async () => {
                 dispatch('delete', {
                     type: 'all',
                     context: 'trades',
                     items: trades.map(t => t._id)
                 });
+                // Dispatch events เมื่อลบสำเร็จ
+                window.dispatchEvent(new CustomEvent('tradeupdate'));
+                window.dispatchEvent(new CustomEvent('tradeupdated'));
             }
         });
     }

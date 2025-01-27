@@ -29,6 +29,54 @@
         event.stopPropagation();
         onAddWidgetAtPosition(widget.id, position);
     }
+
+    function getMonthlyLosses() {
+        let losses = 0;
+        const startDate = new Date(selectedYear, selectedMonth, 1);
+        const endDate = new Date(selectedYear, selectedMonth + 1, 0);
+
+        Object.values(dailyTrades).forEach(dayStats => {
+            const tradeDate = new Date(dayStats.trades[0]?.exitDate);
+            if (tradeDate >= startDate && tradeDate <= endDate) {
+                losses += dayStats.losses || 0;
+            }
+        });
+
+        return losses;
+    }
+
+    function getMonthlyVolume() {
+        let volume = 0;
+        const startDate = new Date(selectedYear, selectedMonth, 1);
+        const endDate = new Date(selectedYear, selectedMonth + 1, 0);
+
+        Object.values(dailyTrades).forEach(dayStats => {
+            const tradeDate = new Date(dayStats.trades[0]?.exitDate);
+            if (tradeDate >= startDate && tradeDate <= endDate) {
+                volume += dayStats.totalInvested || 0;
+            }
+        });
+
+        return volume;
+    }
+
+    function formatAmount(amount) {
+        if (amount >= 1000000) {
+            return (amount / 1000000).toFixed(1) + 'M';
+        }
+        if (amount >= 1000) {
+            return (amount / 1000).toFixed(1) + 'K';
+        }
+        return amount.toFixed(0);
+    }
+
+    function getMonthlyROI() {
+        const pnl = getMonthlyPnL();
+        const volume = getMonthlyVolume();
+        
+        if (volume === 0) return 0;
+        return ((pnl / volume) * 100).toFixed(1);
+    }
 </script>
 
 <div 
