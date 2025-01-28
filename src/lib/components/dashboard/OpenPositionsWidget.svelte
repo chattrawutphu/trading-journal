@@ -20,6 +20,8 @@
     let showViewModal = false;
     let showEditModal = false;
     let selectedTrade = null;
+    let sortBy = 'date'; // 'date', 'symbol', 'amount'
+    let sortDirection = 'desc'; // 'asc', 'desc'
 
     $: if (trades) {
         calculatePositions();
@@ -42,7 +44,6 @@
             .map(position => {
                 if (!position) return null;
                 
-                // ใช้ค่า amount จาก API หรือคำนวณใหม่ถ้าไม่มี
                 let amount = position.amount;
                 if (!amount) {
                     const entryPrice = Number(position.entryPrice) || 0;
@@ -57,7 +58,24 @@
                 };
             })
             .filter(Boolean)
-            .sort((a, b) => new Date(b.entryDate) - new Date(a.entryDate));
+            .sort((a, b) => {
+                switch (sortBy) {
+                    case 'date':
+                        return sortDirection === 'desc' 
+                            ? new Date(b.entryDate) - new Date(a.entryDate)
+                            : new Date(a.entryDate) - new Date(b.entryDate);
+                    case 'symbol':
+                        return sortDirection === 'desc'
+                            ? b.symbol.localeCompare(a.symbol)
+                            : a.symbol.localeCompare(b.symbol);
+                    case 'amount':
+                        return sortDirection === 'desc'
+                            ? b.amount - a.amount
+                            : a.amount - b.amount;
+                    default:
+                        return 0;
+                }
+            });
 
         totalInvested = openPositions.reduce((sum, pos) => sum + (pos.amount || 0), 0);
     }
@@ -187,6 +205,18 @@
         showAllPositions = !showAllPositions;
     }
 
+    function handleSort(newSortBy) {
+        if (sortBy === newSortBy) {
+            // Toggle direction if clicking same sort field
+            sortDirection = sortDirection === 'desc' ? 'asc' : 'desc';
+        } else {
+            // New sort field, default to desc
+            sortBy = newSortBy;
+            sortDirection = 'desc';
+        }
+        calculatePositions();
+    }
+
     onMount(() => {
         return () => {
             openPositions = [];
@@ -253,110 +283,142 @@
             </div>
         {:else}
             <div class="space-y-2">
-                {#each visiblePositions as position}
-                    <div 
-                        class="w-full p-2 rounded-lg bg-light-background/50 dark:bg-dark-background/50 hover:bg-theme-500/5 dark:hover:bg-theme-500/10 
-                               transition-all duration-200 relative border border-transparent hover:border-theme-500/20"
-                        transition:slide
-                    >
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <span class="font-medium text-light-text dark:text-dark-text">
-                                    {position.symbol}
-                                </span>
-                                <span class="text-xs relative px-2 py-0.5 rounded-full font-bold
-                                            {position.side === 'LONG' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
-                                    {position.side}
-                                    <div class="absolute h-full w-full top-0 right-0 animate-ping rounded-full 
-                                              {position.side === 'LONG' ? 'bg-green-500/10' : 'bg-red-500/10'}">
-                                    </div>
-                                </span>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-2">
-                                <div class="flex flex-wrap gap-2 text-right items-center">
-                                    <p class="text-sm font-bold text-light-text dark:text-dark-text">
-                                        {formatCurrency(position.amount)}
-                                    </p>
-                                    <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                                        {getDaysSinceEntry(position.entryDate)} days
-                                    </p>
-                                </div>
-                                <!-- Action Buttons -->
-                                <div class="flex gap-0.5">
-                                    <button 
-                                        class="p-1 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
-                                        on:click={() => handleView(position)}
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                    </button>
-                                    <!--<button 
-                                        class="p-2 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
-                                        on:click={() => handleEdit(position)}
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                        </svg>
-                                    </button>
-                                    <button 
-                                        class="p-2 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
-                                        on:click={() => handleFavorite(position._id)}
-                                    >
-                                        <svg class="w-4 h-4" fill={position.favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-                                        </svg>
-                                    </button>-->
-                                    <button 
-                                        class="p-1 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"
-                                        on:click={() => handleDelete(position)}
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4 mt-2">
-                            <div>
-                                <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Entry Price</p>
-                                <p class="text-sm font-medium text-light-text dark:text-dark-text">
-                                    ${position.entryPrice.toFixed(2)}
-                                </p>
-                            </div>
-                            <div>
-                                <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Entry Date</p>
-                                <p class="text-sm font-medium text-light-text dark:text-dark-text">
-                                    {formatDate(position.entryDate)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                {/each}
-
-                <!-- Toggle Button for Mobile -->
-                {#if openPositions.length > 4 && window.innerWidth < 768}
+                <!-- Sort Controls -->
+                <div class="flex gap-2 mb-3">
                     <button
-                        class="w-full mt-4 p-3 rounded-lg bg-light-background/50 dark:bg-dark-background/50 
-                               hover:bg-theme-500/5 dark:hover:bg-theme-500/10 transition-colors
-                               text-sm text-light-text-muted dark:text-dark-text-muted
-                               flex items-center justify-center gap-2 border border-transparent hover:border-theme-500/20"
-                        on:click={togglePositions}
+                        class="px-2 py-1 text-xs font-medium rounded-md
+                               {sortBy === 'date' ? 'bg-theme-500 text-white' : 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted'}
+                               hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                        on:click={() => handleSort('date')}
                     >
-                        <span>
-                            {showAllPositions ? 'Show Less' : `Show ${openPositions.length - 4} More`}
-                        </span>
-                        <svg 
-                            class="w-4 h-4 transition-transform duration-200 {showAllPositions ? 'rotate-180' : ''}"
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                        >
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7"/>
-                        </svg>
+                        Date {sortBy === 'date' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                     </button>
-                {/if}
+                    <button
+                        class="px-2 py-1 text-xs font-medium rounded-md
+                               {sortBy === 'symbol' ? 'bg-theme-500 text-white' : 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted'}
+                               hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                        on:click={() => handleSort('symbol')}
+                    >
+                        Symbol {sortBy === 'symbol' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
+                    </button>
+                    <button
+                        class="px-2 py-1 text-xs font-medium rounded-md
+                               {sortBy === 'amount' ? 'bg-theme-500 text-white' : 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted'}
+                               hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                        on:click={() => handleSort('amount')}
+                    >
+                        Amount {sortBy === 'amount' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
+                    </button>
+                </div>
+
+                <!-- Positions List -->
+                <div class="space-y-0.5">
+                    {#each visiblePositions as position}
+                        <div 
+                            class="w-full p-2 rounded-lg bg-light-background/50 dark:bg-dark-background/50 
+                                   hover:bg-theme-500/5 dark:hover:bg-theme-500/10 
+                                   transition-all duration-200 relative"
+                            transition:slide
+                        >
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="font-medium text-light-text dark:text-dark-text">
+                                        {position.symbol}
+                                    </span>
+                                    <span class="text-xs relative px-2 py-0.5 rounded-full font-bold
+                                                {position.side === 'LONG' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
+                                        {position.side}
+                                        <div class="absolute h-full w-full top-0 right-0 animate-ping rounded-full 
+                                                  {position.side === 'LONG' ? 'bg-green-500/10' : 'bg-red-500/10'}">
+                                        </div>
+                                    </span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <div class="flex flex-wrap gap-2 text-right items-center">
+                                        <p class="text-sm font-bold text-light-text dark:text-dark-text">
+                                            {formatCurrency(position.amount)}
+                                        </p>
+                                        <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                                            {getDaysSinceEntry(position.entryDate)} days
+                                        </p>
+                                    </div>
+                                    <!-- Action Buttons -->
+                                    <div class="flex gap-0.5">
+                                        <button 
+                                            class="p-1 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
+                                            on:click={() => handleView(position)}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                        </button>
+                                        <!--<button 
+                                            class="p-2 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
+                                            on:click={() => handleEdit(position)}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                            </svg>
+                                        </button>
+                                        <button 
+                                            class="p-2 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
+                                            on:click={() => handleFavorite(position._id)}
+                                        >
+                                            <svg class="w-4 h-4" fill={position.favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                                            </svg>
+                                        </button>-->
+                                        <button 
+                                            class="p-1 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"
+                                            on:click={() => handleDelete(position)}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mt-2">
+                                <div>
+                                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Entry Price</p>
+                                    <p class="text-sm font-medium text-light-text dark:text-dark-text">
+                                        ${position.entryPrice.toFixed(2)}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Entry Date</p>
+                                    <p class="text-sm font-medium text-light-text dark:text-dark-text">
+                                        {formatDate(position.entryDate)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    {/each}
+
+                    <!-- Toggle Button for Mobile -->
+                    {#if openPositions.length > 4 && window.innerWidth < 768}
+                        <button
+                            class="w-full mt-4 p-3 rounded-lg bg-light-background/50 dark:bg-dark-background/50 
+                                   hover:bg-theme-500/5 dark:hover:bg-theme-500/10 transition-colors
+                                   text-sm text-light-text-muted dark:text-dark-text-muted
+                                   flex items-center justify-center gap-2"
+                            on:click={togglePositions}
+                        >
+                            <span>
+                                {showAllPositions ? 'Show Less' : `Show ${openPositions.length - 4} More`}
+                            </span>
+                            <svg 
+                                class="w-4 h-4 transition-transform duration-200 {showAllPositions ? 'rotate-180' : ''}"
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    {/if}
+                </div>
             </div>
         {/if}
     </div>
@@ -495,5 +557,12 @@
         .text-lg {
             font-size: 1.125rem;
         }
+    }
+
+    /* Improve spacing between positions */
+    .space-y-0\.5 > :not([hidden]) ~ :not([hidden]) {
+        --tw-space-y-reverse: 0;
+        margin-top: calc(0.125rem * calc(1 - var(--tw-space-y-reverse)));
+        margin-bottom: calc(0.125rem * var(--tw-space-y-reverse));
     }
 </style>

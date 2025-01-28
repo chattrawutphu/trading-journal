@@ -222,27 +222,43 @@
             />
           </th>
           <th class="text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-            <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('type')}>
-              Type
-              <span class="text-xs">{getSortIcon('type')}</span>
+            <button 
+              class="px-2 py-1 text-sm font-medium rounded-md
+                     {sortField === 'type' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                     hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+              on:click={() => handleSort('type')}
+            >
+              Type {sortField === 'type' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
             </button>
           </th>
           <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-            <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('amount')}>
-              Amount
-              <span class="text-xs">{getSortIcon('amount')}</span>
+            <button 
+              class="px-2 py-1 text-sm font-medium rounded-md ml-auto
+                     {sortField === 'amount' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                     hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+              on:click={() => handleSort('amount')}
+            >
+              Amount {sortField === 'amount' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
             </button>
           </th>
           <th class="text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-            <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('date')}>
-              Date
-              <span class="text-xs">{getSortIcon('date')}</span>
+            <button 
+              class="px-2 py-1 text-sm font-medium rounded-md
+                     {sortField === 'date' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                     hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+              on:click={() => handleSort('date')}
+            >
+              Date {sortField === 'date' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
             </button>
           </th>
           <th class="text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-            <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('note')}>
-              Note
-              <span class="text-xs">{getSortIcon('note')}</span>
+            <button 
+              class="px-2 py-1 text-sm font-medium rounded-md
+                     {sortField === 'note' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                     hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+              on:click={() => handleSort('note')}
+            >
+              Note {sortField === 'note' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
             </button>
           </th>
           {#if !readOnly}

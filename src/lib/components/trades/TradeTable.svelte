@@ -55,6 +55,11 @@
         }
     }
 
+    function calculatePnLPercentage(pnl, amount) {
+        if (!amount || amount === 0) return 0;
+        return (pnl / amount) * 100;
+    }
+
     $: sortedTrades = [...trades].sort((a, b) => {
         let aValue = a[sortField];
         let bValue = b[sortField];
@@ -65,6 +70,9 @@
         } else if (sortField === 'entryDate' || sortField === 'exitDate') {
             aValue = new Date(aValue).getTime();
             bValue = new Date(bValue).getTime();
+        } else if (sortField === 'pnlPercentage') {
+            aValue = calculatePnLPercentage(a.pnl, a.amount);
+            bValue = calculatePnLPercentage(b.pnl, b.amount);
         }
 
         if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
@@ -151,11 +159,6 @@
         return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
     }
 
-    function calculatePnLPercentage(pnl, amount) {
-        if (!amount || amount === 0) return 0;
-        return (pnl / amount) * 100;
-    }
-
     async function handleFavorite(id) {
         try {
             const trade = trades.find(t => t._id === id);
@@ -203,70 +206,115 @@
                     />
                 </th>
                 <th class="text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                    <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('symbol')}>
-                        Symbol
-                        <span class="text-xs">{getSortIcon('symbol')}</span>
+                    <button 
+                        class="px-2 py-1 text-sm font-medium rounded-md
+                               {sortField === 'symbol' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                               hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                        on:click={() => handleSort('symbol')}
+                    >
+                        Symbol {sortField === 'symbol' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                     </button>
                 </th>
                 <th class="text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                    <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('side')}>
-                        Side
-                        <span class="text-xs">{getSortIcon('side')}</span>
+                    <button 
+                        class="px-2 py-1 text-sm font-medium rounded-md
+                               {sortField === 'side' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                               hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                        on:click={() => handleSort('side')}
+                    >
+                        Side {sortField === 'side' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                     </button>
                 </th>
                 {#if type === 'open'}
                     <th class="text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                        <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('entryDate')}>
-                            Entry Date
-                            <span class="text-xs">{getSortIcon('entryDate')}</span>
+                        <button 
+                            class="px-2 py-1 text-sm font-medium rounded-md
+                                   {sortField === 'entryDate' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                                   hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                            on:click={() => handleSort('entryDate')}
+                        >
+                            Entry Date {sortField === 'entryDate' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                         </button>
                     </th>
                     <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('entryPrice')}>
-                            Entry Price
-                            <span class="text-xs">{getSortIcon('entryPrice')}</span>
+                        <button 
+                            class="px-2 py-1 text-sm font-medium rounded-md
+                                   {sortField === 'entryPrice' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                                   hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                            on:click={() => handleSort('entryPrice')}
+                        >
+                            Entry Price {sortField === 'entryPrice' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                         </button>
                     </th>
                     <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('amount')}>
-                            Amount
-                            <span class="text-xs">{getSortIcon('amount')}</span>
+                        <button 
+                            class="px-2 py-1 text-sm font-medium rounded-md
+                                   {sortField === 'amount' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                                   hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                            on:click={() => handleSort('amount')}
+                        >
+                            Amount {sortField === 'amount' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                         </button>
                     </th>
                 {:else}
                     <th class="text-left py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                        <button class="flex items-center gap-1 hover:text-theme-500" on:click={() => handleSort('exitDate')}>
-                            Exit Date
-                            <span class="text-xs">{getSortIcon('exitDate')}</span>
+                        <button 
+                            class="px-2 py-1 text-sm font-medium rounded-md
+                                   {sortField === 'exitDate' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                                   hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                            on:click={() => handleSort('exitDate')}
+                        >
+                            Exit Date {sortField === 'exitDate' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                         </button>
                     </th>
                     <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('entryPrice')}>
-                            Entry
-                            <span class="text-xs">{getSortIcon('entryPrice')}</span>
+                        <button 
+                            class="px-2 py-1 text-sm font-medium rounded-md
+                                   {sortField === 'entryPrice' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                                   hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                            on:click={() => handleSort('entryPrice')}
+                        >
+                            Entry {sortField === 'entryPrice' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                         </button>
                     </th>
                     <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('exitPrice')}>
-                            Exit
-                            <span class="text-xs">{getSortIcon('exitPrice')}</span>
+                        <button 
+                            class="px-2 py-1 text-sm font-medium rounded-md
+                                   {sortField === 'exitPrice' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                                   hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                            on:click={() => handleSort('exitPrice')}
+                        >
+                            Exit {sortField === 'exitPrice' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                         </button>
                     </th>
                     <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('amount')}>
-                            Amount
-                            <span class="text-xs">{getSortIcon('amount')}</span>
+                        <button 
+                            class="px-2 py-1 text-sm font-medium rounded-md
+                                   {sortField === 'amount' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                                   hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                            on:click={() => handleSort('amount')}
+                        >
+                            Amount {sortField === 'amount' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                         </button>
                     </th>
                     <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto" on:click={() => handleSort('pnl')}>
-                            P&L
-                            <span class="text-xs">{getSortIcon('pnl')}</span>
+                        <button 
+                            class="px-2 py-1 text-sm font-medium rounded-md
+                                   {sortField === 'pnl' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                                   hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                            on:click={() => handleSort('pnl')}
+                        >
+                            P&L {sortField === 'pnl' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                         </button>
                     </th>
                     <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                        <button class="flex items-center gap-1 hover:text-theme-500 ml-auto">
-                            P&L %
+                        <button 
+                            class="px-2 py-1 text-sm font-medium rounded-md
+                                   {sortField === 'pnlPercentage' ? 'bg-light-hover/50 dark:bg-dark-hover/50 text-light-text-muted dark:text-dark-text-muted' : 'hover:text-theme-500'}
+                                   hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
+                            on:click={() => handleSort('pnlPercentage')}
+                        >
+                            P&L % {sortField === 'pnlPercentage' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                         </button>
                     </th>
                 {/if}

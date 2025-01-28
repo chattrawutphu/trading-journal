@@ -200,14 +200,14 @@
     }
 
     :global(.edit-mode) .widget {
-        animation: shake 0.3s infinite;
+        animation: shake 0.4s infinite;
     }
 
     @keyframes shake {
         0% { transform: rotate(0deg); }
-        25% { transform: rotate(0.3deg); }
+        25% { transform: rotate(0.1deg); }
         50% { transform: rotate(0deg); }
-        75% { transform: rotate(-0.3deg); }
+        75% { transform: rotate(-0.1deg); }
         100% { transform: rotate(0deg); }
     }
 </style> 
