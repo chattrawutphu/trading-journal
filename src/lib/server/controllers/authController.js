@@ -1,5 +1,5 @@
 // server/controllers/authController.js
-import jwt from 'jsonwebtoken';
+// import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { SUBSCRIPTION_TYPES } from '../../config/subscription.js';
 import bcrypt from 'bcrypt';
@@ -96,41 +96,52 @@ export async function login(req, res) {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required' });
+            return res.status(400).json({ message: 'Please enter your email and password' });
         }
+
+        // Add 2 second delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Find user by email
         const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) {
-            return res.status(401).json({ message: 'Invalid email or password' });
+            return res.status(401).json({
+                message: 'We couldn\'t find an account with that email address. Please check and try again.'
+            });
         }
 
-        // ใช้ matchPassword method จาก User model แทนการใช้ bcrypt โดยตรง
+        // Check password
         const isValid = await user.matchPassword(password);
         if (!isValid) {
-            return res.status(401).json({ message: 'Invalid email or password' });
+            return res.status(401).json({
+                message: 'The password you entered is incorrect. Please try again.'
+            });
         }
 
-        // Generate token
-        const token = jwt.sign({ userId: user._id, email: user.email },
-            process.env.JWT_SECRET, { expiresIn: '24h' }
-        );
+        // Set session
+        req.session.userId = user._id;
 
         // Return user data without sensitive information
         const userData = {
             _id: user._id,
             email: user.email,
+            username: user.username,
+            role: user.role,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt
         };
 
         res.json({
             user: userData,
-            token
+            success: true,
+            message: 'Welcome back! You have successfully signed in.'
         });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({
+            message: 'Something went wrong. Please try again later.',
+            success: false
+        });
     }
 }
 

@@ -56,10 +56,7 @@ function createAuthStore() {
 
                 const authData = {
                     isAuthenticated: true,
-                    user: {
-                        ...response.user,
-                        email: response.user.email
-                    },
+                    user: response.user,
                     loading: false,
                     error: null,
                     subscriptionType: subscriptionStore.type

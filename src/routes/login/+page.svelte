@@ -3,11 +3,15 @@
     import { auth } from '$lib/stores/authStore';
     import { goto } from '$app/navigation';
     import ThemeToggle from '$lib/components/common/ThemeToggle.svelte';
+    import Toast from '$lib/components/common/Toast.svelte';
 
     let email = ''; // เปลี่ยนจาก identifier เป็น email
     let password = '';
     let error = '';
     let loading = false;
+    let showToast = false;
+    let toastMessage = '';
+    let toastType = 'success';
 
     const validateEmail = (email) => {
         return String(email)
@@ -18,6 +22,7 @@
     async function handleSubmit() {
         loading = true;
         error = '';
+        showToast = false;
 
         try {
             if (!email || !password) {
@@ -28,15 +33,21 @@
                 throw new Error('Please enter a valid email address');
             }
 
-            if (password.length < 6) {
-                throw new Error('Password must be at least 6 characters');
+            const response = await auth.login(email, password);
+            
+            if (response.success) {
+                toastType = 'success';
+                toastMessage = response.message || 'Welcome back! You have successfully signed in.';
+                showToast = true;
+                
+                // Show success message for 2 seconds before redirecting
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                goto('/dashboard');
+            } else {
+                throw new Error(response.message);
             }
-
-            await auth.login(email, password);
-            goto('/dashboard');
         } catch (err) {
             error = err.message || 'Login failed. Please try again.';
-            password = '';
         } finally {
             loading = false;
         }
@@ -217,3 +228,10 @@
         </div>
     </div>
 </div>
+
+<Toast 
+    bind:show={showToast}
+    message={toastMessage}
+    type={toastType}
+    duration={3000}
+/>
