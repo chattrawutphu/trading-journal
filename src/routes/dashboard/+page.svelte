@@ -14,6 +14,10 @@
     import { layoutStore } from '$lib/stores/layoutStore';
     import { createDefaultLayout } from '$lib/utils/widgetUtils';
     import { fade } from 'svelte/transition';
+    import LimitReachedModal from '$lib/components/common/LimitReachedModal.svelte';
+    import { subscriptionStore } from '$lib/stores/subscriptionStore';
+    import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
+    import { goto } from '$app/navigation';
 
     const dispatch = createEventDispatcher();
 
@@ -54,6 +58,16 @@
 
     // Add state for temporary layout
     let tempLayouts = null;
+
+    // เพิ่ม function สำหรับตรวจสอบ limit
+    function checkLayoutLimit() {
+        if ($subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC && layouts.length >= 2) {
+            showNewLayoutModal = false;
+            showUpgradeModal = true;
+            return true;
+        }
+        return false;
+    }
 
     onMount(async () => {
         try {
@@ -110,6 +124,8 @@
 
     // Modified addNewLayout function
     async function addNewLayout() {
+        if (checkLayoutLimit()) return;
+
         if (newLayoutName.trim()) {
             layouts = [...layouts, {
                 name: newLayoutName.trim(),
@@ -121,7 +137,6 @@
                 showNewLayoutModal = false;
                 newLayoutName = '';
             } catch (error) {
-                // Handle error
                 console.error('Error adding new layout:', error);
             }
         }
@@ -377,6 +392,14 @@
             window.removeEventListener('scroll', handleScroll, true);
         };
     });
+
+    // เพิ่ม function สำหรับ upgrade
+    function upgradePlan() {
+        showUpgradeModal = false;
+        goto('/settings/subscription');
+    }
+
+    let showUpgradeModal = false;
 </script>
 
 
@@ -460,22 +483,44 @@
                                 </div>
                             </div>
 
-                            <button
-                                class="w-full px-2 py-1.5 text-xs font-medium rounded
-                                       bg-theme-500/10 text-theme-500 dark:text-theme-400
-                                       hover:bg-theme-500/20 transition-colors"
-                                on:click={() => {
-                                    showNewLayoutModal = true;
-                                    showLayoutDropdown = false;
-                                }}
-                            >
-                                <div class="flex items-center justify-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                    </svg>
-                                    New Layout
-                                </div>
-                            </button>
+                            {#if $subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC && layouts.length >= 2}
+                                <button
+                                    class="w-full px-2 py-1.5 text-xs font-medium rounded
+                                           bg-theme-500/10 text-theme-500 dark:text-theme-400
+                                           hover:bg-theme-500/20 transition-colors"
+                                    on:click={() => {
+                                        showLayoutDropdown = false;
+                                        showUpgradeModal = true;
+                                    }}
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-1.5">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                            </svg>
+                                            New Layout
+                                        </div>
+                                        <span class="text-[10px] opacity-70">Pro Feature</span>
+                                    </div>
+                                </button>
+                            {:else}
+                                <button
+                                    class="w-full px-2 py-1.5 text-xs font-medium rounded
+                                           bg-theme-500/10 text-theme-500 dark:text-theme-400
+                                           hover:bg-theme-500/20 transition-colors"
+                                    on:click={() => {
+                                        showNewLayoutModal = true;
+                                        showLayoutDropdown = false;
+                                    }}
+                                >
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                        </svg>
+                                        New Layout
+                                    </div>
+                                </button>
+                            {/if}
                         </div>
                     </div>
                 {/if}
@@ -672,6 +717,20 @@
         bind:show={showViewModal}
         trade={selectedTrade}
         on:close={closeViewModal}
+    />
+{/if}
+
+<!-- เพิ่ม Upgrade Modal -->
+{#if showUpgradeModal}
+    <LimitReachedModal
+        show={showUpgradeModal}
+        title="Layout Limit Reached"
+        description="Basic users are limited to 2 layouts. Upgrade to Pro for unlimited layouts and advanced features."
+        upgradeText="Upgrade to Pro"
+        cancelText="Maybe Later"
+        width="md"
+        on:close={() => showUpgradeModal = false}
+        on:upgrade={upgradePlan}
     />
 {/if}
 

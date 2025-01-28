@@ -475,7 +475,13 @@
 
     {#if mounted}
         {#if widgets.length === 0}
-            <WidgetEmptyState onAddWidget={() => showWidgetModal = true} />
+            <WidgetEmptyState 
+                onAddWidget={() => {
+                    editMode = true;  // เปิด edit mode
+                    dispatch('editModeChange', true);  // แจ้ง parent component
+                    showWidgetModal = true;  // เปิด widget modal
+                }} 
+            />
         {:else}
             <WidgetGrid
                 {widgets}
