@@ -13,6 +13,7 @@
     import { loadingStore } from '$lib/stores/loadingStore';
     import { layoutStore } from '$lib/stores/layoutStore';
     import { createDefaultLayout } from '$lib/utils/widgetUtils';
+    import { fade } from 'svelte/transition';
 
     const dispatch = createEventDispatcher();
 
@@ -350,6 +351,32 @@
     function handleSetLoading(e) {
         loadingStore.set(e.detail);
     }
+
+    // เพิ่ม event handlers สำหรับ click outside และ scroll
+    function handleClickOutside(event) {
+        const dropdown = document.querySelector('.layout-picker-dropdown');
+        const button = document.querySelector('.layout-picker-button');
+        
+        if (dropdown && !dropdown.contains(event.target) && !button.contains(event.target)) {
+            showLayoutDropdown = false;
+        }
+    }
+
+    function handleScroll() {
+        if (showLayoutDropdown) {
+            showLayoutDropdown = false;
+        }
+    }
+
+    onMount(() => {
+        document.addEventListener('click', handleClickOutside);
+        window.addEventListener('scroll', handleScroll, true);
+
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+            window.removeEventListener('scroll', handleScroll, true);
+        };
+    });
 </script>
 
 
@@ -380,69 +407,74 @@
         <!-- Left side with title and edit button -->
         <div class="flex items-center gap-3">
             <!-- Replace the h1 title with this button -->
-            <div class="relative">
+            <div class="relative inline-block">
                 <button 
-                    class="flex items-center text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent focus:outline-none"
-                    on:click={() => showLayoutDropdown = !showLayoutDropdown}
+                    class="flex items-center text-4xl font-bold bg-gradient-purple bg-clip-text text-transparent focus:outline-none layout-picker-button" 
+                    on:click|stopPropagation={() => showLayoutDropdown = !showLayoutDropdown}
                 >
                     Dashboard
-                    <svg class="w-6 h-6 ml-2 text-theme-500 transform transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20"
-                        class:rotate-180={showLayoutDropdown}>
-                        <path fill-rule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 011.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clip-rule="evenodd" />
+                    <svg class="w-5 h-5 ml-2 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
 
-                <!-- Layout Dropdown Menu -->
                 {#if showLayoutDropdown}
-                    <div class="absolute left-0 mt-2 w-48 bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg z-50">
-                        <div class="py-1">
-                            {#each layouts as layout, i}
-                                <button
-                                    class="flex items-center justify-between w-full px-4 py-2 text-sm hover:bg-light-hover dark:hover:bg-dark-hover {i === activeLayoutIndex ? 'text-theme-500 bg-theme-500/10' : 'text-light-text dark:text-dark-text'}"
-                                    on:click={() => {
-                                        editMode = false;
-                                        activeLayoutIndex = i;
-                                        showLayoutDropdown = false;
-                                        // Close any open modals when switching layouts
-                                        if (showDayModal) showDayModal = false;
-                                        if (showEditModal) showEditModal = false;
-                                        if (showViewModal) showViewModal = false;
-                                        if (showNewTradeModal) showNewTradeModal = false;
-                                        // Close month modal in calendar widgets
-                                        const widgets = document.querySelectorAll('svelte\\:component');
-                                        widgets.forEach(widget => {
-                                            if (widget.__svelte_component__ && widget.__svelte_component__.closeMonthModal) {
-                                                widget.__svelte_component__.closeMonthModal();
-                                            }
-                                        });
-                                    }}
-                                >
-                                    <span>{layout.name}</span>
-                                    {#if layouts.length > 1}
+                    <div 
+                        class="absolute left-0 top-full mt-1 z-50 p-2 rounded-lg shadow-xl 
+                               border border-light-border dark:border-dark-border
+                               bg-light-card dark:bg-dark-card backdrop-blur-lg w-[240px] layout-picker-dropdown"
+                        transition:fade={{ duration: 150 }}
+                        on:click|stopPropagation
+                    >
+                        <div class="flex flex-col gap-2">
+                            <div class="flex flex-col gap-1">
+                                <div class="text-xs font-medium text-light-text-muted dark:text-dark-text-muted px-1">
+                                    Select Layout
+                                </div>
+                                <div class="flex flex-col gap-0.5">
+                                    {#each layouts as layout, i}
                                         <button
-                                            class="p-1 rounded-full hover:bg-red-500 hover:text-white"
-                                            on:click|stopPropagation={() => deleteLayout(i)}
+                                            class="flex items-center justify-between px-2 py-1.5 rounded text-sm
+                                                   {i === activeLayoutIndex 
+                                                       ? 'bg-theme-500 text-white' 
+                                                       : 'bg-light-hover/50 dark:bg-dark-hover/50 hover:bg-light-hover dark:hover:bg-dark-hover text-light-text dark:text-dark-text'}"
+                                            on:click={() => {
+                                                editMode = false;
+                                                activeLayoutIndex = i;
+                                                showLayoutDropdown = false;
+                                            }}
                                         >
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
+                                            <span class="text-xs">{layout.name}</span>
+                                            {#if layouts.length > 1}
+                                                <button
+                                                    class="p-0.5 rounded-full hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400"
+                                                    on:click|stopPropagation={() => deleteLayout(i)}
+                                                >
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            {/if}
                                         </button>
-                                    {/if}
-                                </button>
-                            {/each}
+                                    {/each}
+                                </div>
+                            </div>
 
-                            <!-- Add New Layout Button -->
                             <button
-                                class="flex items-center w-full px-4 py-2 text-sm text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover border-t border-light-border dark:border-0"
+                                class="w-full px-2 py-1.5 text-xs font-medium rounded
+                                       bg-theme-500/10 text-theme-500 dark:text-theme-400
+                                       hover:bg-theme-500/20 transition-colors"
                                 on:click={() => {
                                     showNewLayoutModal = true;
                                     showLayoutDropdown = false;
                                 }}
                             >
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                New Layout
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    New Layout
+                                </div>
                             </button>
                         </div>
                     </div>

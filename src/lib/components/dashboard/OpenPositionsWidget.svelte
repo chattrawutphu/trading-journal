@@ -273,8 +273,8 @@
                                 </span>
                             </div>
                             <div class="flex flex-wrap items-center gap-2">
-                                <div class="text-right">
-                                    <p class="text-lg font-bold text-light-text dark:text-dark-text">
+                                <div class="flex flex-wrap gap-2 text-right items-center">
+                                    <p class="text-sm font-bold text-light-text dark:text-dark-text">
                                         {formatCurrency(position.amount)}
                                     </p>
                                     <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
@@ -282,16 +282,16 @@
                                     </p>
                                 </div>
                                 <!-- Action Buttons -->
-                                <div class="flex gap-1">
+                                <div class="flex gap-0.5">
                                     <button 
-                                        class="p-2 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
+                                        class="p-1 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
                                         on:click={() => handleView(position)}
                                     >
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                         </svg>
                                     </button>
-                                    <button 
+                                    <!--<button 
                                         class="p-2 rounded-lg hover:bg-theme-500/10 text-theme-500 transition-colors"
                                         on:click={() => handleEdit(position)}
                                     >
@@ -306,9 +306,9 @@
                                         <svg class="w-4 h-4" fill={position.favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
                                         </svg>
-                                    </button>
+                                    </button>-->
                                     <button 
-                                        class="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"
+                                        class="p-1 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"
                                         on:click={() => handleDelete(position)}
                                     >
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -321,13 +321,13 @@
                         <div class="grid grid-cols-2 gap-4 mt-2">
                             <div>
                                 <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Entry Price</p>
-                                <p class="font-medium text-light-text dark:text-dark-text">
+                                <p class="text-sm font-medium text-light-text dark:text-dark-text">
                                     ${position.entryPrice.toFixed(2)}
                                 </p>
                             </div>
                             <div>
                                 <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Entry Date</p>
-                                <p class="font-medium text-light-text dark:text-dark-text">
+                                <p class="text-sm font-medium text-light-text dark:text-dark-text">
                                     {formatDate(position.entryDate)}
                                 </p>
                             </div>

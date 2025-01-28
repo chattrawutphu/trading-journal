@@ -8,6 +8,7 @@
     import DatePicker from '../common/DatePicker.svelte';
     import { api } from '$lib/utils/api';
     import { dailyBalancesStore } from '$lib/stores/dailyBalancesStore';
+    import { fade } from 'svelte/transition';
 
     const dispatch = createEventDispatcher();
 
@@ -71,18 +72,13 @@
         };
     });
 
-    $: {
-        if ($accountStore.currentAccount?._id) {
-            loadData();
-        }
-    }
-
-    // Watch for account changes
+    // แก้ไข reactive statement สำหรับ account changes
     $: if ($accountStore.currentAccount?._id !== currentAccountId && !isPreview) {
         currentAccountId = $accountStore.currentAccount?._id;
         if (currentAccountId) {
             selectedMonth = new Date().getMonth();
             selectedYear = new Date().getFullYear();
+            loadData(); // เรียก loadData เฉพาะเมื่อเปลี่ยน account
         }
     }
 
@@ -523,7 +519,7 @@
         // คำนวณ ROI
         stats.roi = stats.volume > 0 ? ((stats.pnl / stats.volume) * 100).toFixed(1) : 0;
 
-        // คำนวณ monthly percentage จาก start balance ของวันแรก และ end balance ของวันสุดท้าย/ปัจจุบัน
+        // คำนวณ monthly percentage โดยไม่รวม transactions
         const monthStartDate = new Date(selectedYear, selectedMonth, 1);
         const today = new Date();
         const isCurrentMonth = selectedYear === today.getFullYear() && selectedMonth === today.getMonth();
@@ -582,6 +578,34 @@
         return 'text-light-text dark:text-dark-text';
     }
 
+    // เพิ่มฟังก์ชันสำหรับจัดการ click outside
+    function handleClickOutside(event) {
+        const dropdown = document.querySelector('.date-picker-dropdown');
+        const button = document.querySelector('.date-picker-button');
+        
+        if (dropdown && !dropdown.contains(event.target) && !button.contains(event.target)) {
+            showDatePicker = false;
+        }
+    }
+
+    // เพิ่มฟังก์ชันสำหรับจัดการ scroll
+    function handleScroll() {
+        if (showDatePicker) {
+            showDatePicker = false;
+        }
+    }
+
+    onMount(() => {
+        // เพิ่ม event listeners
+        document.addEventListener('click', handleClickOutside);
+        window.addEventListener('scroll', handleScroll, true);
+
+        return () => {
+            // cleanup event listeners
+            document.removeEventListener('click', handleClickOutside);
+            window.removeEventListener('scroll', handleScroll, true);
+        };
+    });
 </script>
 
 <div class="card h-full flex flex-col">
@@ -589,19 +613,100 @@
     <div class="p-3 border-b border-light-border dark:border-dark-border bg-gradient-to-r from-theme-500/5 to-transparent dark:from-theme-500/10">
         <div class="flex items-center gap-3">
             <!-- Left: Calendar icon & Month selector -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 relative">
                 <div class="w-8 h-8 rounded-lg bg-theme-500/10 flex items-center justify-center">
                     <svg class="w-5 h-5 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
                 </div>
-                <span class="cursor-pointer text-base font-semibold text-light-text dark:text-dark-text flex items-center gap-1" 
-                      on:click={() => showDatePicker = !showDatePicker}>
+
+                <!-- Month Picker Button & Dropdown -->
+                <div class="relative inline-block">
+                    <button 
+                        class="text-base font-semibold text-light-text dark:text-dark-text flex items-center gap-1 date-picker-button" 
+                        on:click|stopPropagation={() => showDatePicker = !showDatePicker}
+                    >
                     {months[selectedMonth]} {selectedYear}
                     <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
-                </span>
+                    </button>
+
+                    {#if showDatePicker}
+                        <div 
+                            class="absolute left-0 top-full mt-1 z-50 p-3 rounded-lg shadow-xl 
+                                   border border-light-border dark:border-dark-border
+                                   bg-light-card dark:bg-dark-card backdrop-blur-lg w-[280px] date-picker-dropdown"
+                            transition:fade={{ duration: 150 }}
+                            on:click|stopPropagation
+                        >
+                            <div class="flex flex-col gap-3">
+                                <!-- Year selector -->
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                                        Year
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-1">
+                                        {#each years as year}
+                                            <button
+                                                class="px-3 py-1.5 rounded text-xs font-medium
+                                                       {year === selectedYear 
+                                                           ? 'bg-theme-500 text-white' 
+                                                           : 'hover:bg-light-hover dark:hover:bg-dark-hover text-light-text dark:text-dark-text'}"
+                                                on:click={() => selectedYear = year}
+                                            >
+                                                {year}
+                                            </button>
+                                        {/each}
+                                    </div>
+                                </div>
+
+                                <!-- Month selector -->
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                                        Month
+                                    </div>
+                                    <div class="grid grid-cols-4 gap-1">
+                                        {#each months as month, i}
+                                            <button
+                                                class="px-2 py-1.5 rounded text-xs font-medium relative
+                                                       {i === selectedMonth 
+                                                           ? 'bg-theme-500 text-white' 
+                                                           : 'bg-light-hover/50 dark:bg-dark-hover/50 hover:bg-light-hover dark:hover:bg-dark-hover text-light-text dark:text-dark-text'}"
+                                                on:click={() => {
+                                                    selectedMonth = i;
+                                                    showDatePicker = false;
+                                                }}
+                                            >
+                                                {#if i === new Date().getMonth() && selectedYear === new Date().getFullYear()}
+                                                    <div class="absolute -top-0.5 -right-0.5">
+                                                        <div class="w-1.5 h-1.5 rounded-full bg-purple-500 dark:bg-purple-400 animate-pulse"></div>
+                                                    </div>
+                                                {/if}
+                                                <span class="truncate">{month.slice(0, 3)}</span>
+                                            </button>
+                                        {/each}
+                                    </div>
+                                </div>
+
+                                <!-- Quick action -->
+                                <button
+                                    class="w-full px-2 py-1.5 text-xs font-medium rounded
+                                           bg-theme-500/10 text-theme-500 dark:text-theme-400
+                                           hover:bg-theme-500/20 transition-colors"
+                                    on:click={() => {
+                                        const now = new Date();
+                                        selectedMonth = now.getMonth();
+                                        selectedYear = now.getFullYear();
+                                        showDatePicker = false;
+                                    }}
+                                >
+                                    Jump to Today
+                                </button>
+                            </div>
+                        </div>
+                    {/if}
+                </div>
             </div>
 
             <!-- Center: Monthly Stats (Card-like) -->
@@ -636,9 +741,9 @@
                             {monthlyStats.monthlyPercentage}%
                         </span>
                     {/if}
-                    <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                    <!--<span class="text-xs text-light-text-muted dark:text-dark-text-muted">
                         ${formatAmount(monthlyStats.volume)}
-                    </span>
+                    </span>-->
                 </div>
             </div>
 
@@ -658,16 +763,6 @@
                 </button>
             </div>
         </div>
-
-        {#if showDatePicker}
-            <DatePicker
-                bind:selectedMonth
-                bind:selectedYear
-                bind:showDatePicker
-                months={months}
-                years={years}
-            />
-        {/if}
     </div>
 
     <div class="flex-1 p-4 flex flex-col">

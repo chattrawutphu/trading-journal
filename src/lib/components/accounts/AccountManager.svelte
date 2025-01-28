@@ -181,58 +181,40 @@
             <Loading size="sm" message="Loading accounts..." />
         </div>
     {:else if $accountStore.accounts.length > 0}
-        <div class="py-1">
+        <div class="flex flex-col gap-0.5 p-2">
             {#each $accountStore.accounts as account}
                 <div
-                    class="flex items-center justify-between px-4 py-2 hover:bg-light-hover dark:hover:bg-dark-hover"
+                    class="flex items-center justify-between px-2 py-1.5 rounded text-sm
+                           {$accountStore.currentAccount?._id === account._id 
+                               ? 'bg-theme-500 text-white' 
+                               : 'bg-light-hover/50 dark:bg-dark-hover/50 hover:bg-light-hover dark:hover:bg-dark-hover text-light-text dark:text-dark-text'}"
                 >
                     <button
-                        class="flex-grow text-left text-sm text-light-text dark:text-dark-text hover:text-theme-500 dark:hover:text-theme-400"
-                        class:font-bold={$accountStore.currentAccount?._id ===
-                            account._id}
+                        class="flex-grow text-left text-xs"
+                        class:font-medium={$accountStore.currentAccount?._id === account._id}
                         on:click={() => handleAccountSwitch(account._id)}
                     >
                         <span>{account.name}</span>
                     </button>
-                    <div class="flex items-center ml-2 space-x-1">
+                    <div class="flex items-center gap-0.5">
                         <button
-                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400 hover:bg-light-card dark:hover:bg-dark-card"
-                            on:click|stopPropagation={() =>
-                                startEditAccount(account)}
+                            class="p-0.5 rounded-full hover:bg-theme-500/20 hover:text-theme-500 dark:hover:text-theme-400"
+                            on:click|stopPropagation={() => startEditAccount(account)}
                             title="Edit Account"
                         >
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </button>
                         <button
-                            class="p-1.5 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-red-500 hover:bg-light-card dark:hover:bg-dark-card"
-                            on:click|stopPropagation={() =>
-                                handleDeleteAccount(account._id)}
+                            class="p-0.5 rounded-full hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400"
+                            on:click|stopPropagation={() => handleDeleteAccount(account._id)}
                             title="Delete Account"
                         >
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                         </button>
                     </div>
@@ -240,39 +222,43 @@
             {/each}
         </div>
     {:else}
-        <div
-            class="px-4 py-2 text-sm text-light-text-muted dark:text-dark-text-muted"
-        >
+        <div class="px-3 py-2 text-xs text-light-text-muted dark:text-dark-text-muted">
             No accounts yet
         </div>
     {/if}
 
     <!-- Add Account Button -->
-    <div class="border-t border-light-border dark:border-0 px-4 py-2">
+    <div class="px-2 pb-2">
         {#if $subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC && $accountStore.accounts.length > 0}
             <button
-                id="add-account"
-                class="w-full text-left px-3 py-2 rounded-lg text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover flex items-center justify-between"
+                class="w-full px-2 py-1.5 text-xs font-medium rounded
+                       bg-theme-500/10 text-theme-500 dark:text-theme-400
+                       hover:bg-theme-500/20 transition-colors"
                 on:click|stopPropagation={() => (showUpgradeModal = true)}
             >
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Account
+                    </div>
+                    <span class="text-[10px] opacity-70">Pro Feature</span>
+                </div>
+            </button>
+        {:else}
+            <button
+                class="w-full px-2 py-1.5 text-xs font-medium rounded
+                       bg-theme-500/10 text-theme-500 dark:text-theme-400
+                       hover:bg-theme-500/20 transition-colors"
+                on:click|stopPropagation={() => (showNewAccountModal = true)}
+            >
+                <div class="flex items-center justify-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
                     Add Account
                 </div>
-                <span class="text-xs text-theme-500/70">Pro Feature</span>
-            </button>
-        {:else}
-            <button
-                id="add-account"
-                class="w-full text-left px-3 py-2 rounded-lg text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover flex items-center"
-                on:click|stopPropagation={() => (showNewAccountModal = true)}
-            >
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Add Account
             </button>
         {/if}
     </div>
