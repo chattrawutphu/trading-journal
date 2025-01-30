@@ -14,6 +14,7 @@
     import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
     import Modal from '../common/Modal.svelte';
     import LimitReachedModal from '../common/LimitReachedModal.svelte';
+    import NewAccountModal from './NewAccountModal.svelte';
 
     const dispatch = createEventDispatcher();
 
@@ -116,6 +117,14 @@
             error = err.message;
         } finally {
             switchingAccount = false;
+        }
+    }
+
+    function handleAddAccount() {
+        if ($subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC && $accountStore.accounts.length > 0) {
+            showUpgradeModal = true;
+        } else {
+            showNewAccountModal = true;
         }
     }
 
@@ -229,127 +238,28 @@
 
     <!-- Add Account Button -->
     <div class="px-2 pb-2">
-        {#if $subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC && $accountStore.accounts.length > 0}
-            <button
-                class="w-full px-2 py-1.5 text-xs font-medium rounded
-                       bg-theme-500/10 text-theme-500 dark:text-theme-400
-                       hover:bg-theme-500/20 transition-colors"
-                on:click|stopPropagation={() => (showUpgradeModal = true)}
-            >
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Add Account
-                    </div>
-                    <span class="text-[10px] opacity-70">Pro Feature</span>
-                </div>
-            </button>
-        {:else}
-            <button
-                class="w-full px-2 py-1.5 text-xs font-medium rounded
-                       bg-theme-500/10 text-theme-500 dark:text-theme-400
-                       hover:bg-theme-500/20 transition-colors"
-                on:click|stopPropagation={() => (showNewAccountModal = true)}
-            >
-                <div class="flex items-center justify-center gap-1.5">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Add Account
-                </div>
-            </button>
-        {/if}
+        <button
+            class="w-full px-2 py-1.5 text-xs font-medium rounded
+                   bg-theme-500/10 text-theme-500 dark:text-theme-400
+                   hover:bg-theme-500/20 transition-colors"
+            on:click={handleAddAccount}
+        >
+            <div class="flex items-center justify-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add Account
+            </div>
+        </button>
     </div>
 </div>
 
 <!-- New Account Modal -->
 {#if showNewAccountModal}
-    <div
-        class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
-        transition:fade={{ duration: 150 }}
-    >
-        <div class="card w-full max-w-md mx-auto relative transform ease-out">
-            <!-- Header -->
-            <div
-                class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
-            >
-                <h2
-                    class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent"
-                >
-                    New Account
-                </h2>
-                <button
-                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
-                    on:click={() => {
-                        showNewAccountModal = false;
-                        newAccountName = "";
-                        newAccountBalance = 0;
-                    }}
-                >
-                    <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Content -->
-            <div class="px-8 py-6 space-y-4">
-                <form on:submit|preventDefault={handleCreateAccount}>
-                    <Input
-                        label="Account Name"
-                        type="text"
-                        bind:value={newAccountName}
-                        required
-                        placeholder="e.g., Binance Spot"
-                    />
-                    <Input
-                        label="Initial Balance"
-                        type="number"
-                        bind:value={newAccountBalance}
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                    />
-                </form>
-            </div>
-
-            <!-- Footer -->
-            <div
-                class="px-8 py-5 border-t border-light-border dark:border-0 flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
-            >
-                <Button
-                    type="button"
-                    variant="secondary"
-                    on:click={() => {
-                        showNewAccountModal = false;
-                        newAccountName = "";
-                        newAccountBalance = 0;
-                    }}
-                >
-                    Cancel
-                </Button>
-                <Button
-                    type="submit"
-                    variant="primary"
-                    on:click={handleCreateAccount}
-                >
-                    Create Account
-                </Button>
-            </div>
-        </div>
-    </div>
+    <NewAccountModal 
+        show={showNewAccountModal}
+        on:close={() => showNewAccountModal = false}
+    />
 {/if}
 
 <!-- Edit Account Modal -->

@@ -333,4 +333,11 @@ export const api = {
             body: JSON.stringify({ layouts }),
         });
     },
+
+    async testConnection(connectionData) {
+        return await api.fetch('/accounts/test-connection', {
+            method: 'POST',
+            body: JSON.stringify(connectionData)
+        });
+    }
 };

@@ -97,10 +97,7 @@ app.use('/api/auth', async(req, res, next) => {
     await connectToDatabase();
     return authRoutes(req, res, next);
 });
-app.use('/api/accounts', async(req, res, next) => {
-    await connectToDatabase();
-    return accountRoutes(req, res, next);
-});
+app.use('/api/accounts', accountRoutes);
 app.use('/api/trades', async(req, res, next) => {
     await connectToDatabase();
     return tradeRoutes(req, res, next);
