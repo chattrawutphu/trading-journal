@@ -18,6 +18,8 @@
     import { subscriptionStore } from '$lib/stores/subscriptionStore';
     import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
     import { goto } from '$app/navigation';
+    import Toast from '$lib/components/common/Toast.svelte';
+    import { formatTrades, filterDuplicateTrades, getLatestTradeDate, syncTrades } from '$lib/utils/importTrades';
 
     const dispatch = createEventDispatcher();
 
@@ -400,6 +402,42 @@
     }
 
     let showUpgradeModal = false;
+
+    let syncingTrades = false;
+    let toastType = '';
+    let toastMessage = '';
+    let showToast = false;
+    
+    async function handleSyncTrades() {
+        if (!$accountStore.currentAccount) return;
+        
+        try {
+            syncingTrades = true;
+            error = "";
+            
+            const result = await syncTrades($accountStore.currentAccount._id, api);
+            
+            toastType = result.type;
+            toastMessage = result.message;
+            showToast = true;
+            
+            if (result.success && result.newTradesCount > 0) {
+                // Reload data and refresh layout
+                await loadTrades();
+                await accountStore.setCurrentAccount($accountStore.currentAccount._id);
+                await reloadLayoutAndRefresh();
+            }
+            
+        } catch (err) {
+            console.error('Error syncing trades:', err);
+            error = err.message;
+            toastType = 'error';
+            toastMessage = `Error syncing trades: ${err.message}`;
+            showToast = true;
+        } finally {
+            syncingTrades = false;
+        }
+    }
 </script>
 
 
@@ -547,6 +585,21 @@
 
         {#if $accountStore.currentAccount}
             <div class="flex items-center gap-4">
+                {#if ['BINANCE_FUTURES', 'BYBIT', 'OKEX'].includes($accountStore.currentAccount.type)}
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        loading={syncingTrades}
+                        on:click={handleSyncTrades}
+                    >
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span class="hidden md:flex">Sync Trades</span>
+                        </div>
+                    </Button>
+                {/if}
                 <Button variant="primary" size="sm" on:click={handleNewTrade}>
                     <svg
                         class="w-5 h-5 mr-0 md:mr-2"
@@ -733,6 +786,14 @@
         on:upgrade={upgradePlan}
     />
 {/if}
+
+<!-- Add Toast component -->
+<Toast 
+    bind:show={showToast}
+    message={toastMessage}
+    type={toastType}
+    duration={3000}
+/>
 
 <style lang="postcss">
     .card {

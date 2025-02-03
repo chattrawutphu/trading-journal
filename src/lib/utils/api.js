@@ -339,5 +339,13 @@ export const api = {
             method: 'POST',
             body: JSON.stringify(connectionData)
         });
+    },
+
+    // Add new function to fetch Binance trade history
+    async fetchBinanceTradeHistory(apiKey, secretKey) {
+        return await api.fetch('/accounts/binance-history', {
+            method: 'POST',
+            body: JSON.stringify({ apiKey, secretKey })
+        });
     }
 };

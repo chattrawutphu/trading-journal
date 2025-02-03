@@ -7,6 +7,11 @@ const tradeSchema = new mongoose.Schema({
         ref: 'Account',
         required: true
     },
+    orderId: {
+        type: String,
+        sparse: true, // Allow null/undefined but ensure uniqueness when exists
+        index: true // Index for faster lookups
+    },
     symbol: {
         type: String,
         required: true
@@ -110,5 +115,24 @@ tradeSchema.methods.calculatePnL = function(exitPrice) {
         return (this.entryPrice - exitPrice) * units;
     }
 };
+
+// Add generateOrderId function
+function generateOrderId() {
+    const timestamp = Date.now().toString(36);
+    const randomStr = Math.random().toString(36).substring(2, 7);
+    return `M${timestamp}${randomStr}`.toUpperCase();
+}
+
+// Add pre-save hook to generate orderId for manual trades
+tradeSchema.pre('save', function(next) {
+    // Skip if orderId already exists or if it's from an exchange
+    if (this.orderId) {
+        return next();
+    }
+
+    // Generate orderId for manual trades
+    this.orderId = generateOrderId();
+    next();
+});
 
 export default mongoose.model('Trade', tradeSchema);

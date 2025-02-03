@@ -10,6 +10,8 @@
     import Input from '../common/Input.svelte';
     import { api } from '$lib/utils/api';
     import ErrorMessage from '../common/ErrorMessage.svelte';
+    import TradeHistoryModal from './TradeHistoryModal.svelte';
+    import { formatTrades, generateShortGuid, generateAccountName, processTradeImportData } from '$lib/utils/importTrades';
 
     export let show = false;
     const dispatch = createEventDispatcher();
@@ -37,6 +39,10 @@
     let ipWhitelistConfirmed = false;  // เพิ่มตัวแปรสำหรับเช็คบ็อกซ์
 
     let step = 1; // เพิ่มตัวแปรสำหรับ mobile steps
+
+    let tradeHistory = null;
+    let showTradeHistory = false;
+    let importLoading = false;
 
     const exchangeTypes = [
         {
@@ -190,7 +196,6 @@
     // สร้างฟังก์ชันสำหรับอัพเดต selectedType
     async function updateSelectedType() {
         selectedType = getSelectedType();
-        await tick(); // รอให้ DOM อัพเดตเสร็จ
     }
 
     // เรียกใช้ updateSelectedType เมื่อ accountType เปลี่ยน
@@ -231,14 +236,14 @@
         if (!accountName) {
             console.log('Error: Missing account name');
             error = 'Please enter account name';
-                return;
-            }
+            return;
+        }
 
         if (initialBalance < 0) {
             console.log('Error: Invalid initial balance');
             error = 'Initial balance cannot be negative';
-                return;
-            }
+            return;
+        }
 
         if (accountType === 'BINANCE_FUTURES' && !ipWhitelistConfirmed) {
             error = 'Please confirm that you have whitelisted the IP address';
@@ -277,31 +282,21 @@
                 toastMessage = 'Connection successful!';
                 showToast = true;
 
-                console.log('5. Creating account with data:', {
-                    name: accountName,
-                    initialBalance,
-                    type: accountType,
-                    apiKey: '***', // ไม่แสดง sensitive data
-                    secretKey: '***'
-                });
-
-                // สร้าง account
-            const accountData = {
-                name: accountName,
-                initialBalance: parseFloat(initialBalance),
-                    type: accountType,
-                    apiKey,
-                    secretKey
-                };
-
-                await accountStore.createAccount(accountData);
-                console.log('6. Account created successfully');
+                // Fetch trade history
+                console.log('5. Fetching trade history...');
+                const historyResponse = await api.fetchBinanceTradeHistory(apiKey, secretKey);
+                console.log('6. Trade history response:', historyResponse);
                 
-                // Reload layout
-            await accountStore.loadAccounts();
-            dispatch('refreshLayout');
+                if (historyResponse && historyResponse.data) {
+                    tradeHistory = historyResponse.data;
+                    showTradeHistory = true;
+                    show = false; // ปิด New Trading Account Modal
+                    console.log('7. Showing trade history modal');
+                } else {
+                    console.error('Invalid trade history response:', historyResponse);
+                    throw new Error('Failed to fetch trade history');
+                }
                 
-            show = false;
             } else {
                 console.log('2. Creating manual account...');
                 loading = true;
@@ -320,9 +315,9 @@
                 dispatch('refreshLayout');
 
                 // 3. แสดง toast และปิด modal
-            toastType = 'success';
-            toastMessage = 'Account created successfully!';
-            showToast = true;
+                toastType = 'success';
+                toastMessage = 'Account created successfully!';
+                showToast = true;
                 console.log('5. Showing success toast');
 
                 // 4. รีเซ็ตฟอร์มและปิด modal
@@ -341,14 +336,14 @@
                 2. Enabled "Enable Reading" permission
                 3. Enabled "Enable Futures" permission`;
             } else {
-            error = err.message;
+                error = err.message;
             }
             toastType = 'error';
             toastMessage = error;
             showToast = true;
         } finally {
             loading = false;
-            console.log('6. handleSubmit complete');
+            console.log('8. handleSubmit complete');
         }
     }
 
@@ -362,26 +357,139 @@
         dispatch('close');
     }
 
-    // เพิ่มฟังก์ชันสำหรับจัดการการคลิกเลือก account type
+    // ปรับปรุงฟังก์ชัน handleAccountTypeSelect
     async function handleAccountTypeSelect(typeId) {
+        // เคลียร์ค่า API Key และ Secret Key เมื่อเปลี่ยน exchange/broker
+        apiKey = '';
+        secretKey = '';
+        
+        // เคลียร์ค่า MT4/MT5 fields ถ้ามี
+        server = '';
+        login = '';
+        password = '';
+        
+        // เคลียร์ checkbox confirmation
+        ipWhitelistConfirmed = false;
+        
+        // ตั้งค่า account type
         accountType = typeId;
         if (typeId !== 'MANUAL') {
             initialBalance = 0;
         }
+        
+        // หา exchange type จาก exchangeTypes
+        const selectedExchange = getSelectedType();
+        if (selectedExchange) {
+            // ใช้ generateAccountName function
+            accountName = generateAccountName(selectedExchange.name);
+        } else {
+            accountName = generateAccountName('Trading Account');
+        }
+        
         await updateSelectedType();
     }
+
+    // ปรับปรุงฟังก์ชัน handleTradeImport
+    async function handleTradeImport(event) {
+        importLoading = true;
+        error = "";
+
+        try {
+            const trades = processTradeImportData(event);
+            console.log('Received trades:', trades);
+
+            const formattedTrades = formatTrades(trades, true, [], false);
+            if (!formattedTrades.length) {
+                error = "No valid trades found in the import data";
+                return;
+            }
+
+            const accountData = {
+                name: accountName,
+                type: accountType,
+                apiKey,
+                secretKey
+            };
+
+            console.log('Creating account...', { ...accountData, secretKey: '***' });
+            const accountResponse = await api.createAccount(accountData);
+            console.log('Account created:', accountResponse);
+
+            console.log('Adding trades to account:', accountResponse._id);
+            const addTradesPromises = formattedTrades.map(trade => 
+                api.createTrade({
+                    ...trade,
+                    account: accountResponse._id
+                })
+            );
+
+            await Promise.all(addTradesPromises);
+
+            // Refresh layout and wait for it to complete
+            dispatch('refreshLayout');
+            
+            // Wait a bit to ensure layout is refreshed
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Close both modals only after layout is refreshed
+            showTradeHistory = false;
+            show = false;
+            
+            toastType = 'success';
+            toastMessage = `Account created with ${formattedTrades.length} trades imported!`;
+            showToast = true;
+
+        } catch (err) {
+            console.error('Error importing trades:', err);
+            error = err.message;
+            toastType = 'error';
+            toastMessage = `Error importing trades: ${err.message}`;
+            showToast = true;
+        } finally {
+            importLoading = false;
+        }
+    }
 </script>
+
+<!-- Make sure TradeHistoryModal is placed OUTSIDE the main Modal -->
+<TradeHistoryModal
+    bind:show={showTradeHistory}
+    bind:tradeHistory
+    loading={importLoading}
+    {accountType}
+    on:close={() => {
+        showTradeHistory = false;
+        show = false; // ปิด NewAccountModal ด้วย
+        console.log('Trade history modal closed');
+    }}
+    on:import={handleTradeImport}
+/>
+
+<!-- แยก Error Message ออกจาก Toast -->
+{#if error}
+    <div class="fixed inset-x-0 top-4 z-50 flex justify-center">
+        <div class="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-lg mx-4">
+            <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 000 2v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            <span class="text-sm">{error}</span>
+            <button 
+                class="ml-auto p-1 hover:bg-red-100 dark:hover:bg-red-800/50 rounded-full"
+                on:click={() => error = ''}
+            >
+                <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+    </div>
+{/if}
 
 <Toast 
     bind:show={showToast}
     message={toastMessage}
     type={toastType}
     duration={3000}
-/>
-
-<ErrorMessage 
-    message={error} 
-    onClose={() => error = ''} 
 />
 
 <Modal bind:show on:close={handleClose} showDefaultHeader={false}>
@@ -450,7 +558,7 @@
                                                 </div>
                                                     <div class="text-xs text-light-text-muted dark:text-dark-text-muted mt-1">
                                                     {type.description}
-                                                    </div>
+                                                </div>
                                             </div>
                                             {#if isSelected}
                                                     <div class="w-2 h-2 rounded-full animate-pulse"
@@ -605,20 +713,39 @@
                                                 </div>
 
                                                 <!-- API Key Input Fields -->
-                                                <Input
-                                                    label="API Key"
-                                                    type="text"
-                                                    bind:value={apiKey}
-                                                    required
-                                                    placeholder="Enter your API key"
-                                                />
-                                                <Input
-                                                    label="Secret Key"
-                                                    type="password"
-                                                    bind:value={secretKey}
-                                                    required
-                                                    placeholder="Enter your Secret key"
-                                                />
+                                                <div class="space-y-1.5">
+                                                    <label class="block text-sm font-medium text-light-text dark:text-dark-text">
+                                                        API Key *
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        bind:value={apiKey}
+                                                        required
+                                                        placeholder="Enter your API key"
+                                                        class="w-full px-3 py-2 bg-light-background dark:bg-dark-background 
+                                                               border border-light-border dark:border-dark-border 
+                                                               rounded-lg focus:ring-2 focus:ring-theme-500 focus:border-transparent
+                                                               text-light-text dark:text-dark-text placeholder-light-text-muted 
+                                                               dark:placeholder-dark-text-muted"
+                                                    />
+                                                </div>
+
+                                                <div class="space-y-1.5">
+                                                    <label class="block text-sm font-medium text-light-text dark:text-dark-text">
+                                                        Secret Key *
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        bind:value={secretKey}
+                                                        required
+                                                        placeholder="Enter your Secret key"
+                                                        class="w-full px-3 py-2 bg-light-background dark:bg-dark-background 
+                                                               border border-light-border dark:border-dark-border 
+                                                               rounded-lg focus:ring-2 focus:ring-theme-500 focus:border-transparent
+                                                               text-light-text dark:text-dark-text placeholder-light-text-muted 
+                                                               dark:placeholder-dark-text-muted"
+                                                    />
+                                                </div>
 
                                                 <!-- Confirmation Checkbox -->
                                                 <label class="flex items-start gap-2 p-3 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30 hover:bg-light-hover/50 dark:hover:bg-dark-hover/50 transition-colors cursor-pointer">
@@ -873,16 +1000,16 @@
                                                                                 : accountType === 'BYBIT'
                                                                                 ? 'https://www.bybit.com/app/user/api-management'
                                                                                 : 'https://www.okx.com/account/my-api'
-                                                                    } 
-                                                                    target="_blank" 
-                                                                    rel="noopener noreferrer"
-                                                                    class="text-sm px-2 py-1 rounded bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors inline-flex items-center gap-1"
+                                                                        } 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer"
+                                                                        class="text-sm px-2 py-1 rounded bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors inline-flex items-center gap-1"
                                                                     >
-                                                                    Go to API Settings
-                                                                    <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                                                                        <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                                                                        <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                                                                    </svg>
+                                                                        Go to API Settings
+                                                                        <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                                                            <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                                                        </svg>
                                                                     </a>
                                                                 </div>
                                                             </div>
@@ -924,20 +1051,39 @@
                                                 </div>
 
                                                 <!-- API Key Input Fields -->
-                                                <Input
-                                                    label="API Key"
-                                                    type="text"
-                                                    bind:value={apiKey}
-                                                    required
-                                                    placeholder="Enter your API key"
-                                                />
-                                                <Input
-                                                    label="Secret Key"
-                                                    type="password"
-                                                    bind:value={secretKey}
-                                                    required
-                                                    placeholder="Enter your Secret key"
-                                                />
+                                                <div class="space-y-1.5">
+                                                    <label class="block text-sm font-medium text-light-text dark:text-dark-text">
+                                                        API Key *
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        bind:value={apiKey}
+                                                        required
+                                                        placeholder="Enter your API key"
+                                                        class="w-full px-3 py-2 bg-light-background dark:bg-dark-background 
+                                                               border border-light-border dark:border-dark-border 
+                                                               rounded-lg focus:ring-2 focus:ring-theme-500 focus:border-transparent
+                                                               text-light-text dark:text-dark-text placeholder-light-text-muted 
+                                                               dark:placeholder-dark-text-muted"
+                                                    />
+                                                </div>
+
+                                                <div class="space-y-1.5">
+                                                    <label class="block text-sm font-medium text-light-text dark:text-dark-text">
+                                                        Secret Key *
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        bind:value={secretKey}
+                                                        required
+                                                        placeholder="Enter your Secret key"
+                                                        class="w-full px-3 py-2 bg-light-background dark:bg-dark-background 
+                                                               border border-light-border dark:border-dark-border 
+                                                               rounded-lg focus:ring-2 focus:ring-theme-500 focus:border-transparent
+                                                               text-light-text dark:text-dark-text placeholder-light-text-muted 
+                                                               dark:placeholder-dark-text-muted"
+                                                    />
+                                                </div>
 
                                                 <!-- Confirmation Checkbox -->
                                                 <label class="flex items-start gap-2 p-3 rounded-lg bg-light-hover/30 dark:bg-dark-hover/30 hover:bg-light-hover/50 dark:hover:bg-dark-hover/50 transition-colors cursor-pointer">

@@ -1,5 +1,6 @@
 // server/models/Account.js
 import mongoose from 'mongoose';
+import Trade from './Trade.js';
 
 const accountSchema = new mongoose.Schema({
     name: {
@@ -55,5 +56,32 @@ accountSchema.pre('save', async function(next) {
     }
     next();
 });
+
+// Add method to import trades
+accountSchema.methods.importTrades = async function(trades) {
+    const tradePromises = trades.map(trade => {
+        // Convert Binance trade to our trade format
+        const tradeData = {
+            account: this._id,
+            user: this.user,
+            symbol: trade.symbol,
+            side: trade.side,
+            price: parseFloat(trade.price),
+            quantity: parseFloat(trade.qty),
+            commission: parseFloat(trade.commission),
+            commissionAsset: trade.commissionAsset,
+            realizedPnl: parseFloat(trade.realizedPnl || 0),
+            time: new Date(trade.time),
+            status: 'CLOSED',
+            type: this.type,
+            orderId: trade.orderId,
+            source: 'IMPORT'
+        };
+
+        return Trade.create(tradeData);
+    });
+
+    await Promise.all(tradePromises);
+};
 
 export default mongoose.model('Account', accountSchema);

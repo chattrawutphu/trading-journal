@@ -140,6 +140,12 @@
                     <h3 class="text-sm font-semibold text-light-text-muted dark:text-dark-text-muted mb-3">Trade Information</h3>
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3">
                         <div>
+                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Order ID</div>
+                            <div class="text-sm font-mono text-light-text dark:text-dark-text">
+                                {trade.orderId || '-'}
+                            </div>
+                        </div>
+                        <div>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Amount</div>
                             <div class="text-sm font-bold text-light-text dark:text-dark-text">
                                 {formatCurrency(trade.amount || 0)}

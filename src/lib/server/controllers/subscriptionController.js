@@ -11,8 +11,7 @@ import Web3 from 'web3';
 import crypto from 'crypto';
 
 // Fix the UUID import to accommodate CommonJS modules
-import pkg from 'uuid';
-const { v4: uuidv4 } = pkg;
+import { v4 as uuidv4 } from 'uuid';
 
 // Initialize Web3 with proper error handling and retry mechanism
 function getWeb3Provider() {

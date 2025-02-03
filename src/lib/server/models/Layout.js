@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
 const LayoutSchema = new mongoose.Schema({
-    user: {
+    account: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'Account',
         required: true
     },
     layouts: [{

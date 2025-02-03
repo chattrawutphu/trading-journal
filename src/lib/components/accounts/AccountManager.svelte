@@ -15,6 +15,7 @@
     import Modal from '../common/Modal.svelte';
     import LimitReachedModal from '../common/LimitReachedModal.svelte';
     import NewAccountModal from './NewAccountModal.svelte';
+    import { formatTrades, syncTrades } from '$lib/utils/importTrades';
 
     const dispatch = createEventDispatcher();
 
@@ -26,6 +27,10 @@
     let error = "";
     let switchingAccount = false;
     let showUpgradeModal = false;
+    let loading = false;
+    let toastType = null;
+    let toastMessage = "";
+    let showToast = false;
 
     async function handleCreateAccount() {
         if ($subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC && $accountStore.accounts.length > 0) {
@@ -56,7 +61,8 @@
                 error = "";
                 await accountStore.updateAccount(editingAccount._id, {
                     name: editingAccount.name,
-                    balance: parseFloat(editingAccount.balance) || 0,
+                    apiKey: editingAccount.apiKey,
+                    secretKey: editingAccount.secretKey
                 });
                 showEditAccountModal = false;
                 editingAccount = null;
@@ -69,12 +75,24 @@
     async function handleDeleteAccount(accountId) {
         if (
             confirm(
-                "Are you sure you want to delete this account? This will delete all trades associated with this account.",
+                "Are you sure you want to delete this account? This will delete all trades, layouts, and other data associated with this account.",
             )
         ) {
             try {
                 error = "";
-                await accountStore.deleteAccount(accountId);
+                await api.deleteAccount(accountId);
+                
+                // Refresh the account list
+                await accountStore.loadAccounts();
+                
+                // If the deleted account was the current account, set a new current account
+                if ($accountStore.currentAccount?._id === accountId) {
+                    if ($accountStore.accounts.length > 0) {
+                        await accountStore.setCurrentAccount($accountStore.accounts[0]._id);
+                    } else {
+                        accountStore.setCurrentAccount(null);
+                    }
+                }
             } catch (err) {
                 error = err.message;
             }
@@ -132,6 +150,39 @@
         showUpgradeModal = false;
         showNewAccountModal = false;
         goto('/settings/subscription');
+    }
+
+    async function handleSyncTrades(accountId) {
+        try {
+            error = "";
+            loading = true;
+
+            const result = await syncTrades(accountId, api);
+            
+            toastType = result.type;
+            toastMessage = result.message;
+            showToast = true;
+
+            if (result.success && result.newTradesCount > 0) {
+                // Refresh data
+                await Promise.all([
+                    transactionStore.fetchTransactions(accountId),
+                    api.getTrades(accountId)
+                ]);
+
+                // Trigger trade update event
+                window.dispatchEvent(new CustomEvent("tradeupdate"));
+            }
+
+        } catch (err) {
+            console.error('Error syncing trades:', err);
+            error = err.message;
+            toastType = 'error';
+            toastMessage = `Error syncing trades: ${err.message}`;
+            showToast = true;
+        } finally {
+            loading = false;
+        }
     }
 </script>
 
@@ -199,15 +250,69 @@
                                : 'bg-light-hover/50 dark:bg-dark-hover/50 hover:bg-light-hover dark:hover:bg-dark-hover text-light-text dark:text-dark-text'}"
                 >
                     <button
-                        class="flex-grow text-left text-xs"
+                        class="flex items-center gap-2 flex-grow text-left text-xs"
                         class:font-medium={$accountStore.currentAccount?._id === account._id}
                         on:click={() => handleAccountSwitch(account._id)}
                     >
+                        <!-- Account Icon -->
+                        <div class="p-1.5 rounded-lg {$accountStore.currentAccount?._id === account._id ? 'bg-white/20' : 'bg-theme-500/10'}">
+                            {#if account.type === 'BINANCE_FUTURES'}
+                                <svg class="w-3.5 h-3.5 {$accountStore.currentAccount?._id === account._id ? 'text-white' : 'text-[#F3BA2F]'}" 
+                                     viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0L7.272 4.728L12 9.456L16.728 4.728L12 0Z"/>
+                                    <path d="M2.544 9.456L7.272 14.184L12 9.456L7.272 4.728L2.544 9.456Z"/>
+                                    <path d="M12 9.456L16.728 14.184L21.456 9.456L16.728 4.728L12 9.456Z"/>
+                                    <path d="M12 18.912L16.728 14.184L12 9.456L7.272 14.184L12 18.912Z"/>
+                                </svg>
+                            {:else if account.type === 'BYBIT'}
+                                <svg class="w-3.5 h-3.5 {$accountStore.currentAccount?._id === account._id ? 'text-white' : 'text-[#00b4c9]'}" 
+                                     viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19.4,8.3L19.4,8.3L19.4,8.3l0,0c0,0-1.7,0-3.2,0c-1.5,0-2.7,1.2-2.7,2.7v3.2c0,1.5,1.2,2.7,2.7,2.7h3.2
+                                           c1.5,0,2.7-1.2,2.7-2.7v-3.2C22.1,9.5,20.9,8.3,19.4,8.3z M19.4,14.8h-3.2v-3.2h3.2V14.8z"/>
+                                    <path d="M7.8,8.3L7.8,8.3L7.8,8.3l0,0c0,0-1.7,0-3.2,0C3.1,8.3,1.9,9.5,1.9,11v3.2c0,1.5,1.2,2.7,2.7,2.7h3.2
+                                           c1.5,0,2.7-1.2,2.7-2.7V11C10.5,9.5,9.3,8.3,7.8,8.3z M7.8,14.8H4.6v-3.2h3.2V14.8z"/>
+                                </svg>
+                            {:else if account.type === 'OKEX'}
+                                <svg class="w-3.5 h-3.5 {$accountStore.currentAccount?._id === account._id ? 'text-white' : 'text-[#121212] dark:text-white'}" 
+                                     viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12,2C6.48,2,2,6.48,2,12c0,5.52,4.48,10,10,10s10-4.48,10-10C22,6.48,17.52,2,12,2z M12,18
+                                           c-3.31,0-6-2.69-6-6s2.69-6,6-6s6,2.69,6,6S15.31,18,12,18z"/>
+                                </svg>
+                            {:else if ['MT4', 'MT5'].includes(account.type)}
+                                <svg class="w-3.5 h-3.5 {$accountStore.currentAccount?._id === account._id ? 'text-white' : 'text-blue-500'}" 
+                                     viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                            {:else}
+                                <svg class="w-3.5 h-3.5 {$accountStore.currentAccount?._id === account._id ? 'text-white' : 'text-theme-500'}" 
+                                     viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
+                            {/if}
+                        </div>
                         <span>{account.name}</span>
                     </button>
                     <div class="flex items-center gap-0.5">
+                        {#if account.type === 'BINANCE_FUTURES'}
+                            <button
+                                class="p-0.5 rounded-full {$accountStore.currentAccount?._id === account._id 
+                                    ? 'hover:bg-white/20' 
+                                    : 'hover:bg-theme-500/20 hover:text-theme-500 dark:hover:text-theme-400'}"
+                                on:click|stopPropagation={() => handleSyncTrades(account._id)}
+                                title="Sync Trades"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                            </button>
+                        {/if}
                         <button
-                            class="p-0.5 rounded-full hover:bg-theme-500/20 hover:text-theme-500 dark:hover:text-theme-400"
+                            class="p-0.5 rounded-full {$accountStore.currentAccount?._id === account._id 
+                                ? 'hover:bg-white/20' 
+                                : 'hover:bg-theme-500/20 hover:text-theme-500 dark:hover:text-theme-400'}"
                             on:click|stopPropagation={() => startEditAccount(account)}
                             title="Edit Account"
                         >
@@ -217,7 +322,9 @@
                             </svg>
                         </button>
                         <button
-                            class="p-0.5 rounded-full hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400"
+                            class="p-0.5 rounded-full {$accountStore.currentAccount?._id === account._id 
+                                ? 'hover:bg-white/20' 
+                                : 'hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400'}"
                             on:click|stopPropagation={() => handleDeleteAccount(account._id)}
                             title="Delete Account"
                         >
@@ -257,7 +364,7 @@
 <!-- New Account Modal -->
 {#if showNewAccountModal}
     <NewAccountModal 
-        show={showNewAccountModal}
+        bind:show={showNewAccountModal}
         on:close={() => showNewAccountModal = false}
     />
 {/if}
@@ -265,76 +372,174 @@
 <!-- Edit Account Modal -->
 {#if showEditAccountModal && editingAccount}
     <div
-        class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
+        class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center overflow-y-auto p-4"
         transition:fade={{ duration: 150 }}
     >
-        <div class="card w-full max-w-md mx-auto relative transform ease-out">
-            <!-- Header -->
-            <div
-                class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
-            >
-                <h2
-                    class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent"
-                >
-                    Edit Account
-                </h2>
-                <button
-                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
-                    on:click={() => {
-                        showEditAccountModal = false;
-                        editingAccount = null;
-                    }}
-                >
-                    <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+        <div class="min-h-[calc(100vh-2rem)] flex items-center justify-center py-8">
+            <div class="card w-full max-w-md relative">
+                <!-- Header - Fixed at top -->
+                <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card z-20">
+                    <div>
+                        <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">
+                            Edit Account
+                        </h2>
+                        <p class="text-sm text-light-text-muted dark:text-dark-text-muted mt-1">
+                            Update your account settings
+                        </p>
+                    </div>
+                    <button
+                        class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
+                        on:click={() => {
+                            showEditAccountModal = false;
+                            editingAccount = null;
+                        }}
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Content - Scrollable -->
+                <div class="px-8 py-6 space-y-6 max-h-[calc(100vh-16rem)] overflow-y-auto">
+                    <!-- Account Type Info -->
+                    {#if editingAccount.type !== 'MANUAL'}
+                        <div class="p-4 rounded-xl bg-light-hover/30 dark:bg-dark-hover/30 border border-light-border/10 dark:border-dark-border/10">
+                            <div class="flex items-center gap-3">
+                                <!-- Exchange Icon -->
+                                <div class="p-2.5 rounded-lg bg-theme-500/10">
+                                    {#if editingAccount.type === 'BINANCE_FUTURES'}
+                                        <svg class="w-5 h-5 text-[#F3BA2F]" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 0L7.272 4.728L12 9.456L16.728 4.728L12 0Z"/>
+                                            <path d="M2.544 9.456L7.272 14.184L12 9.456L7.272 4.728L2.544 9.456Z"/>
+                                            <path d="M12 9.456L16.728 14.184L21.456 9.456L16.728 4.728L12 9.456Z"/>
+                                            <path d="M12 18.912L16.728 14.184L12 9.456L7.272 14.184L12 18.912Z"/>
+                                        </svg>
+                                    {:else if editingAccount.type === 'MT4'}
+                                        <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                        </svg>
+                                    {:else if editingAccount.type === 'MT5'}
+                                        <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                        </svg>
+                                    {/if}
+                                </div>
+                                <div>
+                                    <div class="font-medium text-light-text dark:text-dark-text">
+                                        {#if editingAccount.type === 'BINANCE_FUTURES'}
+                                            Binance Futures
+                                        {:else if editingAccount.type === 'MT4'}
+                                            MetaTrader 4
+                                        {:else if editingAccount.type === 'MT5'}
+                                            MetaTrader 5
+                                        {/if}
+                                    </div>
+                                    <div class="text-xs text-light-text-muted dark:text-dark-text-muted mt-0.5">
+                                        Connected Account
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- API Keys (Editable) -->
+                            {#if editingAccount.apiKey}
+                                <div class="mt-4 space-y-3">
+                                    <div class="space-y-1.5">
+                                        <label class="block text-sm font-medium text-light-text dark:text-dark-text">
+                                            API Key *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            bind:value={editingAccount.apiKey}
+                                            required
+                                            placeholder="Enter your API key"
+                                            class="w-full px-3 py-2 bg-light-background dark:bg-dark-background 
+                                                   border border-light-border dark:border-dark-border 
+                                                   rounded-lg focus:ring-2 focus:ring-theme-500 focus:border-transparent
+                                                   text-light-text dark:text-dark-text placeholder-light-text-muted 
+                                                   dark:placeholder-dark-text-muted font-mono"
+                                        />
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <label class="block text-sm font-medium text-light-text dark:text-dark-text">
+                                            Secret Key *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            bind:value={editingAccount.secretKey}
+                                            required
+                                            placeholder="Enter your Secret key"
+                                            class="w-full px-3 py-2 bg-light-background dark:bg-dark-background 
+                                                   border border-light-border dark:border-dark-border 
+                                                   rounded-lg focus:ring-2 focus:ring-theme-500 focus:border-transparent
+                                                   text-light-text dark:text-dark-text placeholder-light-text-muted 
+                                                   dark:placeholder-dark-text-muted font-mono"
+                                        />
+                                    </div>
+
+                                    <!-- IP Whitelist Instructions -->
+                                    <div class="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                                        <div class="flex items-start gap-3">
+                                            <svg class="w-5 h-5 text-blue-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                            </svg>
+                                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                                                <p class="font-medium text-light-text dark:text-dark-text mb-1">Important</p>
+                                                <p>Make sure your API key has the following:</p>
+                                                <ul class="mt-1 ml-4 list-disc space-y-0.5">
+                                                    <li>IP whitelist updated</li>
+                                                    <li>Reading permission enabled</li>
+                                                    <li>Futures permission enabled</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {/if}
+                        </div>
+                    {/if}
+
+                    <!-- Account Name -->
+                    <div class="space-y-1.5">
+                        <label class="block text-sm font-medium text-light-text dark:text-dark-text">
+                            Account Name *
+                        </label>
+                        <input
+                            type="text"
+                            bind:value={editingAccount.name}
+                            required
+                            placeholder="e.g., Binance Spot"
+                            class="w-full px-3 py-2 bg-light-background dark:bg-dark-background 
+                                   border border-light-border dark:border-dark-border 
+                                   rounded-lg focus:ring-2 focus:ring-theme-500 focus:border-transparent
+                                   text-light-text dark:text-dark-text placeholder-light-text-muted 
+                                   dark:placeholder-dark-text-muted"
                         />
-                    </svg>
-                </button>
-            </div>
+                    </div>
+                </div>
 
-            <!-- Content -->
-            <div class="px-8 py-6 space-y-4">
-                <form on:submit|preventDefault={handleUpdateAccount}>
-                    <Input
-                        label="Account Name"
-                        type="text"
-                        bind:value={editingAccount.name}
-                        required
-                        placeholder="e.g., Binance Spot"
-                    />
-                </form>
-            </div>
-
-            <!-- Footer -->
-            <div
-                class="px-8 py-5 border-t border-light-border dark:border-0 flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
-            >
-                <Button
-                    type="button"
-                    variant="secondary"
-                    on:click={() => {
-                        showEditAccountModal = false;
-                        editingAccount = null;
-                    }}
-                >
-                    Cancel
-                </Button>
-                <Button
-                    type="submit"
-                    variant="primary"
-                    on:click={handleUpdateAccount}
-                >
-                    Save Changes
-                </Button>
+                <!-- Footer - Fixed at bottom -->
+                <div class="px-8 py-5 border-t border-light-border dark:border-0 flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card z-20">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        on:click={() => {
+                            showEditAccountModal = false;
+                            editingAccount = null;
+                        }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        on:click={handleUpdateAccount}
+                    >
+                        Save Changes
+                    </Button>
+                </div>
             </div>
         </div>
     </div>
@@ -357,5 +562,28 @@
 <style lang="postcss">
     .card {
         @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-xl;
+    }
+
+    /* Add smooth scrolling */
+    .overflow-y-auto {
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+        background-color: var(--scrollbar-thumb, rgba(0, 0, 0, 0.2));
+        border-radius: 3px;
+    }
+
+    .dark .overflow-y-auto::-webkit-scrollbar-thumb {
+        background-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.2));
     }
 </style>
