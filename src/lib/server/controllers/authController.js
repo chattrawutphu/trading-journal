@@ -110,13 +110,39 @@ export async function login(req, res) {
             });
         }
 
+        // Check if login is blocked
+        if (user.isLoginBlocked()) {
+            const remainingTime = Math.ceil((user.loginAttempts.blockedUntil - new Date()) / 1000 / 60);
+            return res.status(429).json({
+                message: `Too many failed login attempts. Please try again after ${remainingTime} minutes.`,
+                blocked: true
+            });
+        }
+
+        // Add 2 second delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         // Check password
         const isValid = await user.matchPassword(password);
         if (!isValid) {
+            const attempts = await user.incrementLoginAttempts();
+            const remainingAttempts = 5 - attempts;
+
+            if (remainingAttempts <= 0) {
+                return res.status(429).json({
+                    message: 'Too many failed login attempts. Please try again after 5 minutes.',
+                    blocked: true
+                });
+            }
+
             return res.status(401).json({
-                message: 'The password you entered is incorrect. Please try again.'
+                message: `The password you entered is incorrect. ${remainingAttempts} attempts remaining.`,
+                remainingAttempts
             });
         }
+
+        // Reset login attempts on successful login
+        await user.resetLoginAttempts();
 
         // Set session
         req.session.userId = user._id;

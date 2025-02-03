@@ -54,22 +54,33 @@ function createAuthStore() {
                 update(state => ({...state, loading: true, error: null }));
                 const response = await api.login(email, password);
 
-                const authData = {
-                    isAuthenticated: true,
-                    user: response.user,
-                    loading: false,
-                    error: null,
-                    subscriptionType: subscriptionStore.type
-                };
+                if (response.success) {
+                    const authData = {
+                        isAuthenticated: true,
+                        user: response.user,
+                        loading: false,
+                        error: null,
+                        subscriptionType: subscriptionStore.type
+                    };
 
-                // Store in localStorage
-                localStorage.setItem('auth', JSON.stringify({
-                    user: response.user
-                }));
+                    // Store in localStorage
+                    localStorage.setItem('auth', JSON.stringify({
+                        user: response.user
+                    }));
 
-                set(authData);
-                await initializeSubscription();
-                return response;
+                    set(authData);
+                    await initializeSubscription();
+                    return response;
+                } else {
+                    const error = new Error(response.message);
+                    if (response.remainingAttempts !== undefined) {
+                        error.remainingAttempts = response.remainingAttempts;
+                    }
+                    if (response.blocked) {
+                        error.blocked = true;
+                    }
+                    throw error;
+                }
             } catch (error) {
                 update(state => ({
                     ...state,

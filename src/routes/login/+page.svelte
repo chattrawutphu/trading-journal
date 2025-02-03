@@ -4,6 +4,7 @@
     import { goto } from '$app/navigation';
     import ThemeToggle from '$lib/components/common/ThemeToggle.svelte';
     import Toast from '$lib/components/common/Toast.svelte';
+    import { onMount } from 'svelte';
 
     let email = ''; // เปลี่ยนจาก identifier เป็น email
     let password = '';
@@ -12,6 +13,40 @@
     let showToast = false;
     let toastMessage = '';
     let toastType = 'success';
+    let remainingAttempts = 5;
+    let isBlocked = false;
+    let blockEndTime = 0;
+
+    onMount(() => {
+        checkLoginBlock();
+    });
+
+    function checkLoginBlock() {
+        // Check if user is currently blocked
+        const storedBlockEndTime = localStorage.getItem('loginBlockEndTime');
+        const storedAttempts = localStorage.getItem('loginAttempts');
+        
+        if (storedBlockEndTime) {
+            const endTime = parseInt(storedBlockEndTime);
+            if (Date.now() < endTime) {
+                blockEndTime = endTime;
+                isBlocked = true;
+                const remainingMinutes = Math.max(1, Math.ceil((endTime - Date.now()) / 60000));
+                error = `Too many failed login attempts. Please try again in ${remainingMinutes} minutes.`;
+            } else {
+                // Block period is over, reset everything
+                localStorage.removeItem('loginBlockEndTime');
+                localStorage.removeItem('loginAttempts');
+                remainingAttempts = 5;
+                isBlocked = false;
+                blockEndTime = 0;
+            }
+        }
+
+        if (storedAttempts && !isBlocked) {
+            remainingAttempts = 5 - parseInt(storedAttempts);
+        }
+    }
 
     const validateEmail = (email) => {
         return String(email)
@@ -20,9 +55,20 @@
     };
 
     async function handleSubmit() {
+        // Recheck block status before proceeding
+        checkLoginBlock();
+
         loading = true;
         error = '';
         showToast = false;
+
+        // Check if user is blocked
+        if (isBlocked) {
+            const remainingMinutes = Math.max(1, Math.ceil((blockEndTime - Date.now()) / 60000));
+            error = `Too many failed login attempts. Please try again in ${remainingMinutes} minutes.`;
+            loading = false;
+            return;
+        }
 
         try {
             if (!email || !password) {
@@ -36,6 +82,13 @@
             const response = await auth.login(email, password);
             
             if (response.success) {
+                // Reset attempts on successful login
+                localStorage.removeItem('loginAttempts');
+                localStorage.removeItem('loginBlockEndTime');
+                isBlocked = false;
+                blockEndTime = 0;
+                remainingAttempts = 5;
+                
                 toastType = 'success';
                 toastMessage = response.message || 'Welcome back! You have successfully signed in.';
                 showToast = true;
@@ -47,7 +100,20 @@
                 throw new Error(response.message);
             }
         } catch (err) {
-            error = err.message || 'Login failed. Please try again.';
+            // Handle failed attempt
+            const currentAttempts = parseInt(localStorage.getItem('loginAttempts') || '0') + 1;
+            localStorage.setItem('loginAttempts', currentAttempts.toString());
+            remainingAttempts = 5 - currentAttempts;
+
+            if (currentAttempts >= 5) {
+                // Block user for 5 minutes
+                blockEndTime = Date.now() + (5 * 60 * 1000); // 5 minutes
+                localStorage.setItem('loginBlockEndTime', blockEndTime.toString());
+                isBlocked = true;
+                error = 'Too many failed login attempts. Please try again in 5 minutes.';
+            } else {
+                error = err.message || 'Login failed. Please try again.';
+            }
         } finally {
             loading = false;
         }
@@ -142,14 +208,13 @@
             <!-- Login Form -->
             <form class="space-y-4" on:submit|preventDefault={handleSubmit}>
                 {#if error}
-                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                    <div class="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-500/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg relative" role="alert">
                         <span class="block sm:inline">{error}</span>
-                        <button 
-                            class="absolute top-0 bottom-0 right-0 px-4 py-3"
-                            on:click={() => error = ''}
-                        >
-                            <span class="text-xl">&times;</span>
-                        </button>
+                        {#if !isBlocked && remainingAttempts < 5}
+                            <div class="mt-1 text-sm opacity-75">
+                                {remainingAttempts} {remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining before temporary lockout.
+                            </div>
+                        {/if}
                     </div>
                 {/if}
 
