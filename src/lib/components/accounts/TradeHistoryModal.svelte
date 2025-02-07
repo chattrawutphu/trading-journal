@@ -10,6 +10,7 @@
     export let tradeHistory = null;
     export let loading = false;
     export let accountType = 'BINANCE_FUTURES';
+    export let excludeZeroPnL = true;
 
     // Exchange theme configuration
     const exchangeThemes = {
@@ -39,15 +40,15 @@
 
     async function handleImport() {
         console.log('TradeHistoryModal handleImport called');
-        loading = true; // Set loading state
+        loading = true;
         try {
-            await dispatch('import', tradeHistory);
-            // ไม่ต้องปิด modal ที่นี่ เพราะ parent component จะจัดการเอง
+            await dispatch('import', {
+                ...tradeHistory,
+                excludeZeroPnL
+            });
         } catch (error) {
             console.error('Error in handleImport:', error);
-            // อาจจะแสดง error message ที่นี่
         }
-        // ไม่ต้อง set loading = false ที่นี่ เพราะ modal จะถูกปิดโดย parent
     }
 
     // Format date helper
@@ -129,6 +130,23 @@
                                 </span>
                             {/each}
                         </div>
+                    </div>
+
+                    <!-- Exclude Zero PnL -->
+                    <div class="p-4 rounded-xl bg-light-hover/30 dark:bg-dark-hover/30 border border-light-border/10 dark:border-dark-border/10">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                bind:checked={excludeZeroPnL}
+                                class="mt-1 rounded border-light-border dark:border-dark-border text-theme-500 focus:ring-theme-500"
+                            />
+                            <div class="text-sm">
+                                <div class="font-medium text-light-text dark:text-dark-text">Exclude Zero PnL Trades</div>
+                                <div class="text-light-text-muted dark:text-dark-text-muted mt-0.5">
+                                    Skip importing trades with 0% profit/loss. This can help clean up your trade history.
+                                </div>
+                            </div>
+                        </label>
                     </div>
 
                     <!-- Import Notice -->

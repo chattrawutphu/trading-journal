@@ -6,9 +6,12 @@
  * @param {boolean} isFromExchange - Whether trades are from an exchange (affects orderId handling)
  * @param {Array} existingOrderIds - Array of existing orderIds to check for duplicates
  * @param {boolean} checkDuplicates - Whether to check for duplicates
+ * @param {boolean} excludeZeroPnL - Whether to exclude trades with zero PnL
  * @returns {Array} Array of formatted trade objects
  */
-export function formatTrades(trades, isFromExchange = true, existingOrderIds = [], checkDuplicates = false) {
+export function formatTrades(trades, isFromExchange = true, existingOrderIds = [], checkDuplicates = false, excludeZeroPnL = false) {
+    console.log('Format trades options:', { isFromExchange, checkDuplicates, excludeZeroPnL });
+
     // Remove unnecessary logs
     const existingOrderIdsSet = new Set(
         Array.isArray(existingOrderIds) ?
@@ -71,9 +74,32 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
 
             // Calculate amount
             const amount = Math.abs(price * qty);
-            if (!Number.isFinite(amount) || amount <= 0) {
-                console.error(`Invalid amount calculation at index ${index}:`, amount);
+
+            // Log before checking PnL
+            if (excludeZeroPnL) {
+                console.log(`Checking PnL for trade ${trade.orderId}:`, {
+                    pnl: trade.realizedPnl,
+                    amount: amount,
+                    isZero: isEffectivelyZeroPnL(trade.realizedPnl, amount)
+                });
+            }
+
+            // Skip trades with zero/negligible PnL
+            if (excludeZeroPnL && isEffectivelyZeroPnL(trade.realizedPnl, amount)) {
+                console.log(`Skipping trade ${trade.orderId} due to zero/negligible PnL`);
                 return null;
+            }
+
+            // Calculate entry price from realized PnL for futures trades
+            let entryPrice = trade.price; // Default to exit price
+            if (trade.type === 'FUTURES' && trade.realizedPnl !== undefined) {
+                // For SHORT: entryPrice = exitPrice + (realizedPnl / qty)
+                // For LONG: entryPrice = exitPrice - (realizedPnl / qty)
+                const pnlPerUnit = trade.realizedPnl / trade.qty;
+                entryPrice = trade.side === 'SELL' ?
+                    trade.price + pnlPerUnit // SHORT
+                    :
+                    trade.price - pnlPerUnit; // LONG
             }
 
             // Create formatted trade object
@@ -82,18 +108,27 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
                 symbol: trade.symbol,
                 side: trade.side === 'SELL' ? 'SHORT' : 'LONG',
                 status: 'CLOSED',
-                entryDate: new Date(timestamp).toISOString(),
-                exitDate: new Date(timestamp).toISOString(),
-                quantity: Math.abs(qty),
-                amount: amount,
-                entryPrice: price,
-                exitPrice: price,
+                entryDate: new Date(trade.time).toISOString(),
+                exitDate: new Date(trade.time).toISOString(),
+                quantity: Math.abs(trade.qty),
+                amount: Math.abs(trade.price * trade.qty),
+                entryPrice: entryPrice,
+                exitPrice: trade.price,
                 confidenceLevel: 5,
                 greedLevel: 5,
                 pnl: Number(trade.realizedPnl) || 0
             };
 
-
+            // Log the trade details for debugging
+            console.log('Formatted trade:', {
+                orderId: formattedTrade.orderId,
+                symbol: formattedTrade.symbol,
+                side: formattedTrade.side,
+                time: formattedTrade.entryDate,
+                entryPrice: formattedTrade.entryPrice,
+                exitPrice: formattedTrade.exitPrice,
+                pnl: formattedTrade.pnl
+            });
 
             return formattedTrade;
         } catch (error) {
@@ -186,35 +221,29 @@ export async function syncTrades(accountId, api) {
         console.group('Syncing trades...');
         console.time('Sync duration');
 
-        // 1. ดึง trades ที่มีอยู่ในระบบ
-        console.log('Fetching existing trades...');
-        const existingTrades = await api.getTrades(accountId);
-        const existingIds = existingTrades.map(t => t.orderId);
-        console.log(`Found ${existingIds.length} existing trades`);
-
-        // 2. ดึง trades ใหม่จาก Binance
-        console.log('Fetching account details...');
+        // 1. ดึง account details
         const account = await api.getAccount(accountId);
         if (!account.apiKey || !account.secretKey) {
             throw new Error('API credentials not found');
         }
 
-        console.log('Fetching new trades from Binance...');
+        // 2. ดึง trades ที่มีอยู่ในระบบ
+        const existingTrades = await api.getTrades(accountId);
+
+        // 3. ดึง trades ใหม่จาก Binance
         const response = await api.fetchBinanceTradeHistory(account.apiKey, account.secretKey);
         if (!response.data.trades) {
             throw new Error('Failed to fetch new trades');
         }
 
-        const incomingIds = response.data.trades.map(t => t.orderId);
-        console.log(`Found ${incomingIds.length} trades from Binance`);
-
-        // หา trades ที่ซ้ำกัน
-        const duplicateIds = incomingIds.filter(id => existingIds.includes(id));
-        console.log(`Found ${duplicateIds.length} duplicate trades`);
-
-        // 3. Format และเช็ค duplicates
-        console.log('Formatting and validating trades...');
-        const formattedTrades = formatTrades(response.data.trades, true, existingIds, true);
+        // 4. Format และเช็ค duplicates
+        const formattedTrades = formatTrades(
+            response.data.trades,
+            true,
+            existingTrades.map(t => t.orderId),
+            true,
+            account.excludeZeroPnL // ใช้ค่าจาก account settings
+        );
         console.log(`${formattedTrades.length} valid trades to import`);
 
         if (formattedTrades.length === 0) {
@@ -258,4 +287,22 @@ export async function syncTrades(accountId, api) {
             error: err
         };
     }
+}
+
+// Add helper function to check if PnL is effectively zero
+function isEffectivelyZeroPnL(pnl, amount) {
+    if (pnl === 0) return true;
+
+    // Convert to numbers and check for valid values
+    pnl = Number(pnl);
+    amount = Number(amount);
+
+    if (!amount || amount === 0) return true;
+
+    // Calculate PnL percentage
+    const pnlPercentage = Math.abs(pnl / amount) * 100;
+    console.log(`PnL: ${pnl}, Amount: ${amount}, Percentage: ${pnlPercentage}%`);
+
+    // Return true if PnL is less than 0.01%
+    return pnlPercentage < 0.01;
 }

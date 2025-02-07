@@ -62,7 +62,8 @@
                 await accountStore.updateAccount(editingAccount._id, {
                     name: editingAccount.name,
                     apiKey: editingAccount.apiKey,
-                    secretKey: editingAccount.secretKey
+                    secretKey: editingAccount.secretKey,
+                    excludeZeroPnL: editingAccount.excludeZeroPnL
                 });
                 showEditAccountModal = false;
                 editingAccount = null;
@@ -381,24 +382,24 @@
                 <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card z-20">
                     <div>
                         <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">
-                            Edit Account
-                        </h2>
+                    Edit Account
+                </h2>
                         <p class="text-sm text-light-text-muted dark:text-dark-text-muted mt-1">
                             Update your account settings
                         </p>
                     </div>
-                    <button
+                <button
                         class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
-                        on:click={() => {
-                            showEditAccountModal = false;
-                            editingAccount = null;
-                        }}
-                    >
+                    on:click={() => {
+                        showEditAccountModal = false;
+                        editingAccount = null;
+                    }}
+                >
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
+                    </svg>
+                </button>
+            </div>
 
                 <!-- Content - Scrollable -->
                 <div class="px-8 py-6 space-y-6 max-h-[calc(100vh-16rem)] overflow-y-auto">
@@ -496,6 +497,23 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Add new option -->
+                                    <div class="p-4 rounded-xl bg-light-hover/30 dark:bg-dark-hover/30 border border-light-border/10 dark:border-dark-border/10">
+                                        <label class="flex items-start gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                bind:checked={editingAccount.excludeZeroPnL}
+                                                class="mt-1 rounded border-light-border dark:border-dark-border text-theme-500 focus:ring-theme-500"
+                                            />
+                                            <div class="text-sm">
+                                                <div class="font-medium text-light-text dark:text-dark-text">Exclude Zero PnL Trades</div>
+                                                <div class="text-light-text-muted dark:text-dark-text-muted mt-0.5">
+                                                    Skip importing trades with 0% profit/loss when syncing trades.
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
                             {/if}
                         </div>
@@ -507,38 +525,38 @@
                             Account Name *
                         </label>
                         <input
-                            type="text"
-                            bind:value={editingAccount.name}
-                            required
-                            placeholder="e.g., Binance Spot"
+                        type="text"
+                        bind:value={editingAccount.name}
+                        required
+                        placeholder="e.g., Binance Spot"
                             class="w-full px-3 py-2 bg-light-background dark:bg-dark-background 
                                    border border-light-border dark:border-dark-border 
                                    rounded-lg focus:ring-2 focus:ring-theme-500 focus:border-transparent
                                    text-light-text dark:text-dark-text placeholder-light-text-muted 
                                    dark:placeholder-dark-text-muted"
-                        />
+                    />
                     </div>
-                </div>
+            </div>
 
                 <!-- Footer - Fixed at bottom -->
                 <div class="px-8 py-5 border-t border-light-border dark:border-0 flex justify-end gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card z-20">
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        on:click={() => {
-                            showEditAccountModal = false;
-                            editingAccount = null;
-                        }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        type="submit"
-                        variant="primary"
-                        on:click={handleUpdateAccount}
-                    >
-                        Save Changes
-                    </Button>
+                <Button
+                    type="button"
+                    variant="secondary"
+                    on:click={() => {
+                        showEditAccountModal = false;
+                        editingAccount = null;
+                    }}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    type="submit"
+                    variant="primary"
+                    on:click={handleUpdateAccount}
+                >
+                    Save Changes
+                </Button>
                 </div>
             </div>
         </div>

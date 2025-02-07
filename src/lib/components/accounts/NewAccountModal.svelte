@@ -302,11 +302,16 @@
                 loading = true;
 
                 // 1. สร้าง account
-                await accountStore.createAccount({
+                const accountData = {
                     name: accountName,
-                    balance: parseFloat(initialBalance),
-                    type: accountType
-                });
+                    type: accountType,
+                    apiKey,
+                    secretKey,
+                    excludeZeroPnL: false,
+                    balance: initialBalance || 0
+                };
+
+                await accountStore.createAccount(accountData);
                 console.log('3. Account created');
 
                 // 2. รอให้ reload layout เสร็จก่อน
@@ -391,47 +396,47 @@
 
     // ปรับปรุงฟังก์ชัน handleTradeImport
     async function handleTradeImport(event) {
-        importLoading = true;
-        error = "";
-
         try {
-            const trades = processTradeImportData(event);
-            console.log('Received trades:', trades);
+            importLoading = true;
+            const tradeData = event.detail;
+            console.log('Importing trades with options:', tradeData);
 
-            const formattedTrades = formatTrades(trades, true, [], false);
-            if (!formattedTrades.length) {
-                error = "No valid trades found in the import data";
-                return;
-            }
+            // Format trades with excludeZeroPnL option
+            const formattedTrades = formatTrades(
+                tradeData.trades,
+                true,
+                [],
+                false,
+                tradeData.excludeZeroPnL
+            );
 
-            const accountData = {
+            // Create account with excludeZeroPnL setting
+            const account = await accountStore.createAccount({
                 name: accountName,
                 type: accountType,
                 apiKey,
-                secretKey
-            };
+                secretKey,
+                excludeZeroPnL: tradeData.excludeZeroPnL,
+                balance: initialBalance || 0
+            });
 
-            console.log('Creating account...', { ...accountData, secretKey: '***' });
-            const accountResponse = await api.createAccount(accountData);
-            console.log('Account created:', accountResponse);
+            // Save trades one by one using createTrade
+            if (formattedTrades.length > 0) {
+                await Promise.all(formattedTrades.map(trade => 
+                    api.createTrade({
+                        ...trade,
+                        account: account._id
+                    })
+                ));
+            }
 
-            console.log('Adding trades to account:', accountResponse._id);
-            const addTradesPromises = formattedTrades.map(trade => 
-                api.createTrade({
-                    ...trade,
-                    account: accountResponse._id
-                })
-            );
-
-            await Promise.all(addTradesPromises);
-
-            // Refresh layout and wait for it to complete
+            // Reload accounts and wait for it to complete
+            await accountStore.loadAccounts();
+            
+            // Then refresh layout
             dispatch('refreshLayout');
             
-            // Wait a bit to ensure layout is refreshed
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Close both modals only after layout is refreshed
+            // Close both modals
             showTradeHistory = false;
             show = false;
             
@@ -447,6 +452,39 @@
             showToast = true;
         } finally {
             importLoading = false;
+        }
+    }
+
+    async function handleTradeHistoryImport(event) {
+        try {
+            const tradeData = event.detail;
+            console.log('Importing trades with options:', tradeData);
+
+            // สร้าง account พร้อมกับ excludeZeroPnL
+            const accountData = {
+                name: accountName,
+                type: accountType,
+                apiKey,
+                secretKey,
+                excludeZeroPnL: tradeData.excludeZeroPnL, // รับค่าจาก TradeHistoryModal
+                balance: initialBalance || 0
+            };
+
+            const account = await accountStore.createAccount(accountData);
+            
+            // Format trades with excludeZeroPnL option
+            const formattedTrades = formatTrades(
+                tradeData.trades,
+                true,
+                [],
+                false,
+                tradeData.excludeZeroPnL // ใช้ค่าที่รับมา
+            );
+
+            // ... rest of the code
+        } catch (err) {
+            console.error('Error importing trades:', err);
+            error = err.message;
         }
     }
 </script>

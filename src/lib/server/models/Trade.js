@@ -103,6 +103,10 @@ const tradeSchema = new mongoose.Schema({
             },
             message: props => 'Tags cannot exceed 7 items'
         }
+    },
+    excludeZeroPnL: {
+        type: Boolean,
+        default: false
     }
 });
 

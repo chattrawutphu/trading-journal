@@ -40,6 +40,10 @@ const accountSchema = new mongoose.Schema({
         required: function() {
             return ['BINANCE_FUTURES', 'BYBIT', 'OKEX'].includes(this.type);
         }
+    },
+    excludeZeroPnL: {
+        type: Boolean,
+        default: false
     }
 });
 
