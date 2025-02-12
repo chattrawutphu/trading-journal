@@ -25,6 +25,9 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
 
     const formattedTrades = trades.map((trade, index) => {
         try {
+            // ใช้ orderId จาก position แทน
+            const orderId = trade.orders?.[0]?.orderId || trade.orderId;
+
             // Basic validation
             if (!trade || typeof trade !== 'object') {
                 console.error(`Trade at index ${index} is invalid:`, trade);
@@ -32,11 +35,10 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
             }
 
             // Validate and normalize orderId
-            if (!trade.orderId) {
+            if (!orderId) {
                 console.error(`Missing orderId at index ${index}:`, trade);
                 return null;
             }
-            const orderId = String(trade.orderId).toLowerCase();
 
             // Check duplicates only if checkDuplicates is true
             if (checkDuplicates) {
@@ -51,42 +53,37 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
             processedOrderIds.add(orderId);
             newTradeIds.add(orderId);
 
-            // Convert and validate numeric values
-            const price = Number(trade.price);
-            const qty = Number(trade.qty);
-            const timestamp = Number(trade.time);
-
             // Validate required numeric values
-            if (!Number.isFinite(price) || price <= 0) {
-                console.error(`Invalid price at index ${index}:`, trade.price);
+            if (!Number.isFinite(trade.entryPrice) || trade.entryPrice <= 0) {
+                console.error(`Invalid entry price at index ${index}:`, trade.entryPrice);
                 return null;
             }
 
-            if (!Number.isFinite(qty) || qty === 0) {
-                console.error(`Invalid quantity at index ${index}:`, trade.qty);
+            if (!Number.isFinite(trade.quantity) || trade.quantity === 0) {
+                console.error(`Invalid quantity at index ${index}:`, trade.quantity);
                 return null;
             }
 
-            if (!Number.isFinite(timestamp) || timestamp <= 0) {
-                console.error(`Invalid timestamp at index ${index}:`, trade.time);
+            if (!trade.entryDate || isNaN(new Date(trade.entryDate).getTime())) {
+                console.error(`Invalid entry date at index ${index}:`, trade.entryDate);
                 return null;
             }
 
             // Calculate amount
-            const amount = Math.abs(price * qty);
+            const amount = Math.abs(trade.entryPrice * trade.quantity);
 
             // Log before checking PnL
             if (excludeZeroPnL) {
-                console.log(`Checking PnL for trade ${trade.orderId}:`, {
-                    pnl: trade.realizedPnl,
+                console.log(`Checking PnL for trade ${orderId}:`, {
+                    pnl: trade.pnl,
                     amount: amount,
-                    isZero: isEffectivelyZeroPnL(trade.realizedPnl, amount)
+                    isZero: isEffectivelyZeroPnL(trade.pnl, amount)
                 });
             }
 
             // Skip trades with zero/negligible PnL
-            if (excludeZeroPnL && isEffectivelyZeroPnL(trade.realizedPnl, amount)) {
-                console.log(`Skipping trade ${trade.orderId} due to zero/negligible PnL`);
+            if (excludeZeroPnL && isEffectivelyZeroPnL(trade.pnl, amount)) {
+                console.log(`Skipping trade ${orderId} due to zero/negligible PnL`);
                 return null;
             }
 
@@ -102,33 +99,27 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
                     trade.price - pnlPerUnit; // LONG
             }
 
-            // Create formatted trade object
+            // ใช้ข้อมูลจาก position ที่คำนวณแล้ว
             const formattedTrade = {
                 orderId: orderId,
                 symbol: trade.symbol,
-                side: trade.side === 'SELL' ? 'SHORT' : 'LONG',
-                status: 'CLOSED',
-                entryDate: new Date(trade.time).toISOString(),
-                exitDate: new Date(trade.time).toISOString(),
-                quantity: Math.abs(trade.qty),
-                amount: Math.abs(trade.price * trade.qty),
-                entryPrice: entryPrice,
-                exitPrice: trade.price,
+                side: trade.side,
+                status: trade.status || 'CLOSED',
+                entryDate: new Date(trade.entryDate).toISOString(),
+                exitDate: new Date(trade.exitDate).toISOString(),
+                quantity: Math.abs(trade.quantity),
+                amount: amount,
+                entryPrice: trade.entryPrice,
+                exitPrice: trade.exitPrice,
+                pnl: trade.pnl || 0,
+                commission: trade.commission || 0,
+                commissionAsset: trade.commissionAsset || 'USDT',
                 confidenceLevel: 5,
-                greedLevel: 5,
-                pnl: Number(trade.realizedPnl) || 0
+                greedLevel: 5
             };
 
             // Log the trade details for debugging
-            console.log('Formatted trade:', {
-                orderId: formattedTrade.orderId,
-                symbol: formattedTrade.symbol,
-                side: formattedTrade.side,
-                time: formattedTrade.entryDate,
-                entryPrice: formattedTrade.entryPrice,
-                exitPrice: formattedTrade.exitPrice,
-                pnl: formattedTrade.pnl
-            });
+            console.log('Formatted trade:', formattedTrade);
 
             return formattedTrade;
         } catch (error) {

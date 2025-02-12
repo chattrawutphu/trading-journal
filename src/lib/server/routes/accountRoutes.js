@@ -80,80 +80,100 @@ router.post('/test-connection', async(req, res) => {
     }
 });
 
-// Modify the binance-history route
+// เพิ่มฟังก์ชันใหม่สำหรับดึง futures order history
+async function getBinanceFuturesOrderHistory(apiKey, secretKey, startTime, endTime) {
+    try {
+        const allOrders = [];
+        let currentStartTime = startTime;
+        
+        // Binance API allows maximum 7 days per request
+        const maxInterval = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+        
+        while (currentStartTime < endTime) {
+            const currentEndTime = Math.min(currentStartTime + maxInterval, endTime);
+            
+            const serverTime = await getBinanceServerTime();
+            const queryString = `limit=${process.env.BINANCE_FUTURES_ORDER_LIMIT}&startTime=${currentStartTime}&endTime=${currentEndTime}&timestamp=${serverTime}`;
+            const signature = createSignature(secretKey, queryString);
+
+            const url = new URL('https://fapi.binance.com/fapi/v1/allOrders');
+            url.searchParams.append('limit', process.env.BINANCE_FUTURES_ORDER_LIMIT);
+            url.searchParams.append('startTime', currentStartTime);
+            url.searchParams.append('endTime', currentEndTime);
+            url.searchParams.append('timestamp', serverTime);
+            url.searchParams.append('signature', signature);
+
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                headers: {
+                    'X-MBX-APIKEY': apiKey
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.msg || 'Failed to fetch futures order history');
+            }
+
+            const orders = await response.json();
+            allOrders.push(...orders);
+            
+            // Move to next interval
+            currentStartTime = currentEndTime + 1;
+            
+            // Add a small delay to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        return allOrders;
+    } catch (error) {
+        console.error('Error fetching futures order history:', error);
+        throw error;
+    }
+}
+
+// ปรับปรุง route binance-history
 router.post('/binance-history', async(req, res) => {
     try {
         const { apiKey, secretKey } = req.body;
-
-        // Get Binance server time
         const serverTime = await getBinanceServerTime();
+        
+        // Get days from environment variable
+        const days = parseInt(process.env.BINANCE_FUTURES_ORDER_DAYS) || 7;
+        const endTime = serverTime;
+        const startTime = endTime - (days * 24 * 60 * 60 * 1000);
 
-        // Set start time to 3 months ago (Binance Futures API limit)
-        const startTime = serverTime - (90 * 24 * 60 * 60 * 1000); // 90 days ago
+        // ดึงข้อมูล order history
+        const orders = await getBinanceFuturesOrderHistory(apiKey, secretKey, startTime, endTime);
 
-        const queryString = `limit=1000&startTime=${startTime}&timestamp=${serverTime}`;
-        const signature = createSignature(secretKey, queryString);
-
-        const url = new URL('https://fapi.binance.com/fapi/v1/userTrades');
-        url.searchParams.append('limit', '1000');
-        url.searchParams.append('startTime', startTime);
-        url.searchParams.append('timestamp', serverTime);
-        url.searchParams.append('signature', signature);
-
-        const response = await fetch(url.toString(), {
-            method: 'GET',
-            headers: {
-                'X-MBX-APIKEY': apiKey
-            }
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            console.error('Binance Futures API Error:', error);
-            throw new Error(error.msg || 'Failed to fetch futures trade history');
-        }
-
-        const trades = await response.json();
-
-        if (!trades || trades.length === 0) {
+        if (!orders || orders.length === 0) {
             return res.json({
                 success: true,
                 data: {
                     totalTrades: 0,
                     symbols: [],
                     startDate: new Date(startTime).toISOString(),
-                    endDate: new Date(serverTime).toISOString(),
+                    endDate: new Date(endTime).toISOString(),
                     trades: []
                 }
             });
         }
 
-        const symbols = [...new Set(trades.map(trade => trade.symbol))];
-        const startDate = new Date(Math.min(...trades.map(t => t.time))).toISOString();
-        const endDate = new Date(Math.max(...trades.map(t => t.time))).toISOString();
+        // Process orders into positions
+        const positions = processOrdersToPositions(orders);
 
-        const processedTrades = trades.map(trade => ({
-            symbol: trade.symbol,
-            side: trade.side,
-            price: parseFloat(trade.price),
-            qty: parseFloat(trade.qty),
-            realizedPnl: parseFloat(trade.realizedPnl),
-            commission: parseFloat(trade.commission),
-            commissionAsset: trade.commissionAsset,
-            time: trade.time,
-            positionSide: trade.positionSide,
-            orderId: trade.orderId,
-            type: 'FUTURES'
-        }));
+        const symbols = [...new Set(positions.map(pos => pos.symbol))];
+        const startDate = new Date(Math.min(...positions.map(pos => pos.entryDate))).toISOString();
+        const endDate = new Date(Math.max(...positions.map(pos => pos.exitDate))).toISOString();
 
         res.json({
             success: true,
             data: {
-                totalTrades: processedTrades.length,
+                totalTrades: positions.length,
                 symbols,
                 startDate,
                 endDate,
-                trades: processedTrades
+                trades: positions
             }
         });
     } catch (error) {
@@ -164,6 +184,116 @@ router.post('/binance-history', async(req, res) => {
         });
     }
 });
+
+// เพิ่มฟังก์ชันสำหรับแปลง orders เป็น positions
+function processOrdersToPositions(orders) {
+    const positions = [];
+    const openPositions = new Map();
+
+    // เรียงลำดับ orders ตามเวลา
+    orders.sort((a, b) => a.time - b.time);
+
+    for (const order of orders) {
+        if (!['NEW', 'FILLED', 'CANCELED'].includes(order.status)) continue;
+
+        const key = `${order.symbol}_${order.positionSide}`;
+
+        // Handle both LONG and SHORT positions
+        if (order.positionSide === 'LONG') {
+            if (order.side === 'BUY') {
+                // เปิด position LONG
+                if (!openPositions.has(key)) {
+                    openPositions.set(key, {
+                        symbol: order.symbol,
+                        side: 'LONG',
+                        entryDate: order.time,
+                        entryPrice: parseFloat(order.avgPrice),
+                        quantity: parseFloat(order.executedQty),
+                        orders: [order],
+                        commission: parseFloat(order.commission),
+                        commissionAsset: order.commissionAsset
+                    });
+                } else {
+                    // เพิ่ม position LONG
+                    const pos = openPositions.get(key);
+                    const totalQty = pos.quantity + parseFloat(order.executedQty);
+                    pos.entryPrice = ((pos.entryPrice * pos.quantity) + 
+                        (parseFloat(order.avgPrice) * parseFloat(order.executedQty))) / totalQty;
+                    pos.quantity = totalQty;
+                    pos.orders.push(order);
+                    pos.commission += parseFloat(order.commission);
+                }
+            } else if (order.side === 'SELL') {
+                // ปิด position LONG
+                if (openPositions.has(key)) {
+                    const pos = openPositions.get(key);
+                    const exitPrice = parseFloat(order.avgPrice);
+                    const pnl = (exitPrice - pos.entryPrice) * pos.quantity;
+
+                    positions.push({
+                        ...pos,
+                        exitDate: order.time,
+                        exitPrice,
+                        pnl,
+                        commission: pos.commission + parseFloat(order.commission),
+                        commissionAsset: order.commissionAsset,
+                        type: 'FUTURES',
+                        status: 'CLOSED'
+                    });
+
+                    openPositions.delete(key);
+                }
+            }
+        } else if (order.positionSide === 'SHORT') {
+            if (order.side === 'SELL') {
+                // เปิด position SHORT
+                if (!openPositions.has(key)) {
+                    openPositions.set(key, {
+                        symbol: order.symbol,
+                        side: 'SHORT',
+                        entryDate: order.time,
+                        entryPrice: parseFloat(order.avgPrice),
+                        quantity: parseFloat(order.executedQty),
+                        orders: [order],
+                        commission: parseFloat(order.commission),
+                        commissionAsset: order.commissionAsset
+                    });
+                } else {
+                    // เพิ่ม position SHORT
+                    const pos = openPositions.get(key);
+                    const totalQty = pos.quantity + parseFloat(order.executedQty);
+                    pos.entryPrice = ((pos.entryPrice * pos.quantity) + 
+                        (parseFloat(order.avgPrice) * parseFloat(order.executedQty))) / totalQty;
+                    pos.quantity = totalQty;
+                    pos.orders.push(order);
+                    pos.commission += parseFloat(order.commission);
+                }
+            } else if (order.side === 'BUY') {
+                // ปิด position SHORT
+                if (openPositions.has(key)) {
+                    const pos = openPositions.get(key);
+                    const exitPrice = parseFloat(order.avgPrice);
+                    const pnl = (pos.entryPrice - exitPrice) * pos.quantity;
+
+                    positions.push({
+                        ...pos,
+                        exitDate: order.time,
+                        exitPrice,
+                        pnl,
+                        commission: pos.commission + parseFloat(order.commission),
+                        commissionAsset: order.commissionAsset,
+                        type: 'FUTURES',
+                        status: 'CLOSED'
+                    });
+
+                    openPositions.delete(key);
+                }
+            }
+        }
+    }
+
+    return positions;
+}
 
 router.use(protect);
 
