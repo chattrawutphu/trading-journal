@@ -12,6 +12,7 @@
     import ErrorMessage from '../common/ErrorMessage.svelte';
     import TradeHistoryModal from './TradeHistoryModal.svelte';
     import { formatTrades, generateShortGuid, generateAccountName, processTradeImportData } from '$lib/utils/importTrades';
+    import { accountSymbolStore } from '$lib/stores/accountSymbolStore';
 
     export let show = false;
     const dispatch = createEventDispatcher();
@@ -427,6 +428,13 @@
                         ...trade,
                         account: account._id
                     })
+                ));
+            }
+
+            // Add unique symbols to accountSymbolStore
+            if (tradeData.symbols && tradeData.symbols.length > 0) {
+                await Promise.all(tradeData.symbols.map(symbol => 
+                    accountSymbolStore.addSymbol(account._id, symbol)
                 ));
             }
 
