@@ -9,10 +9,9 @@
  * @param {boolean} excludeZeroPnL - Whether to exclude trades with zero PnL
  * @returns {Array} Array of formatted trade objects
  */
-export function formatTrades(trades, isFromExchange = true, existingOrderIds = [], checkDuplicates = false, excludeZeroPnL = false) {
+export function formatTrades(trades, isFromExchange = true, existingOrderIds = [], checkDuplicates = true, excludeZeroPnL = false) {
     console.log('Format trades options:', { isFromExchange, checkDuplicates, excludeZeroPnL });
 
-    // Remove unnecessary logs
     const existingOrderIdsSet = new Set(
         Array.isArray(existingOrderIds) ?
         existingOrderIds.map(id => String(id).toLowerCase()) :
@@ -25,8 +24,7 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
 
     const formattedTrades = trades.map((trade, index) => {
         try {
-            // ใช้ orderId จาก position แทน
-            const orderId = trade.orders?.[0]?.orderId || trade.orderId;
+            const orderId = String(trade.orders?.[0]?.orderId || trade.orderId).toLowerCase();
 
             // Basic validation
             if (!trade || typeof trade !== 'object') {
@@ -40,7 +38,7 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
                 return null;
             }
 
-            // Check duplicates only if checkDuplicates is true
+            // Check duplicates
             if (checkDuplicates) {
                 if (existingOrderIdsSet.has(orderId) || processedOrderIds.has(orderId)) {
                     duplicates.add(orderId);
@@ -127,6 +125,10 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
             return null;
         }
     }).filter(trade => trade !== null);
+
+    if (duplicates.size > 0) {
+        console.log(`Found ${duplicates.size} duplicate trades`);
+    }
 
     return formattedTrades;
 }
@@ -220,6 +222,13 @@ export async function syncTrades(accountId, api) {
 
         // 2. ดึง trades ที่มีอยู่ในระบบ
         const existingTrades = await api.getTrades(accountId);
+        const existingOrderIds = new Set(
+            existingTrades
+                .filter(trade => trade.orderId)
+                .map(trade => String(trade.orderId).toLowerCase())
+        );
+
+        console.log('Existing order IDs:', existingOrderIds);
 
         // 3. ดึง trades ใหม่จาก Binance
         const response = await api.fetchBinanceTradeHistory(account.apiKey, account.secretKey);
@@ -227,17 +236,21 @@ export async function syncTrades(accountId, api) {
             throw new Error('Failed to fetch new trades');
         }
 
-        // 4. Format และเช็ค duplicates
-        const formattedTrades = formatTrades(
-            response.data.trades,
-            true,
-            existingTrades.map(t => t.orderId),
-            true,
-            account.excludeZeroPnL // ใช้ค่าจาก account settings
-        );
-        console.log(`${formattedTrades.length} valid trades to import`);
+        console.log('Fetched trades:', response.data.trades.length);
 
-        if (formattedTrades.length === 0) {
+        // 4. Filter out already imported trades
+        const newTrades = response.data.trades.filter(trade => {
+            const orderId = String(trade.orders?.[0]?.orderId || trade.orderId).toLowerCase();
+            const isNew = !existingOrderIds.has(orderId);
+            if (!isNew) {
+                console.log(`Duplicate trade found: ${orderId}`);
+            }
+            return isNew;
+        });
+
+        console.log('New trades after filtering:', newTrades.length);
+
+        if (newTrades.length === 0) {
             console.timeEnd('Sync duration');
             console.groupEnd();
             return {
@@ -248,7 +261,29 @@ export async function syncTrades(accountId, api) {
             };
         }
 
-        // 5. บันทึก trades ใหม่
+        // 5. Format new trades
+        const formattedTrades = formatTrades(
+            newTrades,
+            true,
+            existingOrderIds,
+            true,
+            account.excludeZeroPnL
+        );
+
+        console.log(`${formattedTrades.length} valid trades to import`);
+
+        if (formattedTrades.length === 0) {
+            console.timeEnd('Sync duration');
+            console.groupEnd();
+            return {
+                success: true,
+                message: 'No new valid trades found',
+                type: 'info',
+                newTradesCount: 0
+            };
+        }
+
+        // 6. บันทึก trades ใหม่
         console.log('Saving new trades...');
         await Promise.all(formattedTrades.map(trade =>
             api.createTrade({

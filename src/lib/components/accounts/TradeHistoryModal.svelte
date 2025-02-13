@@ -156,8 +156,11 @@
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                             </svg>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
-                                <p class="font-medium text-light-text dark:text-dark-text mb-1">Ready to Import</p>
-                                <p>Click the import button below to create your account and import all {tradeHistory.totalTrades} trades.</p>
+                                <p class="font-medium text-light-text dark:text-dark-text mb-1">Trade History Limit</p>
+                                <p>
+                                    Binance Futures API allows importing trades up to 90 days back. 
+                                    If you need to import older trades, please use the manual import feature.
+                                </p>
                             </div>
                         </div>
                     </div>

@@ -682,78 +682,17 @@
                                         <div class="space-y-4">
                                             {#if ['BINANCE_FUTURES', 'BYBIT', 'OKEX'].includes(accountType)}
                                                 <!-- API Requirements Section -->
-                                                <div class="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                                                <div class="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
                                                     <div class="flex items-start gap-3">
-                                                        <svg class="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                                        <svg class="w-5 h-5 text-blue-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
                                                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                                                         </svg>
-                                                        <div class="space-y-3">
-                                                            <div>
-                                                                <p class="text-sm text-light-text dark:text-dark-text font-medium">
-                                                                    API Configuration Steps
-                                                                </p>
-                                                                <p class="text-sm text-light-text-muted dark:text-dark-text-muted mt-1">
-                                                                    Follow these steps to set up your API connection
-                                                                </p>
-                                                            </div>
-
-                                                            <!-- Step 1: Create API -->
-                                                            <div class="space-y-1.5">
-                                                                <p class="text-sm font-medium text-light-text dark:text-dark-text">1. Create API Key</p>
-                                                                <div class="flex items-center gap-2">
-                                                                    <a 
-                                                                        href={
-                                                                            accountType === 'BINANCE_FUTURES' 
-                                                                                ? 'https://www.binance.com/en/my/settings/api-management' 
-                                                                                : accountType === 'BYBIT'
-                                                                                ? 'https://www.bybit.com/app/user/api-management'
-                                                                                : 'https://www.okx.com/account/my-api'
-                                                                        } 
-                                                                        target="_blank" 
-                                                                        rel="noopener noreferrer"
-                                                                        class="text-sm px-2 py-1 rounded bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors inline-flex items-center gap-1"
-                                                                    >
-                                                                        Go to API Settings
-                                                                        <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                                                                            <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                                                                        </svg>
-                                                                    </a>
-                                                                </div>
-                                                            </div>
-
-                                                            <!-- Step 2: IP Whitelist -->
-                                                            <div class="space-y-1.5">
-                                                                <p class="text-sm font-medium text-light-text dark:text-dark-text">2. Whitelist These IPs</p>
-                                                                <div class="flex items-center">
-                                                                    <div class="flex-1 overflow-x-auto p-1.5 rounded bg-light-card/50 dark:bg-dark-card/50 scrollbar-thin">
-                                                                        <code class="text-sm font-mono text-light-text dark:text-dark-text">
-                                                                            {whitelistIPs.length > 0 
-                                                                                ? whitelistIPs.join(', ')
-                                                                                : 'No IP whitelist configured. Please contact administrator.'}
-                                                                        </code>
-                                                                    </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        class="ml-1.5 p-1 rounded text-blue-500 hover:bg-blue-500/10 transition-colors"
-                                                                        on:click={copyAllIPs}
-                                                                    >
-                                                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
-                                                                        </svg>
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-
-                                                            <!-- Step 3: Permissions -->
-                                                            <div class="space-y-1.5">
-                                                                <p class="text-sm font-medium text-light-text dark:text-dark-text">3. Enable Required Permissions</p>
-                                                                <ul class="text-sm text-light-text-muted dark:text-dark-text-muted space-y-1 ml-3 list-disc">
-                                                                    <li>Enable Reading permission</li>
-                                                                    <li>Enable Futures permission</li>
-                                                                    <li>Disable Withdrawal permission</li>
-                                                                </ul>
-                                                            </div>
+                                                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                                                            <p class="font-medium text-light-text dark:text-dark-text mb-1">Trade History Import</p>
+                                                            <p>
+                                                                You can import trades up to 90 days back from Binance Futures. 
+                                                                For older trades, please export them manually from Binance and import them using the manual import feature.
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1020,9 +959,9 @@
                                         <div class="space-y-4">
                                             {#if ['BINANCE_FUTURES', 'BYBIT', 'OKEX'].includes(accountType)}
                                                 <!-- API Requirements Section -->
-                                                <div class="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                                                <div class="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
                                                     <div class="flex items-start gap-3">
-                                                        <svg class="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                                        <svg class="w-5 h-5 text-blue-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
                                                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                                                         </svg>
                                                         <div class="space-y-3">
@@ -1092,6 +1031,13 @@
                                                                     <li>Disable Withdrawal permission</li>
                                                                 </ul>
                                                             </div>
+                                                        </div>
+                                                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                                                            <p class="font-medium text-light-text dark:text-dark-text mb-1">Trade History Import</p>
+                                                            <p>
+                                                                You can import trades up to 90 days back from Binance Futures. 
+                                                                For older trades, please export them manually from Binance and import them using the manual import feature.
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 </div>

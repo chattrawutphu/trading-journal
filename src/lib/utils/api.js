@@ -343,9 +343,25 @@ export const api = {
 
     // Add new function to fetch Binance trade history
     async fetchBinanceTradeHistory(apiKey, secretKey) {
-        return await api.fetch('/accounts/binance-history', {
-            method: 'POST',
-            body: JSON.stringify({ apiKey, secretKey })
-        });
+        try {
+            const response = await api.fetch('/accounts/binance-history', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    apiKey, 
+                    secretKey,
+                    // Add timestamp to prevent caching
+                    timestamp: Date.now()
+                })
+            });
+
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to fetch trade history');
+            }
+
+            return response;
+        } catch (error) {
+            console.error('Error fetching Binance trade history:', error);
+            throw error;
+        }
     }
 };
