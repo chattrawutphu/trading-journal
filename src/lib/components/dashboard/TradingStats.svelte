@@ -29,6 +29,9 @@
         loadStatsTimeout = setTimeout(async () => {
             if (!$accountStore.currentAccount) return;
             
+            // Clear existing stats
+            stats = {};
+            
             const accountId = $accountStore.currentAccount._id;
 
             try {
@@ -141,12 +144,14 @@
             loadStats();
         };
         
-        window.addEventListener('tradeupdate', handleUpdate);
-        window.addEventListener('transactionupdate', handleUpdate);
+        window.addEventListener('tradeupdated', handleUpdate);
+        window.addEventListener('transactionupdated', handleUpdate);
+        window.addEventListener('tradesynced', handleUpdate);
         
         return () => {
-            window.removeEventListener('tradeupdate', handleUpdate);
-            window.removeEventListener('transactionupdate', handleUpdate);
+            window.removeEventListener('tradeupdated', handleUpdate);
+            window.removeEventListener('transactionupdated', handleUpdate);
+            window.removeEventListener('tradesynced', handleUpdate);
             if (loadStatsTimeout) {
                 clearTimeout(loadStatsTimeout);
             }
@@ -188,9 +193,12 @@
     // Watch for account changes
     $: if ($accountStore.currentAccount?._id !== currentAccountId && !isPreview) {
         currentAccountId = $accountStore.currentAccount?._id;
-        if (currentAccountId) {
-            loadStats();
-        }
+        loadStats();
+    }
+
+    // เพิ่ม watch สำหรับ dailyBalancesStore
+    $: if ($dailyBalancesStore && Object.keys($dailyBalancesStore).length > 0) {
+        loadStats();
     }
 
     function formatPercentage(value) {

@@ -424,10 +424,14 @@
         // รับ event จาก TradeModal และ TransactionModal
         window.addEventListener('tradeupdated', reloadAllData);
         window.addEventListener('transactionupdated', reloadAllData);
+        window.addEventListener('tradesynced', reloadAllData);
+        window.addEventListener('layoutupdated', reloadAllData);
 
         return () => {
             window.removeEventListener('tradeupdated', reloadAllData);
             window.removeEventListener('transactionupdated', reloadAllData);
+            window.removeEventListener('tradesynced', reloadAllData);
+            window.removeEventListener('layoutupdated', reloadAllData);
         };
     });
 </script>

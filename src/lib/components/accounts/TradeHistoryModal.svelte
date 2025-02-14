@@ -42,12 +42,19 @@
         console.log('TradeHistoryModal handleImport called');
         loading = true;
         try {
-            await dispatch('import', {
+            const result = await dispatch('import', {
                 ...tradeHistory,
                 excludeZeroPnL
             });
+
+            // Dispatch event เมื่อ sync เสร็จสิ้น
+            if (result.success) {
+                window.dispatchEvent(new CustomEvent('tradesynced'));
+            }
         } catch (error) {
             console.error('Error in handleImport:', error);
+        } finally {
+            loading = false;
         }
     }
 

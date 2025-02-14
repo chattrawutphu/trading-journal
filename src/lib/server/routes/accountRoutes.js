@@ -25,10 +25,12 @@ async function getBinanceServerTime() {
             throw new Error('Failed to fetch Binance server time');
         }
         const data = await response.json();
+        console.log('Binance server time:', new Date(data.serverTime).toLocaleString());
         return data.serverTime;
     } catch (error) {
         console.error('Error fetching Binance server time:', error);
-        throw error;
+        // Fallback to local time if Binance API fails
+        return Date.now();
     }
 }
 
@@ -140,8 +142,17 @@ router.post('/binance-history', async(req, res) => {
         
         // Get days from environment variable
         const days = parseInt(process.env.BINANCE_FUTURES_ORDER_DAYS) || 7;
-        const endTime = serverTime;
+        const endTime = Date.now(); // ใช้เวลาปัจจุบันของ server แทน serverTime
         const startTime = endTime - (days * 24 * 60 * 60 * 1000);
+
+        // Log วันที่และเวลาที่ใช้ในการเรียกข้อมูล
+        console.log('Fetching Binance history:', {
+            startTime: new Date(startTime).toLocaleString(),
+            endTime: new Date(endTime).toLocaleString(),
+            days: days,
+            currentTime: new Date().toLocaleString(),
+            serverTime: new Date(serverTime).toLocaleString()
+        });
 
         // ดึงข้อมูล order history
         const orders = await getBinanceFuturesOrderHistory(apiKey, secretKey, startTime, endTime);
@@ -211,7 +222,11 @@ function processOrdersToPositions(orders) {
                         quantity: parseFloat(order.executedQty),
                         orders: [order],
                         commission: parseFloat(order.commission),
-                        commissionAsset: order.commissionAsset
+                        commissionAsset: order.commissionAsset,
+                        status: 'OPEN',
+                        pnl: 0,
+                        confidenceLevel: 5,
+                        greedLevel: 5
                     });
                 } else {
                     // เพิ่ม position LONG
@@ -238,7 +253,9 @@ function processOrdersToPositions(orders) {
                         commission: pos.commission + parseFloat(order.commission),
                         commissionAsset: order.commissionAsset,
                         type: 'FUTURES',
-                        status: 'CLOSED'
+                        status: 'CLOSED',
+                        confidenceLevel: pos.confidenceLevel,
+                        greedLevel: pos.greedLevel
                     });
 
                     openPositions.delete(key);
@@ -256,7 +273,11 @@ function processOrdersToPositions(orders) {
                         quantity: parseFloat(order.executedQty),
                         orders: [order],
                         commission: parseFloat(order.commission),
-                        commissionAsset: order.commissionAsset
+                        commissionAsset: order.commissionAsset,
+                        status: 'OPEN',
+                        pnl: 0,
+                        confidenceLevel: 5,
+                        greedLevel: 5
                     });
                 } else {
                     // เพิ่ม position SHORT
@@ -283,13 +304,26 @@ function processOrdersToPositions(orders) {
                         commission: pos.commission + parseFloat(order.commission),
                         commissionAsset: order.commissionAsset,
                         type: 'FUTURES',
-                        status: 'CLOSED'
+                        status: 'CLOSED',
+                        confidenceLevel: pos.confidenceLevel,
+                        greedLevel: pos.greedLevel
                     });
 
                     openPositions.delete(key);
                 }
             }
         }
+    }
+
+    // เพิ่ม open positions ที่ยังไม่ถูกปิด
+    for (const [key, pos] of openPositions) {
+        positions.push({
+            ...pos,
+            status: 'OPEN',
+            exitDate: null,
+            exitPrice: null,
+            pnl: null
+        });
     }
 
     return positions;

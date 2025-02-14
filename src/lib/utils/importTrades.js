@@ -1,5 +1,8 @@
 // Utility functions for importing trades
 
+// เพิ่ม import สำหรับ layoutStore
+import { layoutStore } from '$lib/stores/layoutStore';
+
 /**
  * Format trades from various sources into a consistent format
  * @param {Array} trades - Array of trade objects to format
@@ -70,6 +73,17 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
             // Calculate amount
             const amount = Math.abs(trade.entryPrice * trade.quantity);
 
+            // Skip PnL check for OPEN positions
+            if (trade.status === 'OPEN') {
+                return {
+                    ...trade,
+                    orderId: orderId,
+                    amount: amount,
+                    entryDate: new Date(trade.entryDate).toISOString(),
+                    exitDate: trade.exitDate ? new Date(trade.exitDate).toISOString() : null
+                };
+            }
+
             // Log before checking PnL
             if (excludeZeroPnL) {
                 console.log(`Checking PnL for trade ${orderId}:`, {
@@ -112,8 +126,8 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
                 pnl: trade.pnl || 0,
                 commission: trade.commission || 0,
                 commissionAsset: trade.commissionAsset || 'USDT',
-                confidenceLevel: 5,
-                greedLevel: 5
+                confidenceLevel: trade.confidenceLevel || 5,
+                greedLevel: trade.greedLevel || 5
             };
 
             // Log the trade details for debugging
@@ -228,38 +242,34 @@ export async function syncTrades(accountId, api) {
                 .map(trade => String(trade.orderId).toLowerCase())
         );
 
-        console.log('Existing order IDs:', existingOrderIds);
-
         // 3. ดึง trades ใหม่จาก Binance
         const response = await api.fetchBinanceTradeHistory(account.apiKey, account.secretKey);
         if (!response.data.trades) {
             throw new Error('Failed to fetch new trades');
         }
 
-        console.log('Fetched trades:', response.data.trades.length);
+        // Log วันที่และเวลาที่ใช้ในการเรียกข้อมูล
+        console.log('Fetching trades from:', {
+            startDate: new Date(response.data.startDate).toLocaleString(),
+            endDate: new Date(response.data.endDate).toLocaleString(),
+            days: Math.round((new Date(response.data.endDate) - new Date(response.data.startDate)) / (1000 * 60 * 60 * 24))
+        });
 
         // 4. Filter out already imported trades
         const newTrades = response.data.trades.filter(trade => {
             const orderId = String(trade.orders?.[0]?.orderId || trade.orderId).toLowerCase();
-            const isNew = !existingOrderIds.has(orderId);
-            if (!isNew) {
+            const existingTrade = existingTrades.find(t => String(t.orderId).toLowerCase() === orderId);
+            
+            if (existingTrade) {
+                if (existingTrade.status === 'OPEN' && trade.status === 'CLOSED') {
+                    console.log(`Found open trade ${orderId} that needs to be closed`);
+                    return true; // ให้ผ่านเพื่ออัพเดทเป็น closed
+                }
                 console.log(`Duplicate trade found: ${orderId}`);
+                return false;
             }
-            return isNew;
+            return true;
         });
-
-        console.log('New trades after filtering:', newTrades.length);
-
-        if (newTrades.length === 0) {
-            console.timeEnd('Sync duration');
-            console.groupEnd();
-            return {
-                success: true,
-                message: 'No new trades found',
-                type: 'info',
-                newTradesCount: 0
-            };
-        }
 
         // 5. Format new trades
         const formattedTrades = formatTrades(
@@ -270,36 +280,88 @@ export async function syncTrades(accountId, api) {
             account.excludeZeroPnL
         );
 
-        console.log(`${formattedTrades.length} valid trades to import`);
+        // 6. Update existing open positions
+        const openTrades = existingTrades.filter(trade => trade.status === 'OPEN');
+        let updatedFormattedTrades = [...formattedTrades]; // สร้างตัวแปรใหม่สำหรับ formattedTrades
 
-        if (formattedTrades.length === 0) {
-            console.timeEnd('Sync duration');
-            console.groupEnd();
-            return {
-                success: true,
-                message: 'No new valid trades found',
-                type: 'info',
-                newTradesCount: 0
-            };
+        for (const openTrade of openTrades) {
+            const closedTrade = response.data.trades.find(trade => 
+                String(trade.orders?.[0]?.orderId || trade.orderId).toLowerCase() === 
+                String(openTrade.orderId).toLowerCase()
+            );
+
+            if (closedTrade && closedTrade.status === 'CLOSED') {
+                console.log(`Updating open trade ${openTrade.orderId} with closed data`);
+                
+                const updatedTrade = {
+                    ...openTrade,
+                    ...closedTrade,
+                    status: 'CLOSED',
+                    confidenceLevel: openTrade.confidenceLevel,
+                    greedLevel: openTrade.greedLevel,
+                    tags: openTrade.tags,
+                    notes: openTrade.notes,
+                    exitDate: closedTrade.exitDate,
+                    exitPrice: closedTrade.exitPrice,
+                    pnl: closedTrade.pnl,
+                    commission: openTrade.commission + closedTrade.commission
+                };
+
+                await api.updateTrade(openTrade._id, updatedTrade);
+                
+                // ลบ trade ที่เพิ่งอัพเดทออกจาก formattedTrades เพื่อป้องกันการสร้างซ้ำ
+                updatedFormattedTrades = updatedFormattedTrades.filter(t => 
+                    t.orderId !== closedTrade.orderId
+                );
+            }
         }
 
-        // 6. บันทึก trades ใหม่
-        console.log('Saving new trades...');
-        await Promise.all(formattedTrades.map(trade =>
+        // 7. บันทึก trades ใหม่
+        const newTradesToSave = updatedFormattedTrades.filter(trade => 
+            !openTrades.some(openTrade => 
+                openTrade.symbol === trade.symbol &&
+                openTrade.side === trade.side
+            )
+        );
+
+        // นับจำนวน trades ที่อัพเดทและสร้างใหม่
+        const updatedTradesCount = openTrades.filter(openTrade => {
+            const closedTrade = response.data.trades.find(trade => 
+                String(trade.orders?.[0]?.orderId || trade.orderId).toLowerCase() === 
+                String(openTrade.orderId).toLowerCase()
+            );
+            return closedTrade && closedTrade.status === 'CLOSED';
+        }).length;
+
+        const createdTradesCount = newTradesToSave.length;
+        const totalTradesCount = updatedTradesCount + createdTradesCount;
+
+        await Promise.all(newTradesToSave.map(trade =>
             api.createTrade({
                 ...trade,
                 account: accountId
             })
         ));
-        console.log('Trades saved successfully');
+
+        // Reload layout หลังจาก sync เสร็จสิ้น
+        try {
+            console.log('Reloading layout after sync...');
+            await layoutStore.loadLayouts();
+        } catch (error) {
+            console.error('Error reloading layout:', error);
+            // Fallback: Reload page if layout store fails
+            window.location.reload();
+        }
 
         console.timeEnd('Sync duration');
         console.groupEnd();
         return {
             success: true,
-            message: `Successfully synced ${formattedTrades.length} new trades`,
+            message: `Successfully synced ${totalTradesCount} trades (${updatedTradesCount} updated, ${createdTradesCount} new)`,
             type: 'success',
-            newTradesCount: formattedTrades.length
+            newTradesCount: totalTradesCount,
+            updatedTradesCount,
+            createdTradesCount
         };
 
     } catch (err) {

@@ -2,7 +2,11 @@ import { writable } from 'svelte/store';
 import { api } from '$lib/utils/api';
 
 function createLayoutStore() {
-    const { subscribe, set, update } = writable([]);
+    const { subscribe, set, update } = writable({
+        layouts: [],
+        loading: false,
+        error: null
+    });
 
     return {
         subscribe,
@@ -10,6 +14,8 @@ function createLayoutStore() {
         update,
         async loadLayouts() {
             try {
+                update(state => ({ ...state, loading: true, error: null }));
+
                 // Check localStorage first
                 const cachedData = localStorage.getItem('dashboardLayouts');
                 const cacheTimestamp = localStorage.getItem('dashboardLayoutsTimestamp');
@@ -18,7 +24,11 @@ function createLayoutStore() {
 
                 // Use cache if it exists and is not expired
                 if (cachedData && cacheAge < CACHE_DURATION) {
-                    set(JSON.parse(cachedData));
+                    set({ 
+                        layouts: JSON.parse(cachedData),
+                        loading: false,
+                        error: null
+                    });
                     return JSON.parse(cachedData);
                 }
 
@@ -29,10 +39,15 @@ function createLayoutStore() {
                 localStorage.setItem('dashboardLayouts', JSON.stringify(layouts));
                 localStorage.setItem('dashboardLayoutsTimestamp', Date.now().toString());
 
-                set(layouts);
+                set({ 
+                    layouts,
+                    loading: false,
+                    error: null
+                });
                 return layouts;
             } catch (error) {
                 console.error('Error loading layouts:', error);
+                update(state => ({ ...state, error: error.message, loading: false }));
                 return [];
             }
         },
@@ -56,10 +71,15 @@ function createLayoutStore() {
                 localStorage.setItem('dashboardLayoutsTimestamp', Date.now().toString());
                 console.log('📦 Updated localStorage cache');
 
-                set(layouts);
+                set({ 
+                    layouts,
+                    loading: false,
+                    error: null
+                });
                 console.log('🔄 Layout store updated');
             } catch (error) {
                 console.error('❌ Error saving layouts:', error);
+                update(state => ({ ...state, error: error.message, loading: false }));
                 throw error;
             }
         }
