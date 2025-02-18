@@ -128,7 +128,7 @@
                 error = err.message;
                 console.error('Error loading stats:', err);
             }
-        }, 100);
+        }, 300);
     }
 
     // เพิ่ม event listeners สำหรับ trade และ transaction updates

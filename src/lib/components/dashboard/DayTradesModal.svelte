@@ -14,6 +14,7 @@
     import { api } from '$lib/utils/api';
     import TradeViewModal from "$lib/components/trades/TradeViewModal.svelte";
     import TradeModal from "$lib/components/trades/TradeModal.svelte";
+    import { dailyBalancesStore } from '$lib/stores/dailyBalancesStore';
 
     const dispatch = createEventDispatcher();
 
@@ -24,7 +25,6 @@
     export let displayDate = "";
     export let accountId;
     export let loading = false;
-    export let dailyBalance;
 
     let showTransactionModal = false;
     let selectedTransaction = null;
@@ -41,21 +41,34 @@
     let selectedTrade = null;
 
     $: if (show && accountId) {
-        loadTransactions();
+        transactions = filterTransactionsByDate($transactionStore.transactions, date);
     }
 
-    async function loadTransactions() {
-        loading = true;
-        error = null;
+    $: dailyBalance = $dailyBalancesStore[date] || null;
 
+    async function loadTrades() {
         try {
-            await transactionStore.fetchTransactions(accountId);
-            transactions = filterTransactionsByDate($transactionStore.transactions, date);
-        } catch (err) {
-            error = err.message;
-        } finally {
-            loading = false;
+            const response = await api.getTrades(accountId);
+            // Filter trades by date
+            const filteredTrades = response.filter(trade => {
+                const tradeDate = trade.status === "CLOSED" 
+                    ? new Date(trade.exitDate).toISOString().split('T')[0]
+                    : new Date(trade.entryDate).toISOString().split('T')[0];
+                return tradeDate === date;
+            });
+            
+            trades = filteredTrades;
+        } catch (error) {
+            console.error('Error loading trades:', error);
         }
+    }
+
+    function handleNewTrade() {
+        const formattedDate = new Date(date);
+        formattedDate.setHours(7, 0, 0, 0);
+        tradeDate.set(formattedDate.toISOString());
+        selectedTrade = null;
+        showEditModal = true;
     }
 
     function filterTransactionsByDate(transactionList, date) {
@@ -72,14 +85,6 @@
 
     function close() {
         dispatch('close');
-    }
-
-    function handleNewTrade() {
-        const formattedDate = new Date(date);
-        formattedDate.setHours(7, 0, 0, 0);
-        tradeDate.set(formattedDate.toISOString());
-        selectedTrade = null;
-        showEditModal = true;
     }
 
     function formatDate(dateStr) {
@@ -176,12 +181,22 @@
         : 0;
 
     function formatCurrency(value) {
-        return new Intl.NumberFormat('en-US', {
+        const formatter = new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',
             minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(value);
+            maximumFractionDigits: 2
+        });
+        
+        // แปลงค่าเป็น number ก่อน format
+        const numValue = Number(value);
+        
+        // ถ้าเป็นจำนวนเต็ม ให้แสดงทศนิยม 2 ตำแหน่ง
+        if (Number.isInteger(numValue)) {
+            return formatter.format(numValue.toFixed(2));
+        }
+        
+        return formatter.format(numValue);
     }
 
     function handleTradeView(event) {
@@ -207,36 +222,45 @@
         selectedTrade = null;
     }
 
-    async function handleTradeUpdated() {
-        console.log('DayTradesModal: Trade updated, reloading trades...');
-        await loadTrades();
-        showEditModal = false;
-        selectedTrade = null;
-        console.log('DayTradesModal: Dispatching refresh event');
-        dispatch('refresh');
+    function calculateDailyBalance() {
+        if (!dailyBalance) return;
+
+        const totalPnL = trades.reduce((sum, trade) => 
+            sum + (trade.status === "CLOSED" ? (trade.pnl || 0) : 0), 0);
+
+        const transactionChange = transactions.reduce((sum, t) => 
+            sum + (t.type === "deposit" ? t.amount : -t.amount), 0);
+
+        dailyBalancesStore.update(balances => {
+            return {
+                ...balances,
+                [date]: {
+                    ...dailyBalance,
+                    endBalance: dailyBalance.startBalance + totalPnL + transactionChange
+                }
+            };
+        });
     }
 
-    async function loadTrades() {
-        try {
-            const response = await api.getTrades(accountId);
-            // Filter trades by date
-            const filteredTrades = response.filter(trade => {
-                const tradeDate = trade.status === "CLOSED" 
-                    ? new Date(trade.exitDate).toISOString().split('T')[0]
-                    : new Date(trade.entryDate).toISOString().split('T')[0];
-                return tradeDate === date;
-            });
-            
-            trades = filteredTrades;
-        } catch (error) {
-            console.error('Error loading trades:', error);
-        }
+    $: {
+        calculateDailyBalance();
     }
 
     async function handleTransactionUpdated() {
         await loadTransactions();
+        calculateDailyBalance();
         showTransactionModal = false;
         selectedTransaction = null;
+        dispatch('refresh');
+    }
+
+    async function handleTradeUpdated() {
+        console.log('DayTradesModal: Trade updated, reloading trades...');
+        await loadTrades();
+        calculateDailyBalance();
+        showEditModal = false;
+        selectedTrade = null;
+        console.log('DayTradesModal: Dispatching refresh event');
         dispatch('refresh');
     }
 </script>
@@ -293,11 +317,11 @@
                         <div class="space-y-1">
                             <h4 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">End of Day Balance</h4>
                             <p class="text-lg font-bold text-light-text dark:text-dark-text">
-                                {formatCurrency(
-                                    (!trades.length && !transactions.length) 
-                                        ? (dailyBalance?.startBalance || 0)
-                                        : (dailyBalance?.endBalance || 0)
-                                )}
+                                {#if dailyBalance}
+                                    {formatCurrency(dailyBalance.endBalance)}
+                                {:else}
+                                    Loading...
+                                {/if}
                             </p>
                         </div>
 

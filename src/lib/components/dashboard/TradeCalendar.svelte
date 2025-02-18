@@ -948,7 +948,6 @@
     displayDate={selectedDisplayDate}
     accountId={$accountStore.currentAccount?._id}
     loading={dayTradesLoading}
-    dailyBalance={selectedDayBalance}
     on:view={handleView}
     on:edit={handleEdit}
     on:delete={handleDelete}
