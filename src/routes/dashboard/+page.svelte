@@ -71,6 +71,19 @@
         return false;
     }
 
+    function getNextAvailableLayoutName() {
+        let layoutNumber = 1;
+        let layoutName = `Layout-${layoutNumber}`;
+        
+        // Check if layout name already exists
+        while (layouts.some(layout => layout.name === layoutName)) {
+            layoutNumber++;
+            layoutName = `Layout-${layoutNumber}`;
+        }
+        
+        return layoutName;
+    }
+
     onMount(async () => {
         try {
             loadingStore.set(true);
@@ -438,6 +451,11 @@
             syncingTrades = false;
         }
     }
+
+    // Modify the showNewLayoutModal block
+    $: if (showNewLayoutModal) {
+        newLayoutName = getNextAvailableLayoutName();
+    }
 </script>
 
 
@@ -701,21 +719,43 @@
 
 <!-- New Layout Modal -->
 {#if showNewLayoutModal}
-    <Modal 
-        bind:show={showNewLayoutModal}
-        title="Create New Layout"
-    >
-        <div class="space-y-4">
-            <div>
-                <label class="block mb-2 text-sm font-medium text-light-text dark:text-dark-text">Layout Name</label>
-                <input 
-                    type="text"
-                    bind:value={newLayoutName}
-                    class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 focus:ring-2 focus:ring-theme-500 focus:border-transparent"
-                    placeholder="Enter layout name..."
-                />
+    <div class="fixed modal inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+         transition:fade={{ duration: 150 }}>
+        <div class="card w-full max-w-md mx-auto relative transform ease-out max-h-[90vh] flex flex-col">
+            <!-- Header -->
+            <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+                <h2 class="text-xl font-bold bg-gradient-purple bg-clip-text text-transparent">
+                    Create New Layout
+                </h2>
+                <button class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
+                        on:click={() => showNewLayoutModal = false}>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
             </div>
-            <div class="flex justify-end gap-2 mt-4">
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-light-text dark:text-dark-text">
+                            Layout Name
+                        </label>
+                        <input 
+                            type="text"
+                            bind:value={newLayoutName}
+                            class="w-full px-3 py-2 text-base rounded-lg bg-light-input dark:bg-dark-input 
+                                   border border-light-border dark:border-dark-border
+                                   focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+                            placeholder="Enter layout name..."
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-light-border dark:border-0 flex justify-end gap-3 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90">
                 <Button 
                     variant="secondary" 
                     size="sm"
@@ -736,7 +776,7 @@
                 </Button>
             </div>
         </div>
-    </Modal>
+    </div>
 {/if}
 
 <!-- Existing Modals remain the same -->
