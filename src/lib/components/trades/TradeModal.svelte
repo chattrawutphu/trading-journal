@@ -24,10 +24,10 @@
 
     let errors = {};
     let previousSymbol = "";
-
     let initialFormData = null;
+    let isInitialized = false;
 
-    let form = {
+    const defaultForm = {
         entryDate: getCurrentDateTime(),
         exitDate: getCurrentDateTime(),
         symbol: "",
@@ -52,6 +52,8 @@
         leverage: 1,
         tags: [],
     };
+
+    let form = { ...defaultForm };
 
     const emotionOptions = [
         { value: "confident", label: "😊 Confident" },
@@ -99,40 +101,16 @@
 
     function resetForm() {
         initialFormData = null;
-        const currentForm = { ...form };
-        form = {
-            entryDate: getCurrentDateTime(),
-            exitDate: getCurrentDateTime(),
-            symbol: currentForm.symbol || "",
-            status: currentForm.status || "OPEN",
-            side: currentForm.side || "LONG",
-            quantity: currentForm.quantity || "",
-            amount: currentForm.amount || "",
-            entryPrice: currentForm.entryPrice || "",
-            exitPrice: currentForm.exitPrice || "",
-            pnl: currentForm.pnl || "",
-            entryReason: currentForm.entryReason || "",
-            exitReason: currentForm.exitReason || "",
-            strategy: currentForm.strategy || "",
-            emotions: currentForm.emotions || "",
-            notes: currentForm.notes || "",
-            url: currentForm.url || "",
-            confidenceLevel: currentForm.confidenceLevel || 5,
-            greedLevel: currentForm.greedLevel || 5,
-            hasStopLoss: currentForm.hasStopLoss || false,
-            hasTakeProfit: currentForm.hasTakeProfit || false,
-            favorite: currentForm.favorite || false,
-            leverage: currentForm.leverage || 1,
-            tags: currentForm.tags || [],
-        };
+        form = { ...defaultForm };
         errors = {};
-        previousSymbol = currentForm.symbol || "";
+        previousSymbol = "";
     }
 
-    $: if (show && !initialFormData) {
+    $: if (show && !isInitialized) {
+        isInitialized = true;
         if (trade) {
             initialFormData = {
-                ...form,
+                ...defaultForm,
                 ...trade,
                 entryDate: trade.entryDate 
                     ? formatDateTimeLocal(trade.entryDate)
@@ -143,18 +121,12 @@
                 tags: trade.tags || [],
             };
             form = { ...initialFormData };
-        } else if ($tradeDate) {
-            const currentForm = { ...form };
-            resetForm();
-            form = {
-                ...currentForm,
-                entryDate: formatDateTimeLocal(new Date($tradeDate).setHours(7, 0, 0, 0))
-            };
-            tradeDate.set(null);
         } else {
-            const currentForm = { ...form };
             resetForm();
-            form = { ...currentForm };
+            if ($tradeDate) {
+                form.entryDate = formatDateTimeLocal(new Date($tradeDate).setHours(7, 0, 0, 0));
+                tradeDate.set(null);
+            }
         }
     }
 
@@ -339,17 +311,10 @@
     }
 
     function handleClose() {
+        isInitialized = false;
         show = false;
-        // รีเซ็ตค่าทั้งหมดหลังจากปิด modal
-        setTimeout(() => {
-            resetForm();
-            trade = null;
-            initialFormData = null;
-            showLimitWarning = false;
-            showLimitError = false;
-            dailyTradeCount = 0;
-            dispatch('close');
-        }, 150); // รอให้ animation เสร็จก่อนรีเซ็ตค่า
+        resetForm();
+        dispatch('close');
     }
 
     const statusOptions = [

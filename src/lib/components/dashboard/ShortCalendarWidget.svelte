@@ -7,6 +7,7 @@
     import { browser } from '$app/environment';
     import { onMount } from 'svelte';
     import { api } from '$lib/utils/api';
+    import { dailyBalancesStore } from '$lib/stores/dailyBalancesStore';
 
     const dispatch = createEventDispatcher();
 
