@@ -331,9 +331,9 @@
                                 <h4 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Day P&L</h4>
                                 <p class="text-lg font-bold {dailySummary.totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}">
                                     {formatCurrency(dailySummary.totalPnL)}
-                                    {#if dailyBalance?.endBalance && dailyBalance.endBalance !== 0}
+                                    {#if dailyBalance?.startBalance && dailyBalance.startBalance !== 0}
                                         <span class="text-sm">
-                                            ({((dailySummary.totalPnL / Math.abs(dailyBalance.endBalance)) * 100).toFixed(1)}%)
+                                            ({((dailySummary.totalPnL / Math.abs(dailyBalance.startBalance)) * 100).toFixed(1)}%)
                                         </span>
                                     {/if}
                                 </p>

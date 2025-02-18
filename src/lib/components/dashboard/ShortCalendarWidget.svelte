@@ -305,6 +305,11 @@
                                     <span class="text-xs text-light-text-muted dark:text-dark-text-muted">P&L</span>
                                     <span class="text-sm font-bold {getTextClass(stats)}">
                                         {formatPnL(stats.pnl)}
+                                        {#if $dailyBalancesStore[date]?.startBalance && $dailyBalancesStore[date].startBalance !== 0}
+                                            <span class="text-xs">
+                                                ({((stats.pnl / Math.abs($dailyBalancesStore[date].startBalance)) * 100).toFixed(1)}%)
+                                            </span>
+                                        {/if}
                                     </span>
                                 </div>
                             {/if}

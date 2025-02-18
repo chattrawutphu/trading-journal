@@ -140,7 +140,7 @@
                         losses: 0,
                         openTrades: 0,
                         transactions: [],
-                        totalInvested: 0,
+                        startBalance: $dailyBalancesStore[dateKey]?.startBalance || 0,
                     };
                 }
 
@@ -149,8 +149,6 @@
                     newDailyTrades[dateKey].pnl += trade.pnl || 0;
                     if (trade.pnl > 0) newDailyTrades[dateKey].wins++;
                     else if (trade.pnl < 0) newDailyTrades[dateKey].losses++;
-                    const investedAmount = (trade.entryPrice * trade.quantity) || 0;
-                    newDailyTrades[dateKey].totalInvested += investedAmount;
                 } else {
                     newDailyTrades[dateKey].openTrades++;
                 }
@@ -174,7 +172,7 @@
                         losses: 0,
                         openTrades: 0,
                         transactions: [],
-                        totalInvested: 0,
+                        startBalance: $dailyBalancesStore[dateKey]?.startBalance || 0,
                     };
                 }
 
@@ -329,7 +327,7 @@
                 losses: 0,
                 openTrades: 0,
                 transactions: [],
-                totalInvested: 0,
+                startBalance: $dailyBalancesStore[dateKey]?.startBalance || 0,
             };
         } catch (err) {
             console.error("Error getting day stats:", err);
@@ -413,6 +411,16 @@
         if (!value) return '$0';
         const prefix = value >= 0 ? '+$' : '-$';
         return `${prefix}${Math.abs(value).toFixed(2)}`;
+    }
+
+    function formatPnLWithPercentage(stats) {
+        if (!stats || !stats.pnl) return "";
+        
+        const pnlStr = formatPnL(stats.pnl);
+        if (!stats.startBalance || stats.startBalance === 0) return pnlStr;
+
+        const percentage = ((stats.pnl / Math.abs(stats.startBalance)) * 100).toFixed(1);
+        return `${pnlStr} (${percentage}%)`;
     }
 
     function handleDayClick(day, stats) {
@@ -856,11 +864,11 @@
                                             {@const pnl = statsPerDay[day].pnl}
                                             <div class="pnl-stats mt-auto flex-wrap flex flex-col md:flex-row justify-between items-start md:items-center">
                                                 <span class="text-sm font-bold whitespace-nowrap  {pnl >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}">
-                                                    {formatPnL(statsPerDay[day].pnl)}
+                                                    {formatPnL(pnl)}
                                                 </span>
                                                 {#if pnl !== 0 && balance > 0}
                                                     <span class="pnl-percentage whitespace-nowrap text-xs {pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
-                                                        {((pnl / balance) * 100).toFixed(2)}%
+                                                        {((pnl / Math.abs(statsPerDay[day].startBalance)) * 100).toFixed(1)}%
                                                     </span>
                                                 {/if}
                                             </div>
