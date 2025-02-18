@@ -158,7 +158,7 @@
             <div class="flex-1 pb-0 md:pb-3 flex flex-col overflow-hidden">
                 <MobileMenu />
                 <Navbar {sidebarCollapsed} on:logout={handleLogout} />
-                <main class="flex-1 overflow-x-hidden overflow-y-auto p-3">
+                <main class="flex-1 overflow-x-hidden overflow-y-auto p-3 pb-0w">
                     <slot />
                 </main>
             </div>

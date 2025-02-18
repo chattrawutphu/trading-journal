@@ -4,7 +4,8 @@ const LayoutSchema = new mongoose.Schema({
     account: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Account',
-        required: true
+        required: true,
+        index: true
     },
     layouts: [{
         name: {
@@ -13,14 +14,28 @@ const LayoutSchema = new mongoose.Schema({
         },
         widgets: [{
             id: String,
-            config: Object,
-            props: Object
+            config: {
+                type: mongoose.Schema.Types.Mixed,
+                default: {}
+            },
+            props: {
+                type: mongoose.Schema.Types.Mixed,
+                default: {}
+            }
         }]
     }],
     updatedAt: {
         type: Date,
         default: Date.now
     }
+}, {
+    timestamps: true
 });
 
-export default mongoose.model('Layout', LayoutSchema);
+// เพิ่ม index เพื่อเพิ่มประสิทธิภาพการค้นหา
+LayoutSchema.index({ account: 1 });
+
+// ถ้ายังไม่มี model ให้สร้างใหม่
+const Layout = mongoose.models.Layout || mongoose.model('Layout', LayoutSchema);
+
+export default Layout;

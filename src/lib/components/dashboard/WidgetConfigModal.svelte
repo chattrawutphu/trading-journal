@@ -33,6 +33,16 @@
                 target: widget?.config?.target || 1000,
                 disabled: { cols: false, rows: true }
             };
+        } else if (widgetType === 'MiniCalendar') {
+            return {
+                ...widget?.config,
+                cols: widget?.config?.cols || 4,
+                rows: widget?.config?.rows || 4,
+                textSize: widget?.config?.textSize || 'medium',
+                viewMode: widget?.config?.viewMode || 'month',
+                daysPerRow: widget?.config?.daysPerRow || 12,
+                disabled: { cols: false, rows: false }
+            };
         } else {
             return {
                 ...widget?.config,
@@ -70,6 +80,8 @@
                 [field]: numValue
             };
         }
+        // Force update
+        config = config;
     }
 
     function handleClose() {
@@ -354,6 +366,38 @@
                             </select>
                         </div>
                     </div>
+                </div>
+            {/if}
+
+            {#if widgetType === 'MiniCalendar'}
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                            View Mode
+                        </label>
+                        <select
+                            bind:value={config.viewMode}
+                            class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm"
+                        >
+                            <option value="month">Current Month</option>
+                            <option value="year">Entire Year</option>
+                        </select>
+                    </div>
+                    
+                    {#if config.viewMode === 'year'}
+                        <div class="space-y-2">
+                            <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted">
+                                Days Per Row
+                            </label>
+                            <input
+                                type="number"
+                                bind:value={config.daysPerRow}
+                                min="7"
+                                max="28"
+                                class="w-full border border-light-border dark:border-0 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text rounded-lg p-2 text-sm"
+                            />
+                        </div>
+                    {/if}
                 </div>
             {/if}
         </div>

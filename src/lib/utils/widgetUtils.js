@@ -76,6 +76,14 @@ export function getDefaultConfig(widgetType) {
             period: 'all',
             metric: 'pnl',
             limit: 5
+        },
+        MiniCalendar: {
+            cols: 4,
+            rows: 4,
+            textSize: 'medium',
+            disabled: { cols: false, rows: false },
+            viewMode: 'month',
+            daysPerRow: 12
         }
     };
 
@@ -96,7 +104,8 @@ export const widgetLimits = {
     ProfitTargetWidget: 3,
     OpenPositionsWidget: 1,
     ShortCalendar: 1,
-    TopTradesWidget: 2
+    TopTradesWidget: 2,
+    MiniCalendar: 1
 };
 
 export function getWidgetDescription(widgetId) {
@@ -189,6 +198,15 @@ export function getWidgetDescription(widgetId) {
                 "Customizable time periods",
                 "Detailed trade statistics",
                 "Quick trade insights"
+            ]
+        },
+        MiniCalendar: {
+            title: "Mini Trading Calendar",
+            description: "A compact calendar view showing your daily trading performance with color-coded indicators.",
+            features: [
+                "Daily profit/loss tracking",
+                "Color-coded performance indicators",
+                "Compact and space-efficient design"
             ]
         }
     };

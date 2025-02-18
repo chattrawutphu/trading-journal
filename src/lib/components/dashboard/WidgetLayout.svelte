@@ -21,6 +21,7 @@
     import OpenPositionsWidget from './OpenPositionsWidget.svelte';
     import ShortCalendarWidget from './ShortCalendarWidget.svelte';
     import TopTradesWidget from './TopTradesWidget.svelte';
+    import MiniCalendarWidget from './MiniCalendarWidget.svelte';
 
     // Import utilities
     import { 
@@ -58,7 +59,8 @@
         MonthTradeCalendar: getDefaultConfig('MonthTradeCalendar'),
         TradeChart: getDefaultConfig('TradeChart'),
         ProfitTargetWidget: getDefaultConfig('ProfitTargetWidget'),
-        OpenPositionsWidget: getDefaultConfig('OpenPositionsWidget')
+        OpenPositionsWidget: getDefaultConfig('OpenPositionsWidget'),
+        MiniCalendar: getDefaultConfig('MiniCalendar')
     };
 
     // Available widgets definition
@@ -110,6 +112,12 @@
             title: 'Quick Calendar',
             icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
             config: {...defaultWidgetConfigs.ShortCalendar}
+        },
+        {
+            id: 'MiniCalendar',
+            title: 'Mini Calendar',
+            icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+            config: {...defaultWidgetConfigs.MiniCalendar}
         }
     ];
 
@@ -156,7 +164,8 @@
             'ProfitTargetWidget': ProfitTargetWidget,
             'OpenPositionsWidget': OpenPositionsWidget,
             'ShortCalendar': ShortCalendarWidget,
-            'TopTradesWidget': TopTradesWidget
+            'TopTradesWidget': TopTradesWidget,
+            'MiniCalendar': MiniCalendarWidget
         };
 
         return componentMap[baseType] || null;
@@ -164,7 +173,13 @@
 
     function getWidgetProps(baseType, config) {
         if (baseType === 'StatsCards') {
-            return { totalPnL, openTrades, closedTrades, winRate };
+            return { 
+                totalPnL, 
+                openTrades, 
+                closedTrades, 
+                winRate,
+                trades: [...openTrades, ...closedTrades]
+            };
         } else if (baseType === 'TradeCalendar' || baseType === 'MonthTradeCalendar' || baseType === 'ShortCalendar') {
             return { trades: [...openTrades, ...closedTrades], accountId };
         } else if (baseType === 'TradeChart') {
@@ -184,6 +199,12 @@
                 metric: config.metric || 'pnl',
                 limit: config.limit || 5,
                 showChart: config.showChart ?? true
+            };
+        } else if (baseType === 'MiniCalendar') {
+            return { 
+                trades: [...openTrades, ...closedTrades],
+                viewMode: config.viewMode,
+                daysPerRow: config.daysPerRow
             };
         }
         return {};
@@ -434,6 +455,16 @@
             window.removeEventListener('layoutupdated', reloadAllData);
         };
     });
+
+    $: {
+        if (widgets) {
+            widgets.forEach(widget => {
+                if (widget.id.startsWith('StatsCards')) {
+                    console.log('StatsCard props:', widget.props);
+                }
+            });
+        }
+    }
 </script>
 
 <div class="relative w-full {editMode ? 'edit-mode edit-mode-background px-3 pb-3' : ''}">

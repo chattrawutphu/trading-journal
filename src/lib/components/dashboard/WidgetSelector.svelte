@@ -76,6 +76,12 @@
             title: 'Top Trades',
             icon: 'M5 3a2 2 0 012-2h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V3zm12 0H7v14h10V3z M9 7h6m-6 4h6m-6 4h6',
             config: {...getDefaultConfig('TopTradesWidget')}
+        },
+        {
+            id: 'MiniCalendar',
+            title: 'Mini Calendar',
+            icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+            config: {...getDefaultConfig('MiniCalendar')}
         }
     ];
 

@@ -58,28 +58,39 @@ function createLayoutStore() {
                     layoutCount: layouts.length,
                     layouts: layouts.map(l => ({
                         name: l.name,
-                        widgetCount: l.widgets.length
+                        widgetCount: l.widgets?.length || 0
                     }))
                 });
 
+                // Validate layouts before saving
+                if (!Array.isArray(layouts)) {
+                    throw new Error('Invalid layouts format');
+                }
+
                 // Save to API
-                await api.saveLayouts(layouts);
-                console.log('✅ Layouts saved to database');
+                const response = await api.saveLayouts(layouts);
+                console.log('✅ Layouts saved to database', response);
 
-                // Update localStorage
-                localStorage.setItem('dashboardLayouts', JSON.stringify(layouts));
-                localStorage.setItem('dashboardLayoutsTimestamp', Date.now().toString());
-                console.log('📦 Updated localStorage cache');
+                if (response.layouts) {
+                    // Update localStorage with confirmed layouts from server
+                    localStorage.setItem('dashboardLayouts', JSON.stringify(response.layouts));
+                    localStorage.setItem('dashboardLayoutsTimestamp', Date.now().toString());
+                    console.log('📦 Updated localStorage cache');
 
-                set({ 
-                    layouts,
-                    loading: false,
-                    error: null
-                });
-                console.log('🔄 Layout store updated');
+                    set({ 
+                        layouts: response.layouts,
+                        loading: false,
+                        error: null
+                    });
+                    console.log('🔄 Layout store updated');
+                }
             } catch (error) {
                 console.error('❌ Error saving layouts:', error);
-                update(state => ({ ...state, error: error.message, loading: false }));
+                update(state => ({ 
+                    ...state, 
+                    error: error.message || 'Failed to save layouts',
+                    loading: false 
+                }));
                 throw error;
             }
         }

@@ -474,21 +474,32 @@
     }
 
     // แก้ไขฟังก์ชัน previousMonth และ nextMonth ให้ไม่ต้องเรียก loadData
-    function previousMonth() {
+    async function previousMonth() {
         if (selectedMonth === 0) {
             selectedMonth = 11;
             selectedYear--;
         } else {
             selectedMonth--;
         }
+        await loadDailyBalances();
     }
 
-    function nextMonth() {
+    async function nextMonth() {
         if (selectedMonth === 11) {
             selectedMonth = 0;
             selectedYear++;
         } else {
             selectedMonth++;
+        }
+        await loadDailyBalances();
+    }
+
+    async function loadDailyBalances() {
+        if (!$accountStore.currentAccount) return;
+        try {
+            await dailyBalancesStore.fetch($accountStore.currentAccount._id);
+        } catch (err) {
+            console.error('Error loading daily balances:', err);
         }
     }
 
@@ -859,16 +870,17 @@
                                             </div>
                                         {/if}
                                         {#if statsPerDay[day].pnl !== 0}
-                                            {@const dateKey = formatDateForInput(new Date(selectedYear, selectedMonth, day))}
-                                            {@const balance = dailyBalances[dateKey]?.endBalance}
-                                            {@const pnl = statsPerDay[day].pnl}
                                             <div class="pnl-stats mt-auto flex-wrap flex flex-col md:flex-row justify-between items-start md:items-center">
-                                                <span class="text-sm font-bold whitespace-nowrap  {pnl >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}">
-                                                    {formatPnL(pnl)}
+                                                <span class="text-sm font-bold whitespace-nowrap {getTextClass(statsPerDay[day])}">
+                                                    {formatPnL(statsPerDay[day].pnl)}
                                                 </span>
-                                                {#if pnl !== 0 && balance > 0}
-                                                    <span class="pnl-percentage whitespace-nowrap text-xs {pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
-                                                        {((pnl / Math.abs(statsPerDay[day].startBalance)) * 100).toFixed(1)}%
+                                                {#if $dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))]?.startBalance && !isNaN($dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance) && $dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance !== 0}
+                                                    <span class="pnl-percentage whitespace-nowrap text-xs {getTextClass(statsPerDay[day])}">
+                                                        {((statsPerDay[day].pnl / Math.abs($dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance)) * 100).toFixed(1)}%
+                                                    </span>
+                                                {:else}
+                                                    <span class="pnl-percentage whitespace-nowrap text-xs text-light-text-muted dark:text-dark-text-muted">
+                                                        N/A
                                                     </span>
                                                 {/if}
                                             </div>

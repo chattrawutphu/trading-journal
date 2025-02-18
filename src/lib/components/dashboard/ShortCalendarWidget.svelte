@@ -28,6 +28,9 @@
 
     let currentAccountId = null;
 
+    // Add a new reactive variable to track modal state
+    let isModalOpen = false;
+
     if (browser) {
         // Initialize and update screen width
         const updateScreenWidth = () => {
@@ -40,29 +43,18 @@
     }
 
     // สร้างฟังก์ชันสำหรับการนำเข้าข้อมูล
-    function getDaysArray() {
-        const today = new Date();
+    function getDaysArray(startDate = new Date()) {
         const days = [];
-        
-        // Number of days based on screen size
         const numberOfDays = isMobile ? 4 : 7;
         
         for (let i = 0; i < numberOfDays; i++) {
-            const date = new Date();
-            // If mobile (4 days):
-            //   index 0 = tomorrow
-            //   index 1 = today
-            //   index 2-3 = previous days
-            // If desktop (7 days):
-            //   index 0 = tomorrow
-            //   index 1 = today
-            //   index 2-6 = previous days
-            const offset = i === 0 ? 1 : (i === 1 ? 0 : -(i-1));
-            date.setDate(today.getDate() + offset + (currentIndex * (isMobile ? 4 : 7)));
+            const date = new Date(startDate);
+            date.setDate(startDate.getDate() - i);
             days.push(date);
         }
         
-        return days;
+        // Sort dates in descending order (newest first)
+        return days.sort((a, b) => b - a);
     }
 
     $: days = getDaysArray();
@@ -98,6 +90,7 @@
                     losses: 0,
                     openTrades: 0,
                     transactions: [],
+                    startBalance: $dailyBalancesStore[dateKey]?.startBalance || 0,
                 };
             }
 
@@ -125,13 +118,20 @@
         }
     }
 
-    function formatPnL(pnl) {
-        return new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(pnl);
+    function formatPnL(value) {
+        if (!value) return '$0';
+        const prefix = value >= 0 ? '+$' : '-$';
+        return `${prefix}${Math.abs(value).toFixed(2)}`;
+    }
+
+    function formatPnLWithPercentage(stats) {
+        if (!stats || !stats.pnl) return "";
+        
+        const pnlStr = formatPnL(stats.pnl);
+        if (!stats.startBalance || stats.startBalance === 0) return pnlStr;
+
+        const percentage = ((stats.pnl / Math.abs(stats.startBalance)) * 100).toFixed(1);
+        return `${pnlStr} (${percentage}%)`;
     }
 
     function getTextClass(stats) {
@@ -152,7 +152,64 @@
         return "";
     }
 
+    // Update the isWithinOneMonth function
+    function isWithinCurrentMonth(date) {
+        const today = new Date();
+        return date.getMonth() === today.getMonth() && 
+               date.getFullYear() === today.getFullYear();
+    }
+
+    // Update the navigateDays function
+    function navigateDays(direction) {
+        const today = new Date();
+        const firstDay = days[0];
+        
+        // Calculate new date range
+        const newFirstDay = new Date(firstDay);
+        newFirstDay.setDate(firstDay.getDate() + (direction * (isMobile ? 4 : 7)));
+        
+        // Prevent navigating to future dates
+        if (newFirstDay > today) {
+            // If trying to go forward, snap to today
+            if (direction === 1) {
+                days = getDaysArray(today);
+            }
+            return;
+        }
+        
+        // Update days array
+        days = getDaysArray(newFirstDay);
+    }
+
+    // Update the getCardClass function
+    function getCardClass(stats, date) {
+        if (isFutureDate(date))
+            return "opacity-50 cursor-not-allowed";
+        if (!isWithinCurrentMonth(date))
+            return "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800";
+        if (!stats || (!stats.pnl && !stats.openTrades))
+            return "bg-light-card dark:bg-dark-card";
+
+        const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
+        if (hasClosedTrades) {
+            if (stats.pnl > 0) {
+                return "bg-gradient-to-b from-green-100 to-green-200/80 dark:from-green-900/30 dark:to-green-900/40 border-green-300 dark:border-green-700";
+            } else {
+                return "bg-gradient-to-b from-red-100 to-red-200/80 dark:from-red-900/30 dark:to-red-900/40 border-red-300 dark:border-red-700";
+            }
+        }
+
+        if (stats.openTrades > 0) {
+            return "bg-gradient-to-b from-yellow-100 to-yellow-200/80 dark:from-yellow-900/30 dark:to-yellow-900/40 border-yellow-300 dark:border-yellow-700";
+        }
+
+        return "bg-light-card dark:bg-dark-card";
+    }
+
+    // Update the handleDayClick function
     function handleDayClick(date, stats) {
+        if (isModalOpen || !isWithinCurrentMonth(date)) return;
+        isModalOpen = true;
         const formattedDate = date.toISOString().split("T")[0];
         const displayDate = date.toLocaleDateString("en-US", {
             weekday: "long",
@@ -177,32 +234,6 @@
 
     function isFutureDate(date) {
         return date > new Date();
-    }
-
-    function getCardClass(stats, date) {
-        if (isFutureDate(date))
-            return "opacity-50";
-        if (!stats || (!stats.pnl && !stats.openTrades))
-            return "bg-light-card dark:bg-dark-card";
-
-        const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
-        if (hasClosedTrades) {
-            if (stats.pnl > 0) {
-                return "bg-gradient-to-b from-green-100 to-green-200/80 dark:from-green-900/30 dark:to-green-900/40 border-green-300 dark:border-green-700";
-            } else {
-                return "bg-gradient-to-b from-red-100 to-red-200/80 dark:from-red-900/30 dark:to-red-900/40 border-red-300 dark:border-red-700";
-            }
-        }
-
-        if (stats.openTrades > 0) {
-            return "bg-gradient-to-b from-yellow-100 to-yellow-200/80 dark:from-yellow-900/30 dark:to-yellow-900/40 border-yellow-300 dark:border-yellow-700";
-        }
-
-        return "bg-light-card dark:bg-dark-card";
-    }
-
-    function navigateDays(direction) {
-        currentIndex += direction;
     }
 
     // เพิ่มฟังก์ชันสำหรับโหลด trades
@@ -244,13 +275,35 @@
     }
 </script>
 
-<div class="card h-full flex flex-col">
+<div class="card h-full flex flex-col relative group">
+    <!-- Navigation Buttons -->
+    <button
+        class="nav-button right-2"
+        on:click={() => navigateDays(-1)}
+        aria-label="Previous days"
+        disabled={isModalOpen || !isWithinCurrentMonth(days[days.length - 1])}
+    >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+    </button>
+    <button
+        class="nav-button left-2"
+        on:click={() => navigateDays(1)}
+        disabled={isModalOpen || days[0].getTime() === new Date().setHours(0,0,0,0)}
+        aria-label="Next days"
+    >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+    </button>
+
     <div class="grid grid-cols-4 md:grid-cols-7 h-full">
         {#each days as date, index}
             {@const stats = getDayStats(date)}
             <div 
                 class="relative border-r last:border-r-0 border-b border-light-border dark:border-0
-                       transition-all duration-200 group cursor-pointer
+                       transition-all duration-200 group cursor-pointer min-h-[152px]
                        hover:bg-light-hover/50 dark:hover:bg-dark-hover/50
                        {isToday(date) ? 'bg-theme-500/5 dark:bg-theme-400/5' : ''}
                        {getCardClass(stats, date)}"
@@ -303,15 +356,14 @@
                             <!-- P&L -->
                             {#if stats.pnl !== 0}
                                 <div class="flex items-center justify-between mt-2 pt-2 border-t border-light-border dark:border-0">
-                                    <span class="text-xs text-light-text-muted dark:text-dark-text-muted">P&L</span>
                                     <span class="text-sm font-bold {getTextClass(stats)}">
                                         {formatPnL(stats.pnl)}
-                                        {#if $dailyBalancesStore[date]?.startBalance && $dailyBalancesStore[date].startBalance !== 0}
-                                            <span class="text-xs">
-                                                ({((stats.pnl / Math.abs($dailyBalancesStore[date].startBalance)) * 100).toFixed(1)}%)
-                                            </span>
-                                        {/if}
                                     </span>
+                                    {#if stats.startBalance && stats.startBalance !== 0}
+                                        <span class="text-xs {stats.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                            {((stats.pnl / Math.abs(stats.startBalance)) * 100).toFixed(1)}%
+                                        </span>
+                                    {/if}
                                 </div>
                             {/if}
                         </div>
@@ -342,6 +394,7 @@
     on:deleteTransaction
     on:close={() => {
         showDayTradesModal = false;
+        isModalOpen = false;
         selectedDayTrades = [];
         selectedDayTransactions = [];
         selectedDate = "";
@@ -381,5 +434,21 @@
     /* Hover effect */
     .group:hover .group-hover\:scale-x-100 {
         transform: scaleX(1);
+    }
+
+    .nav-button {
+        @apply absolute top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 dark:bg-dark-card/90 
+               shadow-lg flex items-center justify-center text-gray-600 dark:text-gray-300
+               hover:bg-white dark:hover:bg-dark-card transition-all duration-200
+               opacity-0 group-hover:opacity-100;
+        z-index: 10; /* Lower than modal */
+    }
+    .nav-button:disabled {
+        @apply opacity-50 cursor-not-allowed;
+    }
+
+    /* Ensure modal appears above everything */
+    :global(.modal) {
+        z-index: 100;
     }
 </style>

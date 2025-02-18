@@ -1,10 +1,98 @@
 <script>
+    import { onMount } from "svelte";
+    
     export let totalPnL;
     export let openTrades;
     export let closedTrades;
     export let winRate;
     export let textSize = 'medium';
     export let isPreview = false;
+    export let trades = [];
+
+    // Calendar logic
+    let selectedMonth = new Date().getMonth();
+    let selectedYear = new Date().getFullYear();
+    let calendarDays = [];
+    let dailyPnL = {};
+
+    // Add logging
+    $: console.log('StatsCard trades:', trades);
+    $: console.log('StatsCard dailyPnL:', dailyPnL);
+
+    // Helper function to normalize date
+    function normalizeDate(date) {
+        const d = new Date(date);
+        d.setHours(12, 0, 0, 0);
+        return d;
+    }
+
+    function isFutureDate(day) {
+        const date = normalizeDate(new Date(selectedYear, selectedMonth, day));
+        const today = normalizeDate(new Date());
+        return date > today;
+    }
+
+    // Calculate calendar days and daily PnL
+    $: {
+        // Calculate days in month
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        const firstDayOfWeek = (new Date(selectedYear, selectedMonth, 1).getDay() + 6) % 7;
+
+        calendarDays = Array.from(
+            { length: 42 },
+            (_, i) => {
+                const dayNumber = i - firstDayOfWeek + 1;
+                if (dayNumber < 1 || dayNumber > daysInMonth) return null;
+                return dayNumber;
+            }
+        );
+
+        // Reset and recalculate dailyPnL
+        dailyPnL = {};
+        if (Array.isArray(trades)) {
+            trades.forEach(trade => {
+                if (trade.status === "CLOSED" && trade.exitDate) {
+                    const exitDate = normalizeDate(new Date(trade.exitDate));
+                    if (exitDate.getMonth() === selectedMonth && exitDate.getFullYear() === selectedYear) {
+                        const day = exitDate.getDate();
+                        dailyPnL[day] = (dailyPnL[day] || 0) + (Number(trade.pnl) || 0);
+                    }
+                }
+            });
+        }
+        console.log('Updated dailyPnL:', dailyPnL);
+    }
+
+    function getDayClass(day) {
+        if (!day) return "invisible";
+        
+        const baseClasses = "w-full h-full rounded-sm transition-colors duration-200";
+        
+        if (isFutureDate(day)) {
+            return `${baseClasses} bg-gray-500/5 dark:bg-gray-700/20`;
+        }
+        
+        const pnl = dailyPnL[day] || 0;
+        console.log(`Day ${day} PnL:`, pnl);
+        
+        if (pnl > 0) {
+            return `${baseClasses} bg-green-500/50 dark:bg-green-500/40`;
+        }
+        if (pnl < 0) {
+            return `${baseClasses} bg-red-500/50 dark:bg-red-500/40`;
+        }
+        return `${baseClasses} bg-gray-200/50 dark:bg-gray-600/30`;
+    }
+
+    function getDayTextClass(day) {
+        if (!day || isFutureDate(day)) {
+            return "text-light-text-muted/50 dark:text-dark-text-muted/50";
+        }
+        const pnl = dailyPnL[day] || 0;
+        if (pnl > 0) return "text-green-800 dark:text-green-200 font-semibold";
+        if (pnl < 0) return "text-red-800 dark:text-red-200 font-semibold";
+        return "text-light-text-muted dark:text-dark-text-muted";
+    }
 </script>
 
 <div class="card p-4 h-full {textSize}">
@@ -117,5 +205,21 @@
     }
     .extra-large {
         @apply text-xl;
+    }
+
+    .aspect-square {
+        aspect-ratio: 1;
+    }
+
+    /* Add smooth transitions */
+    .transition-colors {
+        transition: all 0.2s ease-in-out;
+    }
+
+    /* Add styles for calendar cell */
+    .calendar-cell {
+        @apply rounded-sm;
+        min-height: 24px;
+        min-width: 24px;
     }
 </style>
