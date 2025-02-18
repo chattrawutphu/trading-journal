@@ -5,6 +5,8 @@
     import { accountStore } from "$lib/stores/accountStore";
     import { transactionStore } from "$lib/stores/transactionStore";
     import { browser } from '$app/environment';
+    import { onMount } from 'svelte';
+    import { api } from '$lib/utils/api';
 
     const dispatch = createEventDispatcher();
 
@@ -22,6 +24,8 @@
     // Add screen width tracking
     let screenWidth;
     let isMobile = false;
+
+    let currentAccountId = null;
 
     if (browser) {
         // Initialize and update screen width
@@ -198,6 +202,44 @@
 
     function navigateDays(direction) {
         currentIndex += direction;
+    }
+
+    // เพิ่มฟังก์ชันสำหรับโหลด trades
+    async function loadTrades() {
+        if (!$accountStore.currentAccount) return;
+        
+        try {
+            trades = await api.getTrades($accountStore.currentAccount._id);
+        } catch (err) {
+            console.error('Error loading trades:', err);
+        }
+    }
+
+    onMount(() => {
+        if (isPreview) return;
+        loadTrades();
+
+        // Subscribe to trade and transaction updates
+        const handleUpdate = async () => {
+            console.log('ShortCalendar: Received update event');
+            await loadTrades();
+        };
+        
+        window.addEventListener('tradeupdated', handleUpdate);
+        window.addEventListener('transactionupdated', handleUpdate);
+        window.addEventListener('tradesynced', handleUpdate);
+        
+        return () => {
+            window.removeEventListener('tradeupdated', handleUpdate);
+            window.removeEventListener('transactionupdated', handleUpdate);
+            window.removeEventListener('tradesynced', handleUpdate);
+        };
+    });
+
+    // Watch for account changes
+    $: if ($accountStore.currentAccount?._id !== currentAccountId && !isPreview) {
+        currentAccountId = $accountStore.currentAccount?._id;
+        loadTrades();
     }
 </script>
 

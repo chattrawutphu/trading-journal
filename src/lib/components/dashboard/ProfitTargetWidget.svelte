@@ -1,5 +1,8 @@
 <script>
     import { onMount } from 'svelte';
+    import { accountStore } from '$lib/stores/accountStore';
+    import { api } from '$lib/utils/api';
+    
     export let trades = [];
     export let period = 'daily'; // 'daily', 'weekly', etc.
     export let target = 1000;
@@ -10,16 +13,50 @@
     let currentPnL = 0;
     let progress = 0;
     let daysLeft = 0;
+    let currentAccountId = null;
+
+    // เพิ่มฟังก์ชันสำหรับโหลด trades
+    async function loadTrades() {
+        if (!$accountStore.currentAccount) return;
+        
+        try {
+            trades = await api.getTrades($accountStore.currentAccount._id);
+            calculatePnL();
+        } catch (err) {
+            console.error('Error loading trades:', err);
+        }
+    }
 
     onMount(() => {
         if (isPreview) return;
-        calculatePnL();
+        loadTrades();
+
+        // Subscribe to trade and transaction updates
+        const handleUpdate = async () => {
+            console.log('ProfitTarget: Received update event');
+            await loadTrades();
+        };
+        
+        window.addEventListener('tradeupdated', handleUpdate);
+        window.addEventListener('transactionupdated', handleUpdate);
+        window.addEventListener('tradesynced', handleUpdate);
+        
+        return () => {
+            window.removeEventListener('tradeupdated', handleUpdate);
+            window.removeEventListener('transactionupdated', handleUpdate);
+            window.removeEventListener('tradesynced', handleUpdate);
+        };
     });
 
-    $: if (trades || period || target) {
-        if (!isPreview) {
-            calculatePnL();
-        }
+    // Watch for account changes
+    $: if ($accountStore.currentAccount?._id !== currentAccountId && !isPreview) {
+        currentAccountId = $accountStore.currentAccount?._id;
+        loadTrades();
+    }
+
+    // Watch for trades changes
+    $: if (trades) {
+        calculatePnL();
     }
 
     function calculatePnL() {
@@ -65,8 +102,14 @@
             daysLeft = Math.ceil((nextYearStart - now) / (1000 * 60 * 60 * 24));
         }
 
-        currentPnL = filteredTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
-        progress = currentPnL < 0 ? 0 : Math.min(currentPnL / target, 1);
+        currentPnL = filteredTrades.reduce((sum, trade) => {
+            if (trade.status === "CLOSED") {
+                return sum + (trade.pnl || 0);
+            }
+            return sum;
+        }, 0);
+
+        progress = Math.min(currentPnL / target, 1);
     }
 
     function formatCompactNumber(value) {

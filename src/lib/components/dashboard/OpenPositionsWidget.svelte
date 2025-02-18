@@ -6,6 +6,7 @@
     import { api } from '$lib/utils/api';
     import TradeViewModal from "$lib/components/trades/TradeViewModal.svelte";
     import TradeModal from "$lib/components/trades/TradeModal.svelte";
+    import { accountStore } from '$lib/stores/accountStore';
 
     const dispatch = createEventDispatcher();
 
@@ -22,6 +23,7 @@
     let selectedTrade = null;
     let sortBy = 'date'; // 'date', 'symbol', 'amount'
     let sortDirection = 'desc'; // 'asc', 'desc'
+    let currentAccountId = null;
 
     $: if (trades) {
         calculatePositions();
@@ -217,12 +219,42 @@
         calculatePositions();
     }
 
+    // เพิ่มฟังก์ชันสำหรับโหลด trades
+    async function loadTrades() {
+        if (!$accountStore.currentAccount) return;
+        
+        try {
+            trades = await api.getTrades($accountStore.currentAccount._id);
+            calculatePositions();
+        } catch (err) {
+            console.error('Error loading trades:', err);
+        }
+    }
+
     onMount(() => {
+        if (isPreview) return;
+        loadTrades();
+
+        // Subscribe to trade updates
+        const handleUpdate = async () => {
+            console.log('OpenPositions: Received update event');
+            await loadTrades();
+        };
+        
+        window.addEventListener('tradeupdated', handleUpdate);
+        window.addEventListener('tradesynced', handleUpdate);
+        
         return () => {
-            openPositions = [];
-            totalInvested = 0;
+            window.removeEventListener('tradeupdated', handleUpdate);
+            window.removeEventListener('tradesynced', handleUpdate);
         };
     });
+
+    // Watch for account changes
+    $: if ($accountStore.currentAccount?._id !== currentAccountId && !isPreview) {
+        currentAccountId = $accountStore.currentAccount?._id;
+        loadTrades();
+    }
 </script>
 
 <div class="h-full flex flex-col bg-light-card dark:bg-dark-card rounded-lg overflow-hidden shadow-sm">

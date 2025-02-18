@@ -2,18 +2,56 @@
     import { formatCurrency, formatPercentage } from '$lib/utils/formatters';
     import TradeViewModal from '../trades/TradeViewModal.svelte';
     import { theme } from '$lib/stores/themeStore';
+    import { onMount } from 'svelte';
+    import { accountStore } from '$lib/stores/accountStore';
+    import { api } from '$lib/utils/api';
     
     export let trades = [];
     export let period = 'all';
     export let metric = 'pnl';
     export let limit = 5;
     export let textSize = 'medium';
+    export let isPreview = false;
 
     let selectedTrade = null;
     let showViewModal = false;
+    let currentAccountId = null;
 
     $: filteredTrades = filterTradesByPeriod(trades, period);
     $: topTrades = getTopTrades(filteredTrades, metric, limit);
+
+    async function loadTrades() {
+        if (!$accountStore.currentAccount) return;
+        
+        try {
+            trades = await api.getTrades($accountStore.currentAccount._id);
+        } catch (err) {
+            console.error('Error loading trades:', err);
+        }
+    }
+
+    onMount(() => {
+        if (isPreview) return;
+        loadTrades();
+
+        const handleUpdate = async () => {
+            console.log('TopTrades: Received update event');
+            await loadTrades();
+        };
+        
+        window.addEventListener('tradeupdated', handleUpdate);
+        window.addEventListener('tradesynced', handleUpdate);
+        
+        return () => {
+            window.removeEventListener('tradeupdated', handleUpdate);
+            window.removeEventListener('tradesynced', handleUpdate);
+        };
+    });
+
+    $: if ($accountStore.currentAccount?._id !== currentAccountId && !isPreview) {
+        currentAccountId = $accountStore.currentAccount?._id;
+        loadTrades();
+    }
 
     function filterTradesByPeriod(trades, period) {
         const now = new Date();
