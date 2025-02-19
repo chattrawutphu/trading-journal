@@ -196,7 +196,7 @@ router.post('/binance-history', async(req, res) => {
     }
 });
 
-// เพิ่มฟังก์ชันสำหรับแปลง orders เป็น positions
+// ปรับปรุงฟังก์ชัน processOrdersToPositions
 function processOrdersToPositions(orders) {
     const positions = [];
     const openPositions = new Map();
@@ -205,7 +205,8 @@ function processOrdersToPositions(orders) {
     orders.sort((a, b) => a.time - b.time);
 
     for (const order of orders) {
-        if (!['NEW', 'FILLED', 'CANCELED'].includes(order.status)) continue;
+        // ตรวจสอบเฉพาะ orders ที่ execute แล้ว
+        if (!['FILLED'].includes(order.status)) continue;
 
         const key = `${order.symbol}_${order.positionSide}`;
 
@@ -238,32 +239,36 @@ function processOrdersToPositions(orders) {
                     pos.orders.push(order);
                     pos.commission += parseFloat(order.commission);
                 }
-            } else if (order.side === 'SELL') {
+            } else if (order.side === 'SELL' && order.reduceOnly) {
                 // ปิด position LONG
                 if (openPositions.has(key)) {
                     const pos = openPositions.get(key);
                     const exitPrice = parseFloat(order.avgPrice);
-                    const pnl = (exitPrice - pos.entryPrice) * pos.quantity;
+                    
+                    // ตรวจสอบว่า exitPrice ต้องไม่เป็น 0
+                    if (exitPrice > 0) {
+                        const pnl = (exitPrice - pos.entryPrice) * pos.quantity;
 
-                    positions.push({
-                        ...pos,
-                        exitDate: order.time,
-                        exitPrice,
-                        pnl,
-                        commission: pos.commission + parseFloat(order.commission),
-                        commissionAsset: order.commissionAsset,
-                        type: 'FUTURES',
-                        status: 'CLOSED',
-                        confidenceLevel: pos.confidenceLevel,
-                        greedLevel: pos.greedLevel
-                    });
+                        positions.push({
+                            ...pos,
+                            exitDate: order.time,
+                            exitPrice,
+                            pnl,
+                            commission: pos.commission + parseFloat(order.commission),
+                            commissionAsset: order.commissionAsset,
+                            type: 'FUTURES',
+                            status: 'CLOSED',
+                            confidenceLevel: pos.confidenceLevel,
+                            greedLevel: pos.greedLevel
+                        });
 
-                    openPositions.delete(key);
+                        openPositions.delete(key);
+                    }
                 }
             }
         } else if (order.positionSide === 'SHORT') {
+            // ทำในลักษณะเดียวกันสำหรับ SHORT position
             if (order.side === 'SELL') {
-                // เปิด position SHORT
                 if (!openPositions.has(key)) {
                     openPositions.set(key, {
                         symbol: order.symbol,
@@ -280,7 +285,6 @@ function processOrdersToPositions(orders) {
                         greedLevel: 5
                     });
                 } else {
-                    // เพิ่ม position SHORT
                     const pos = openPositions.get(key);
                     const totalQty = pos.quantity + parseFloat(order.executedQty);
                     pos.entryPrice = ((pos.entryPrice * pos.quantity) + 
@@ -289,27 +293,30 @@ function processOrdersToPositions(orders) {
                     pos.orders.push(order);
                     pos.commission += parseFloat(order.commission);
                 }
-            } else if (order.side === 'BUY') {
-                // ปิด position SHORT
+            } else if (order.side === 'BUY' && order.reduceOnly) {
                 if (openPositions.has(key)) {
                     const pos = openPositions.get(key);
                     const exitPrice = parseFloat(order.avgPrice);
-                    const pnl = (pos.entryPrice - exitPrice) * pos.quantity;
+                    
+                    // ตรวจสอบว่า exitPrice ต้องไม่เป็น 0
+                    if (exitPrice > 0) {
+                        const pnl = (pos.entryPrice - exitPrice) * pos.quantity;
 
-                    positions.push({
-                        ...pos,
-                        exitDate: order.time,
-                        exitPrice,
-                        pnl,
-                        commission: pos.commission + parseFloat(order.commission),
-                        commissionAsset: order.commissionAsset,
-                        type: 'FUTURES',
-                        status: 'CLOSED',
-                        confidenceLevel: pos.confidenceLevel,
-                        greedLevel: pos.greedLevel
-                    });
+                        positions.push({
+                            ...pos,
+                            exitDate: order.time,
+                            exitPrice,
+                            pnl,
+                            commission: pos.commission + parseFloat(order.commission),
+                            commissionAsset: order.commissionAsset,
+                            type: 'FUTURES',
+                            status: 'CLOSED',
+                            confidenceLevel: pos.confidenceLevel,
+                            greedLevel: pos.greedLevel
+                        });
 
-                    openPositions.delete(key);
+                        openPositions.delete(key);
+                    }
                 }
             }
         }

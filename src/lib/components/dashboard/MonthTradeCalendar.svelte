@@ -3,13 +3,20 @@
     import { theme } from "$lib/stores/themeStore";
     import { accountStore } from "$lib/stores/accountStore";
     import { transactionStore } from "$lib/stores/transactionStore";
+    import { dailyBalancesStore } from '$lib/stores/dailyBalancesStore';
     import { api } from '$lib/utils/api';
     import MonthTradesModal from './MonthTradesModal.svelte';
+    import { fade } from 'svelte/transition';
+    import Select from '../common/Select.svelte';
+    import DatePicker from '../common/DatePicker.svelte';
 
     const dispatch = createEventDispatcher();
 
     export let trades = [];
+    export let isPreview = false;
     export let textSize = 'medium';
+    export let accountId = null;
+
     let currentAccountId = null;
     let monthlyTrades = {};
     let showMonthModal = false;
@@ -17,6 +24,15 @@
     let selectedMonthTransactions = [];
     let selectedDisplayDate = "";
     let selectedMonthSummary = {};
+    let selectedYear = new Date().getFullYear();
+    let showYearPicker = false;
+    let loading = false;
+
+    const years = Array.from({ length: 6 }, (_, i) => selectedYear - 3 + i);
+    const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
 
     onMount(async () => {
         try {
@@ -35,194 +51,159 @@
         }
     }
 
-    const months = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-    ];
-
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 6 }, (_, i) => currentYear - 5 + i);
-
-    let selectedYear = new Date().getFullYear();
-
-    // Helper function to normalize date to noon
-    function normalizeDate(date) {
-        const d = new Date(date);
-        d.setHours(12, 0, 0, 0);
-        return d;
-    }
-
-    // Process trades into monthly summaries
-    $: monthlyTrades = trades.reduce((acc, trade) => {
-        let tradeDate;
-        if (trade.status === "CLOSED") {
-            tradeDate = new Date(trade.exitDate);
-        } else {
-            tradeDate = new Date(trade.entryDate);
-        }
-
-        try {
-            if (isNaN(tradeDate.getTime())) return acc;
-
-            const monthKey = `${tradeDate.getFullYear()}-${String(tradeDate.getMonth() + 1).padStart(2, '0')}`;
-            
-            if (!acc[monthKey]) {
-                acc[monthKey] = {
-                    trades: [],
-                    pnl: 0,
-                    symbols: new Set(),
-                    wins: 0,
-                    losses: 0,
-                    openTrades: 0,
-                    transactions: [],
-                    totalTrades: 0,
-                    winRate: 0
-                };
-            }
-
-            acc[monthKey].trades.push(trade);
-            acc[monthKey].totalTrades++;
-            
-            if (trade.status === "CLOSED") {
-                acc[monthKey].pnl += trade.pnl || 0;
-                if (trade.pnl > 0) acc[monthKey].wins++;
-                else if (trade.pnl < 0) acc[monthKey].losses++;
-            } else {
-                acc[monthKey].openTrades++;
-            }
-            acc[monthKey].symbols.add(trade.symbol);
-            
-            // Calculate win rate
-            const totalClosedTrades = acc[monthKey].wins + acc[monthKey].losses;
-            acc[monthKey].winRate = totalClosedTrades > 0 
-                ? Math.round((acc[monthKey].wins / totalClosedTrades) * 100) 
-                : 0;
-
-        } catch (err) {
-            console.error("Error processing trade date:", err);
-        }
-        return acc;
-    }, {});
-
-    // Process transactions into monthlyTrades
+    // Calculate monthly stats when trades change
     $: {
-        const transactions = $transactionStore.transactions;
-        if (Array.isArray(transactions)) {
-            transactions.forEach((transaction) => {
-                const transDate = new Date(transaction.date);
-                const monthKey = `${transDate.getFullYear()}-${String(transDate.getMonth() + 1).padStart(2, '0')}`;
-
+        monthlyTrades = {};
+        trades.forEach(trade => {
+            if (trade.status === "CLOSED") {
+                const date = new Date(trade.exitDate);
+                const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+                
                 if (!monthlyTrades[monthKey]) {
                     monthlyTrades[monthKey] = {
                         trades: [],
                         pnl: 0,
-                        symbols: new Set(),
                         wins: 0,
                         losses: 0,
-                        openTrades: 0,
+                        volume: 0,
+                        tradeCount: 0,
                         transactions: [],
-                        totalTrades: 0,
-                        winRate: 0
+                        startBalance: 0,
+                        endBalance: 0,
+                        maxDrawdown: 0,
+                        bestTrade: null,
+                        worstTrade: null
                     };
                 }
+                
+                monthlyTrades[monthKey].trades.push(trade);
+                monthlyTrades[monthKey].pnl += trade.pnl || 0;
+                monthlyTrades[monthKey].volume += trade.amount || 0;
+                monthlyTrades[monthKey].tradeCount += 1;
+                
+                if (trade.pnl > 0) {
+                    monthlyTrades[monthKey].wins += 1;
+                    if (!monthlyTrades[monthKey].bestTrade || trade.pnl > monthlyTrades[monthKey].bestTrade.pnl) {
+                        monthlyTrades[monthKey].bestTrade = trade;
+                    }
+                } else if (trade.pnl < 0) {
+                    monthlyTrades[monthKey].losses += 1;
+                    if (!monthlyTrades[monthKey].worstTrade || trade.pnl < monthlyTrades[monthKey].worstTrade.pnl) {
+                        monthlyTrades[monthKey].worstTrade = trade;
+                    }
+                }
+            }
+        });
 
+        // Add transactions to monthly stats
+        if ($transactionStore.transactions) {
+            $transactionStore.transactions.forEach(transaction => {
+                const date = new Date(transaction.date);
+                const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+                
+                if (!monthlyTrades[monthKey]) {
+                    monthlyTrades[monthKey] = {
+                        trades: [],
+                        pnl: 0,
+                        wins: 0,
+                        losses: 0,
+                        volume: 0,
+                        tradeCount: 0,
+                        transactions: [],
+                        startBalance: 0,
+                        endBalance: 0
+                    };
+                }
+                
                 monthlyTrades[monthKey].transactions.push(transaction);
             });
         }
     }
 
-    function getMonthStats(month) {
-        const monthKey = `${selectedYear}-${String(month + 1).padStart(2, '0')}`;
-        return monthlyTrades[monthKey] || null;
+    function getMonthStats(year, month) {
+        const monthKey = `${year}-${month}`;
+        return monthlyTrades[monthKey] || {
+            trades: [],
+            pnl: 0,
+            wins: 0,
+            losses: 0,
+            volume: 0,
+            tradeCount: 0,
+            transactions: [],
+            startBalance: 0,
+            endBalance: 0
+        };
     }
 
-    function isFutureMonth(month) {
-        const today = new Date();
-        return selectedYear > today.getFullYear() || 
-               (selectedYear === today.getFullYear() && month > today.getMonth());
+    function getMonthClass(stats) {
+        if (!stats.tradeCount) return 'bg-light-card dark:bg-dark-card';
+        if (stats.pnl > 0) return 'bg-green-500/10 dark:bg-green-400/10 hover:bg-green-500/20 dark:hover:bg-green-400/20';
+        if (stats.pnl < 0) return 'bg-red-500/10 dark:bg-red-400/10 hover:bg-red-500/20 dark:hover:bg-red-400/20';
+        return 'bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover';
     }
 
-    function getCardClass(stats, month) {
-        if (isFutureMonth(month))
-            return "opacity-50 bg-light-hover/10 dark:bg-dark-hover/10";
-        if (!stats || (!stats.pnl && !stats.openTrades && !stats.transactions?.length))
-            return "cursor-pointer";
-
-        // Check for closed trades first
-        const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
-        if (hasClosedTrades) {
-            return `cursor-pointer ${stats.pnl > 0 ? "bg-green-100 dark:bg-green-900/20" : "bg-red-100 dark:bg-red-900/20"}`;
+    function formatAmount(amount) {
+        if (amount >= 1000000) {
+            return (amount / 1000000).toFixed(1) + 'M';
         }
-
-        // If no closed trades but has open trades or transactions
-        if (stats.openTrades > 0 || stats.transactions?.length > 0) {
-            return `cursor-pointer bg-yellow-50 dark:bg-yellow-900/10`;
+        if (amount >= 1000) {
+            return (amount / 1000).toFixed(1) + 'K';
         }
-
-        return "cursor-pointer";
+        return amount.toFixed(0);
     }
 
-    function getTextClass(stats) {
-        if (!stats || (!stats.pnl && !stats.openTrades && !stats.transactions?.length))
-            return "";
-
-        // Check for closed trades first
-        const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
-        if (hasClosedTrades) {
-            if ($theme === "dark") {
-                return stats.pnl > 0 ? "text-green-300" : "text-red-300";
-            }
-            return stats.pnl > 0 ? "text-green-600" : "text-red-600";
-        }
-
-        // If no closed trades but has open trades or transactions
-        if (stats.openTrades > 0 || stats.transactions?.length > 0) {
-            return $theme === "dark" ? "text-yellow-300" : "text-yellow-600";
-        }
-
-        return "";
+    function formatPnL(value) {
+        if (!value) return '$0';
+        const prefix = value >= 0 ? '+$' : '-$';
+        return `${prefix}${formatAmount(Math.abs(value))}`;
     }
 
-    function formatPnL(pnl) {
-        return new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(pnl);
+    function formatPercentage(value) {
+        if (!value || isNaN(value)) return '0%';
+        return `${value.toFixed(1)}%`;
+    }
+
+    function getWinRate(stats) {
+        if (!stats.tradeCount) return 0;
+        return (stats.wins / stats.tradeCount) * 100;
+    }
+
+    function getROI(stats) {
+        if (!stats.volume || stats.volume === 0) return 0;
+        return (stats.pnl / stats.volume) * 100;
+    }
+
+    function isCurrentMonth(year, month) {
+        const now = new Date();
+        return year === now.getFullYear() && month === now.getMonth();
+    }
+
+    function isFutureMonth(year, month) {
+        const now = new Date();
+        return (year > now.getFullYear()) || 
+               (year === now.getFullYear() && month > now.getMonth());
     }
 
     function handleMonthClick(month, stats) {
-        if (isFutureMonth(month)) return;
-
-        const monthName = months[month];
+        if (isFutureMonth(selectedYear, month)) return;
         if (!stats?.trades.length && !stats?.transactions?.length) return;
 
-        selectedMonthTrades = [...(stats.trades || [])].map((trade, index) => ({
-            ...trade,
-            uniqueKey: `${trade._id}-${index}`
-        }));
-        selectedMonthTransactions = stats.transactions || [];
-        selectedDisplayDate = `${monthName} ${selectedYear}`;
+        selectedMonthTrades = stats.trades;
+        selectedMonthTransactions = stats.transactions;
+        selectedDisplayDate = `${months[month]} ${selectedYear}`;
         selectedMonthSummary = {
-            totalTrades: stats.totalTrades,
+            totalTrades: stats.tradeCount,
             wins: stats.wins,
             losses: stats.losses,
-            winRate: stats.winRate,
+            winRate: getWinRate(stats),
+            roi: getROI(stats),
             pnl: stats.pnl,
-            openTrades: stats.openTrades
+            volume: stats.volume,
+            bestTrade: stats.bestTrade,
+            worstTrade: stats.worstTrade,
+            maxDrawdown: stats.maxDrawdown
         };
-        showMonthModal = true; // Ensure modal is shown
+        showMonthModal = true;
     }
 
     function previousYear() {
@@ -250,139 +231,129 @@
 </script>
 
 <div class="card h-full flex flex-col {textSize}">
+    <!-- Header -->
     <div class="p-4 border-b border-light-border dark:border-0">
-        <div class="flex justify-between items-center relative">
-            <div class="flex items-center justify-between w-full gap-2">
-                <span class="text-xl font-semibold text-light-text-muted dark:text-dark-text">
+        <div class="flex items-center justify-between">
+            <div class="relative">
+                <button
+                    class="px-3 py-1.5 text-sm font-medium rounded-lg
+                           bg-light-card dark:bg-dark-card
+                           hover:bg-light-hover dark:hover:bg-dark-hover
+                           text-light-text dark:text-dark-text
+                           border border-light-border dark:border-0
+                           transition-colors duration-200"
+                    on:click={() => showYearPicker = !showYearPicker}
+                >
                     {selectedYear}
-                </span>
-                <div class="flex items-center">
-                    <button
-                        class="p-1"
-                        on:click={previousYear}
-                        aria-label="Previous year"
+                    <svg class="w-4 h-4 ml-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+
+                {#if showYearPicker}
+                    <div 
+                        class="absolute top-full mt-1 w-48 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-light-border dark:border-0 z-50"
+                        transition:fade
                     >
-                        <svg class="h-6 w-6 text-white bg-purple-500 rounded-md" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z"/>
-                            <polyline points="11 7 6 12 11 17" />
-                            <polyline points="17 7 12 12 17 17" />
-                        </svg>
-                    </button>
-                    <button
-                        class="p-1"
-                        on:click={nextYear}
-                        aria-label="Next year"
-                    >
-                        <svg class="h-6 w-6 text-white bg-purple-500 rounded-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="13 17 18 12 13 7" />
-                            <polyline points="6 17 11 12 6 7" />
-                        </svg>
-                    </button>
-                </div>
+                        <div class="p-2">
+                            {#each years as year}
+                                <button
+                                    class="w-full text-left px-3 py-1.5 rounded-lg text-sm
+                                           {year === selectedYear ? 
+                                           'bg-theme-500 text-white' : 
+                                           'text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover'}"
+                                    on:click={() => {
+                                        selectedYear = year;
+                                        showYearPicker = false;
+                                    }}
+                                >
+                                    {year}
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+                {/if}
             </div>
         </div>
     </div>
 
     <!-- Month Grid -->
     <div class="flex-1 p-4">
-        <div class="grid grid-cols-3 gap-4 h-full">
+        <div class="grid grid-cols-3 gap-4">
             {#each months as month, i (i)}
-                {@const stats = getMonthStats(i)}
+                {@const stats = getMonthStats(selectedYear, i)}
+                {@const isCurrentMonthFlag = isCurrentMonth(selectedYear, i)}
+                {@const isFutureMonthFlag = isFutureMonth(selectedYear, i)}
+                
                 <div class="relative">
-                    <div
-                        class="h-full border border-light-border dark:border-0 rounded-md p-4
-                               {getCardClass(stats, i)} hover:shadow {!isFutureMonth(i) && 'hover:scale-[1.02]'}"
+                    <button 
+                        class="w-full h-full text-left transition-all duration-200 
+                               {getMonthClass(stats)} rounded-lg overflow-hidden
+                               {isFutureMonthFlag ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}"
                         on:click={() => handleMonthClick(i, stats)}
+                        disabled={isFutureMonthFlag}
                     >
-                        <!-- Month name -->
-                        <div class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-2">
-                            {month}
-                        </div>
-
-                        {#if stats}
-                            <div class="space-y-2">
-                                <!-- Trade stats -->
-                                {#if stats.totalTrades > 0}
-                                    <div class="space-y-1">
-                                        <div class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                                            {stats.totalTrades} trade{stats.totalTrades !== 1 ? "s" : ""}
-                                        </div>
-                                        <div class="flex gap-2 text-xs">
-                                            {#if stats.wins > 0}
-                                                <span class="text-green-600 dark:text-green-400">
-                                                    {stats.wins} wins
-                                                </span>
-                                            {/if}
-                                            {#if stats.losses > 0}
-                                                <span class="text-red-600 dark:text-red-400">
-                                                    {stats.losses} losses
-                                                </span>
-                                            {/if}
-                                        </div>
-                                        {#if stats.winRate > 0}
-                                            <div class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                                                Win Rate: {stats.winRate}%
-                                            </div>
-                                        {/if}
-                                    </div>
-                                {/if}
-
-                                <!-- P&L -->
-                                {#if stats.pnl !== 0}
-                                    <div class="text-sm font-medium {getTextClass(stats)}">
-                                        {formatPnL(stats.pnl)}
-                                    </div>
-                                {/if}
-
-                                <!-- Open Trades -->
-                                {#if stats.openTrades > 0}
-                                    <div class="text-xs text-yellow-600 dark:text-yellow-400">
-                                        {stats.openTrades} open trade{stats.openTrades !== 1 ? "s" : ""}
-                                    </div>
-                                {/if}
-
-                                <!-- Transaction Icons -->
-                                {#if stats.transactions?.length > 0}
-                                    <div class="flex gap-0.5 items-center opacity-60 dark:opacity-80 mt-2">
-                                        {#if stats.transactions.some((t) => t.type === "deposit")}
-                                            <div class="flex items-center">
-                                                <svg
-                                                    class="w-[14px] h-[14px] text-green-600 dark:text-green-400"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                    />
-                                                </svg>
-                                            </div>
-                                        {/if}
-                                        {#if stats.transactions.some((t) => t.type === "withdrawal")}
-                                            <div class="flex items-center">
-                                                <svg
-                                                    class="w-[14px] h-[14px] text-red-600 dark:text-red-400"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                    />
-                                                </svg>
-                                            </div>
-                                        {/if}
-                                    </div>
+                        <div class="p-4 flex flex-col h-full">
+                            <!-- Month Header -->
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-sm font-medium text-light-text dark:text-dark-text">
+                                    {month}
+                                </span>
+                                {#if isCurrentMonthFlag}
+                                    <div class="w-2 h-2 rounded-full bg-theme-500 animate-pulse"></div>
                                 {/if}
                             </div>
-                        {/if}
-                    </div>
+
+                            <!-- Stats -->
+                            {#if stats.tradeCount > 0}
+                                <div class="mt-auto space-y-2">
+                                    <!-- P&L -->
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs text-light-text-muted dark:text-dark-text-muted">P&L</span>
+                                        <span class="text-sm font-medium {stats.pnl >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}">
+                                            {formatPnL(stats.pnl)}
+                                        </span>
+                                    </div>
+
+                                    <!-- Win Rate -->
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs text-light-text-muted dark:text-dark-text-muted">Win Rate</span>
+                                        <span class="text-sm font-medium text-light-text dark:text-dark-text">
+                                            {formatPercentage(getWinRate(stats))}
+                                        </span>
+                                    </div>
+
+                                    <!-- ROI -->
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs text-light-text-muted dark:text-dark-text-muted">ROI</span>
+                                        <span class="text-sm font-medium text-light-text dark:text-dark-text">
+                                            {formatPercentage(getROI(stats))}
+                                        </span>
+                                    </div>
+
+                                    <!-- Trade Count -->
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs text-light-text-muted dark:text-dark-text-muted">Trades</span>
+                                        <span class="text-sm font-medium text-light-text dark:text-dark-text">
+                                            {stats.tradeCount}
+                                        </span>
+                                    </div>
+                                </div>
+                            {/if}
+
+                            <!-- Transaction Indicators -->
+                            {#if stats.transactions?.length > 0}
+                                <div class="mt-2 flex gap-1 justify-end">
+                                    {#if stats.transactions.some(t => t.type === 'deposit')}
+                                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                                    {/if}
+                                    {#if stats.transactions.some(t => t.type === 'withdrawal')}
+                                        <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                                    {/if}
+                                </div>
+                            {/if}
+                        </div>
+                    </button>
                 </div>
             {/each}
         </div>

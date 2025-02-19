@@ -6,8 +6,12 @@
     import TransactionTable from "../transactions/TransactionTable.svelte";
     import TransactionModal from "../transactions/TransactionModal.svelte";
     import { transactionStore } from "$lib/stores/transactionStore";
+    import { accountStore } from '$lib/stores/accountStore';
     import Loading from "$lib/components/common/Loading.svelte";
-    import { formatPnL } from "$lib/utils/formatters";
+    import Modal from '../common/Modal.svelte';
+    import { api } from '$lib/utils/api';
+    import TradeViewModal from "../trades/TradeViewModal.svelte";
+    import TradeModal from "../trades/TradeModal.svelte";
 
     const dispatch = createEventDispatcher();
 
@@ -15,43 +19,35 @@
     export let trades = [];
     export let transactions = [];
     export let displayDate = "";
-    export let summary = {
-        totalTrades: 0,
-        wins: 0,
-        losses: 0,
-        winRate: 0,
-        pnl: 0,
-        openTrades: 0
-    };
+    export let summary = {};
     export let loading = false;
 
     let showTransactionModal = false;
     let selectedTransaction = null;
-    let error = null;
+    let showViewModal = false;
+    let showEditModal = false;
+    let selectedTrade = null;
+    let showDeleteConfirmModal = false;
+    let deleteContext = null;
 
-    function handleView(trade) {
-        dispatch("view", trade);
+    function formatCurrency(value) {
+        const formatter = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        });
+        return formatter.format(Number(value));
     }
 
-    function handleEdit(trade) {
-        dispatch("edit", trade);
+    function handleTradeView(event) {
+        selectedTrade = event.detail;
+        showViewModal = true;
     }
 
-    function handleDelete(tradeId) {
-        if (confirm("Are you sure you want to delete this trade?")) {
-            dispatch("delete", tradeId);
-        }
-    }
-
-    function handleDeleteTransaction(transactionId) {
-        if (confirm("Are you sure you want to delete this transaction?")) {
-            dispatch("deleteTransaction", transactionId);
-        }
-    }
-
-    function close() {
-        show = false;
-        dispatch("close");
+    function handleTradeEdit(event) {
+        selectedTrade = event.detail;
+        showEditModal = true;
     }
 
     function handleEditTransaction(event) {
@@ -59,159 +55,247 @@
         showTransactionModal = true;
     }
 
-    function handleTransactionSubmit(event) {
-        dispatch("editTransaction", event.detail);
-        showTransactionModal = false;
+    function handleDelete(event) {
+        showDeleteConfirmModal = true;
+        deleteContext = event.detail;
     }
 
-    $: openTrades = trades.filter((trade) => trade.status === "OPEN").map((trade, index) => ({ ...trade, uniqueKey: `${trade._id}-${index}` })); // Ensure unique keys
-    $: closedTrades = trades.filter((trade) => trade.status === "CLOSED").map((trade, index) => ({ ...trade, uniqueKey: `${trade._id}-${index}` })); // Ensure unique keys
-    $: processedTransactions = transactions.map((transaction, index) => ({
-        ...transaction,
-        uniqueKey: `${transaction._id}-${index}`
-    })); // Ensure unique keys
+    async function confirmDelete() {
+        if (deleteContext) {
+            const { type, items, context } = deleteContext;
+            try {
+                if (context === 'trades') {
+                    for (const tradeId of items) {
+                        await api.deleteTrade(tradeId);
+                    }
+                } else if (context === 'transactions') {
+                    for (const transactionId of items) {
+                        await api.deleteTransaction(transactionId);
+                    }
+                }
+                dispatch('refresh');
+            } catch (err) {
+                console.error('Error deleting items:', err);
+            }
+        }
+        showDeleteConfirmModal = false;
+        deleteContext = null;
+    }
+
+    function close() {
+        show = false;
+        dispatch('close');
+    }
 </script>
 
-{#if loading}
-    <Loading message="Loading..." overlay={true} />
-{:else if error}
-    <div class="text-red-500">{error}</div>
-{:else if show}
-    <div
-        class="fixed modal inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-        transition:fade={{ duration: 150 }}
-    >
-        <div class="card w-full max-w-4xl mx-auto relative transform ease-out">
+{#if show}
+    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" transition:fade>
+        <div class="card w-full max-w-5xl mx-auto relative transform ease-out max-h-[90vh] flex flex-col">
             <!-- Header -->
-            <div
-                class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10"
-            >
-                <h2
-                    class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent"
-                >
-                    {displayDate}
-                </h2>
-                <button
-                    class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover "
-                    on:click={close}
-                >
-                    <svg
-                        class="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
+            <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
+                <div>
+                    <h2 class="text-2xl font-bold bg-gradient-purple bg-clip-text text-transparent">
+                        {displayDate}
+                    </h2>
+                </div>
+                <button class="p-2 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover text-light-text-muted dark:text-dark-text-muted" on:click={close}>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
 
-
-
             <!-- Content -->
-            <div class="px-8 py-6 max-h-[calc(100vh-16rem)] overflow-y-auto">
-                            <!-- Summary Section -->
-            <div class="mb-6 p-4 bg-light-hover/10 dark:bg-dark-hover/10 rounded-lg">
-                <h3 class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text">Monthly Statistics</h3>
-                <div class="grid grid-cols-3 gap-4">
-                    <div>
-                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Total Trades</div>
-                        <div class="text-lg font-medium text-light-text dark:text-dark-text">{summary.totalTrades}</div>
+            <div class="flex-1 overflow-y-auto">
+                <!-- Summary Stats -->
+                <div class="px-8 pt-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <!-- P&L Card -->
+                        <div class="card p-4">
+                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Total P&L</div>
+                            <div class="text-xl font-bold {summary.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                {formatCurrency(summary.pnl)}
+                            </div>
+                        </div>
+
+                        <!-- Win Rate Card -->
+                        <div class="card p-4">
+                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Win Rate</div>
+                            <div class="text-xl font-bold text-light-text dark:text-dark-text">
+                                {summary.winRate}%
+                            </div>
+                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted mt-1">
+                                {summary.wins}W / {summary.losses}L
+                            </div>
+                        </div>
+
+                        <!-- ROI Card -->
+                        <div class="card p-4">
+                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">ROI</div>
+                            <div class="text-xl font-bold text-light-text dark:text-dark-text">
+                                {summary.roi}%
+                            </div>
+                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted mt-1">
+                                Volume: {formatCurrency(summary.volume)}
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Win Rate</div>
-                        <div class="text-lg font-medium text-light-text dark:text-dark-text">{summary.winRate}%</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Total P&L</div>
-                        <div class="text-lg font-medium {summary.pnl > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">{formatPnL(summary.pnl)}</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Wins</div>
-                        <div class="text-lg font-medium text-green-600 dark:text-green-400">{summary.wins}</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Losses</div>
-                        <div class="text-lg font-medium text-red-600 dark:text-red-400">{summary.losses}</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Open Trades</div>
-                        <div class="text-lg font-medium text-yellow-600 dark:text-yellow-400">{summary.openTrades}</div>
-                    </div>
+
+                    <!-- Best/Worst Trades -->
+                    {#if summary.bestTrade || summary.worstTrade}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            {#if summary.bestTrade}
+                                <div class="card p-4">
+                                    <div class="text-sm text-light-text-muted dark:text-dark-text-muted mb-2">Best Trade</div>
+                                    <div class="text-lg font-bold text-green-500">
+                                        {formatCurrency(summary.bestTrade.pnl)}
+                                    </div>
+                                    <div class="text-sm text-light-text-muted dark:text-dark-text-muted mt-1">
+                                        {summary.bestTrade.symbol}
+                                    </div>
+                                </div>
+                            {/if}
+                            {#if summary.worstTrade}
+                                <div class="card p-4">
+                                    <div class="text-sm text-light-text-muted dark:text-dark-text-muted mb-2">Worst Trade</div>
+                                    <div class="text-lg font-bold text-red-500">
+                                        {formatCurrency(summary.worstTrade.pnl)}
+                                    </div>
+                                    <div class="text-sm text-light-text-muted dark:text-dark-text-muted mt-1">
+                                        {summary.worstTrade.symbol}
+                                    </div>
+                                </div>
+                            {/if}
+                        </div>
+                    {/if}
                 </div>
-            </div>
-                {#if openTrades.length > 0}
-                    <div class="mb-6">
-                        <h3
-                            class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
-                        >
-                            Open Trades
-                        </h3>
-                        <TradeTable
-                            trades={openTrades}
-                            type="open"
-                            on:view
-                            on:edit
-                            on:delete
-                        />
-                    </div>
-                {/if}
 
-                {#if closedTrades.length > 0}
-                    <div class="mb-6">
-                        <h3
-                            class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
-                        >
-                            Closed Trades
-                        </h3>
-                        <TradeTable
-                            trades={closedTrades}
-                            type="closed"
-                            on:view
-                            on:edit
-                            on:delete
-                        />
-                    </div>
-                {/if}
+                <!-- Trade Tables -->
+                <div class="px-8 pb-6">
+                    {#if trades.filter(t => t.status === "OPEN").length > 0}
+                        <div class="mb-6">
+                            <h3 class="text-sm font-medium mb-2 text-light-text-muted dark:text-dark-text-muted">
+                                Open Trades
+                            </h3>
+                            <TradeTable
+                                trades={trades.filter(t => t.status === "OPEN")}
+                                type="open"
+                                isInModal={true}
+                                on:view={handleTradeView}
+                                on:edit={handleTradeEdit}
+                                on:delete={handleDelete}
+                            />
+                        </div>
+                    {/if}
 
-                <div class="mb-6"></div>
-                    <h3
-                        class="text-lg font-semibold mb-3 text-light-text dark:text-dark-text"
-                    >
-                        Transactions
-                    </h3>
-                    <TransactionTable
-                        transactions={processedTransactions}
-                        readOnly={false}
-                        on:edit={handleEditTransaction}
-                        on:delete={handleDeleteTransaction}
-                    />
-                {#if trades.length === 0 && transactions?.length === 0}
-                    <div
-                        class="text-center py-8 text-light-text-muted dark:text-dark-text-muted"
-                    >
-                        No trades or transactions found for this month
-                    </div>
-                {/if}
+                    {#if trades.filter(t => t.status === "CLOSED").length > 0}
+                        <div class="mb-6">
+                            <h3 class="text-sm font-medium mb-2 text-light-text-muted dark:text-dark-text-muted">
+                                Closed Trades
+                            </h3>
+                            <TradeTable
+                                trades={trades.filter(t => t.status === "CLOSED")}
+                                type="closed"
+                                isInModal={true}
+                                on:view={handleTradeView}
+                                on:edit={handleTradeEdit}
+                                on:delete={handleDelete}
+                            />
+                        </div>
+                    {/if}
+
+                    {#if transactions?.length > 0}
+                        <div>
+                            <h3 class="text-sm font-medium mb-2 text-light-text-muted dark:text-dark-text-muted">
+                                Transactions
+                            </h3>
+                            <TransactionTable
+                                {transactions}
+                                isInModal={true}
+                                readOnly={false}
+                                hideEmptyState={true}
+                                on:edit={handleEditTransaction}
+                                on:delete={handleDelete}
+                            />
+                        </div>
+                    {/if}
+                </div>
             </div>
         </div>
     </div>
 {/if}
 
+<!-- Modals -->
+<TradeViewModal
+    bind:show={showViewModal}
+    trade={selectedTrade}
+    on:close={() => {
+        showViewModal = false;
+        selectedTrade = null;
+    }}
+/>
+
+<TradeModal
+    bind:show={showEditModal}
+    trade={selectedTrade}
+    on:tradeUpdated={() => {
+        showEditModal = false;
+        selectedTrade = null;
+        dispatch('refresh');
+    }}
+/>
+
 <TransactionModal
     show={showTransactionModal}
     transaction={selectedTransaction}
-    on:submit={handleTransactionSubmit}
-    on:close={() => (showTransactionModal = false)}
+    on:close={() => {
+        showTransactionModal = false;
+        selectedTransaction = null;
+    }}
+    on:submit={() => {
+        showTransactionModal = false;
+        selectedTransaction = null;
+        dispatch('refresh');
+    }}
 />
+
+<!-- Delete Confirmation Modal -->
+{#if showDeleteConfirmModal}
+    <Modal
+        show={showDeleteConfirmModal}
+        title="Confirm Delete"
+        on:close={() => showDeleteConfirmModal = false}
+    >
+        <div class="p-6">
+            <p class="text-light-text dark:text-dark-text">
+                {#if deleteContext?.type === 'selected'}
+                    Are you sure you want to delete {deleteContext.items.length} selected items?
+                {:else}
+                    Are you sure you want to delete this item?
+                {/if}
+            </p>
+            <div class="flex justify-end gap-4 mt-6">
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    on:click={() => showDeleteConfirmModal = false}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    variant="danger"
+                    size="sm"
+                    on:click={confirmDelete}
+                >
+                    Delete
+                </Button>
+            </div>
+        </div>
+    </Modal>
+{/if}
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-xl;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-lg;
     }
 </style>
