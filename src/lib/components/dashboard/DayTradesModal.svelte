@@ -15,6 +15,7 @@
     import TradeViewModal from "$lib/components/trades/TradeViewModal.svelte";
     import TradeModal from "$lib/components/trades/TradeModal.svelte";
     import { dailyBalancesStore } from '$lib/stores/dailyBalancesStore';
+    import { onMount, onDestroy } from "svelte";
 
     const dispatch = createEventDispatcher();
 
@@ -39,6 +40,10 @@
     let showViewModal = false;
     let showEditModal = false;
     let selectedTrade = null;
+
+    let totalUnrealizedPnL = 0;
+    let currentPrices = new Map();
+    let binanceWs;
 
     $: if (show && accountId) {
         transactions = filterTransactionsByDate($transactionStore.transactions, date);
@@ -263,6 +268,136 @@
         console.log('DayTradesModal: Dispatching refresh event');
         dispatch('refresh');
     }
+
+    // เพิ่มฟังก์ชันสำหรับคำนวณ Unrealized P&L
+    function calculateUnrealizedPnL(trade) {
+        if (trade.status !== 'OPEN') return 0;
+        
+        const currentPrice = currentPrices.get(trade.symbol);
+        if (!currentPrice) return 0;
+
+        const quantity = parseFloat(trade.quantity);
+        const entryPrice = parseFloat(trade.entryPrice);
+        
+        if (trade.side === 'LONG') {
+            return (currentPrice - entryPrice) * quantity;
+        } else {
+            return (entryPrice - currentPrice) * quantity;
+        }
+    }
+
+    // เพิ่มฟังก์ชันสำหรับอัพเดทราคา
+    function updatePrice(symbol, price) {
+        currentPrices.set(symbol, parseFloat(price));
+        currentPrices = currentPrices; // Trigger reactivity
+
+        // คำนวณ total unrealized P&L
+        totalUnrealizedPnL = trades
+            .filter(t => t.status === 'OPEN')
+            .reduce((sum, trade) => sum + calculateUnrealizedPnL(trade), 0);
+    }
+
+    // เพิ่มฟังก์ชันสำหรับเชื่อต่อ WebSocket
+    function connectWebSocket() {
+        if (!trades.length) return;
+
+        const symbols = [...new Set(trades
+            .filter(t => t.status === 'OPEN')
+            .map(t => t.symbol.toLowerCase()))];
+        
+        if (!symbols.length) return;
+
+        const streams = symbols.map(s => `${s}@trade`).join('/');
+        binanceWs = new WebSocket(`wss://stream.binance.com:9443/ws/${streams}`);
+
+        binanceWs.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.e === 'trade') {
+                const symbol = data.s;
+                const price = data.p;
+                updatePrice(symbol, price);
+            }
+        };
+    }
+
+    // Lifecycle hooks
+    onMount(() => {
+        connectWebSocket();
+    });
+
+    onDestroy(() => {
+        if (binanceWs) {
+            binanceWs.close();
+        }
+    });
+
+    // Watch trades changes
+    $: if (show && trades) {
+        connectWebSocket();
+    }
+
+    // เพิ่มฟังก์ชัน loadTransactions
+    async function loadTransactions() {
+        try {
+            const response = await api.getTransactions(accountId);
+            
+            // ตรวจสอบว่า response เป็น array หรือไม่
+            const transactionsData = Array.isArray(response) 
+                ? response 
+                : response?.data || [];  // ถ้าไม่ใช่ array ให้ลองดึง data หรือใช้ array ว่าง
+            
+            // Filter transactions by date
+            transactions = transactionsData.filter(transaction => {
+                const transactionDate = new Date(transaction.date).toISOString().split('T')[0];
+                return transactionDate === date;
+            });
+        } catch (error) {
+            console.error('Error loading transactions:', error);
+        }
+    }
+
+    // เพิ่มฟังก์ชัน calculateDailySummary
+    function calculateDailySummary() {
+        const summary = {
+            totalPnL: 0,
+            totalDeposits: 0,
+            totalWithdrawals: 0,
+            winCount: 0,
+            lossCount: 0
+        };
+
+        // Calculate trades summary
+        trades.forEach(trade => {
+            if (trade.status === 'CLOSED') {
+                if (trade.pnl > 0) summary.winCount++;
+                else if (trade.pnl < 0) summary.lossCount++;
+                summary.totalPnL += trade.pnl;
+            }
+        });
+
+        // Calculate transactions summary
+        transactions.forEach(transaction => {
+            if (transaction.type === 'DEPOSIT') {
+                summary.totalDeposits += transaction.amount;
+            } else if (transaction.type === 'WITHDRAW') {
+                summary.totalWithdrawals += transaction.amount;
+            }
+        });
+
+        return summary;
+    }
+
+    // Reactive declarations
+    $: dailySummary = calculateDailySummary();
+    $: winRate = trades.length > 0 
+        ? Math.round((dailySummary.winCount / trades.filter(t => t.status === 'CLOSED').length) * 100) 
+        : 0;
+
+    // Watch for changes
+    $: if (show && accountId) {
+        loadTransactions();
+        loadTrades();
+    }
 </script>
 
 {#if loading}
@@ -275,8 +410,8 @@
         <div class="card w-full max-w-4xl mx-auto relative transform ease-out max-h-[90vh] flex flex-col">
             <!-- Header -->
             <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
-                <h2 class="text-xl font-bold bg-gradient-purple bg-clip-text text-transparent">
-                    {displayDate || formatDate(date)}
+                <h2 class="text-xl font-bold text-light-text dark:text-dark-text">
+                    {displayDate}
                 </h2>
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-4 md:gap-1">
@@ -308,11 +443,11 @@
                 </div>
             </div>
 
-            <!-- Scrollable Content -->
+            <!-- Content -->
             <div class="flex-1 overflow-y-auto">
                 <!-- Summary Section -->
                 <div class="px-8 py-4 border-b border-light-border dark:border-0 bg-light-hover/30 dark:bg-dark-hover/30">
-                    <div class="grid grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                         <!-- Balance Summary - Always show -->
                         <div class="space-y-1">
                             <h4 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">End of Day Balance</h4>
@@ -328,16 +463,26 @@
                         {#if trades.length > 0 || transactions.length > 0}
                             <!-- P&L Summary -->
                             <div class="space-y-1">
-                                <h4 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Day P&L</h4>
-                                <p class="text-lg font-bold {dailySummary.totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}">
-                                    {formatCurrency(dailySummary.totalPnL)}
-                                    {#if dailyBalance?.startBalance && dailyBalance.startBalance !== 0}
-                                        <span class="text-sm">
-                                            ({((dailySummary.totalPnL / Math.abs(dailyBalance.startBalance)) * 100).toFixed(1)}%)
-                                        </span>
-                                    {/if}
-                                </p>
-                            </div>
+                                    <h4 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Day P&L</h4>
+                                    <p class="text-lg font-bold {dailySummary.totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                        {formatCurrency(dailySummary.totalPnL)}
+                                        {#if dailyBalance?.startBalance && dailyBalance.startBalance !== 0}
+                                            <span class="text-sm">
+                                                ({((dailySummary.totalPnL / Math.abs(dailyBalance.startBalance)) * 100).toFixed(1)}%)
+                                            </span>
+                                        {/if}
+                                    </p>
+                                </div>
+                            {#if trades.filter(t => t.status === "OPEN").length > 0}
+                                <div class="space-y-1">
+                                    <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                                        Unrealized P&L
+                                    </div>
+                                    <div class="text-lg font-semibold {totalUnrealizedPnL > 0 ? 'text-green-500' : totalUnrealizedPnL < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}">
+                                        {formatCurrency(totalUnrealizedPnL)}
+                                    </div>
+                                </div>
+                            {/if}
 
                             <!-- Transactions Summary - Only show if there are transactions -->
                             {#if transactions.length > 0}
@@ -358,17 +503,9 @@
                             {#if trades.length > 0}
                                 <div class="space-y-1">
                                     <h4 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Trade Stats</h4>
-                                    <div class="flex gap-3 flex-col md:flex-row items-center">
-                                        <div class="flex items-center gap-1.5">
-                                            <div class="text-base font-bold {winRate > 50 ? 'text-green-500' : winRate < 50 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}">
-                                                {winRate}%
-                                            </div>
-                                            <div class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                                                Win Rate
-                                            </div>
-                                        </div>
-                                        <div class="h-6 hidden md:flex w-px bg-light-border dark:bg-dark-border"></div>
-                                        <div class="flex flex-wrap items-center gap-2">
+                                    <div class="flex gap-3 flex-col md:flex-row ">
+
+                                        <div class="flex flex-wrap gap-2">
                                             <div class="flex items-center gap-1">
                                                 <span class="text-sm font-bold text-green-500">{dailySummary.winCount}</span>
                                                 <span class="text-xs text-light-text-muted dark:text-dark-text-muted">Win</span>

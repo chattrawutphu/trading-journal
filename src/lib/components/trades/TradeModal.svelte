@@ -365,6 +365,22 @@
                 class="px-4 py-3 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <div class="flex-1 flex items-center gap-3">
+                    <!-- Trade Type Icon -->
+                    {#if form.type === 'SYNC'}
+                        <span class="text-blue-500" title="Synced trade">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </span>
+                    {:else}
+                        <span class="text-green-500" title="Manual trade">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </span>
+                    {/if}
                     <h2
                         class="text-lg font-bold bg-gradient-to-r from-theme-500 to-theme-600 bg-clip-text text-transparent"
                     >
@@ -378,31 +394,6 @@
                         </div>
                     {/if}
                 </div>
-
-                {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
-                    <button
-                        type="button"
-                        class="upgrade-button group"
-                        on:click={upgradePlan}
-                    >
-                        <span class="flex items-center gap-1.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                            </svg>
-                            Upgrade
-                            <svg 
-                                class="w-4 h-4 transition-transform group-hover:translate-x-0.5" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
-                            >
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                    d="M9 5l7 7-7 7"/>
-                            </svg>
-                        </span>
-                    </button>
-                {/if}
                 <button
                     class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
                     on:click={handleClose}
@@ -452,6 +443,7 @@
                                         required
                                         placeholder="Select or add symbol"
                                         {accountId}
+                                        disabled={form.type === 'SYNC'}
                                     />
                                 </div>
                                 {#if errors.symbol}
@@ -465,6 +457,7 @@
                                 options={sideOptions}
                                 bind:value={form.side}
                                 required
+                                disabled={form.type === 'SYNC'}
                             />
                         </div>
 
@@ -474,6 +467,7 @@
                                 options={statusOptions}
                                 bind:value={form.status}
                                 required
+                                disabled={form.type === 'SYNC'}
                             />
                             <div>
                                 <label
@@ -513,6 +507,7 @@
                                     max={new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16)}
                                     required
                                     error={errors.entryDate}
+                                    disabled={form.type === 'SYNC'}
                                 />
                                 {#if form.status === "CLOSED"}
                                     <Input
@@ -522,6 +517,7 @@
                                         max={new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16)}
                                         required
                                         error={errors.exitDate}
+                                        disabled={form.type === 'SYNC'}
                                     />
                                 {/if}
                                 <div class="space-y-1">
@@ -536,9 +532,9 @@
                                         type="number"
                                         bind:value={form.quantity}
                                         class="w-full px-2.5 py-1.5 h-8 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg
-                                            {form.type === 'MANUAL' ? 'opacity-50 cursor-not-allowed' : ''}"
+                                            {form.type === 'MANUAL' || form.type === 'SYNC' ? 'opacity-50 cursor-not-allowed' : ''}"
                                         placeholder="Enter quantity"
-                                        disabled={form.type === 'MANUAL'}
+                                        disabled={form.type === 'MANUAL' || form.type === 'SYNC'}
                                     />
                                     {#if errors.quantity}
                                         <p class="text-sm text-red-500">{errors.quantity}</p>
@@ -552,6 +548,7 @@
                                     bind:value={form.leverage}
                                     placeholder="1"
                                     error={errors.leverage}
+                                    disabled={form.type === 'SYNC'}
                                 />
                             </div>
 
@@ -565,6 +562,7 @@
                                     required
                                     placeholder="0.00"
                                     error={errors.entryPrice}
+                                    disabled={form.type === 'SYNC'}
                                 />
                                 {#if form.status === "CLOSED"}
                                     <Input
@@ -575,6 +573,7 @@
                                         required
                                         placeholder="0.00"
                                         error={errors.exitPrice}
+                                        disabled={form.type === 'SYNC'}
                                     />
                                 {/if}
                                 <Input
@@ -585,6 +584,7 @@
                                     required
                                     placeholder="0.00"
                                     error={errors.amount}
+                                    disabled={form.type === 'SYNC'}
                                 />
                                 {#if form.status === "CLOSED"}
                                     <div class="flex items-end gap-2">
@@ -596,12 +596,14 @@
                                             required
                                             placeholder="0.00"
                                             error={errors.pnl}
+                                            disabled={form.type === 'SYNC'}
                                         />
                                         <Button
                                             type="button"
                                             variant="secondary"
                                             class="h-[42px] flex items-center justify-center px-3"
                                             on:click={calculatePnL}
+                                            disabled={form.type === 'SYNC'}
                                         >
                                             <svg
                                                 class="w-4 h-4"
@@ -628,33 +630,9 @@
                         class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-md p-3 space-y-2"
                     >
                         <h3
-                            class="text-base font-semibold text-light-text dark:text-dark-text mb-2 flex justify-between items-center"
+                            class="text-base font-semibold text-light-text dark:text-dark-text mb-2"
                         >
                             Analysis
-                            {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
-                                <button
-                                    type="button"
-                                    class="upgrade-button-section group"
-                                    on:click={upgradePlan}
-                                >
-                                    <span class="flex items-center gap-1.5">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                                        </svg>
-                                        Upgrade to Pro
-                                        <svg 
-                                            class="w-4 h-4 transition-transform group-hover:translate-x-0.5" 
-                                            fill="none" 
-                                            stroke="currentColor" 
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                                d="M9 5l7 7-7 7"/>
-                                        </svg>
-                                    </span>
-                                </button>
-                            {/if}
                         </h3>
 
                         <!-- Reasons -->
@@ -664,7 +642,6 @@
                                 type="text"
                                 bind:value={form.entryReason}
                                 placeholder="Why did you enter this trade?"
-                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             />
                             {#if form.status === "CLOSED"}
                                 <Input
@@ -672,7 +649,6 @@
                                     type="text"
                                     bind:value={form.exitReason}
                                     placeholder="Why did you exit this trade?"
-                                    disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
                             {/if}
                         </div>
@@ -683,13 +659,11 @@
                                 label="Confidence Level"
                                 options={levelOptions}
                                 bind:value={form.confidenceLevel}
-                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             />
                             <Select
                                 label="Greed Level"
                                 options={levelOptions}
                                 bind:value={form.greedLevel}
-                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             />
                         </div>
 
@@ -702,7 +676,6 @@
                                     type="checkbox"
                                     bind:checked={form.hasStopLoss}
                                     class="checkbox"
-                                    disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
                                 <span
                                     class="text-sm text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text"
@@ -717,7 +690,6 @@
                                     type="checkbox"
                                     bind:checked={form.hasTakeProfit}
                                     class="checkbox"
-                                    disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
                                 <span
                                     class="text-sm text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text"
@@ -729,12 +701,8 @@
                     </div>
 
                     <!-- Additional Info Section -->
-                    <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-md p-3 space-y-2"
-                    >
-                        <h3
-                            class="text-base font-semibold text-light-text dark:text-dark-text mb-2 flex justify-between items-center"
-                        >
+                    <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-md p-3 space-y-2">
+                        <h3 class="text-base font-semibold text-light-text dark:text-dark-text mb-2 flex justify-between items-center">
                             Additional Information
                             {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 <button
@@ -869,6 +837,16 @@
                 class="px-4 py-2 border-t border-light-border dark:border-0 flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <div class="flex items-center">
+                    {#if form.type === 'SYNC'}
+                        <div class="flex items-center gap-2 text-light-text-muted dark:text-dark-text-muted">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-sm">
+                                This is a synced trade. Core trade data cannot be modified.
+                            </span>
+                        </div>
+                    {/if}
                     {#if errors.submit}
                         <div class="flex items-center gap-2 p-2 mb-4 text-red-500 bg-red-50 rounded-lg">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -885,7 +863,8 @@
                     <Button
                         type="submit"
                         variant="primary"
-                        size="sm" on:click={handleSubmit}
+                        size="sm" 
+                        on:click={handleSubmit}
                         class="min-w-[100px]"
                     >
                         Save Trade

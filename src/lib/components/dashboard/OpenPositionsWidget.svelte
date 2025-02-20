@@ -332,16 +332,27 @@
         </div>
 
         <!-- Summary Stats -->
-        <div class="grid grid-cols-2 gap-3 mt-2">
-            <div class="p-1.5 rounded-lg bg-light-background/50 dark:bg-dark-background/50 border border-transparent">
-                <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Total Amount</p>
-                <p class="text-lg font-bold text-light-text dark:text-dark-text">
+        <div class="grid grid-cols-3 gap-2 mt-2">
+            <div class="p-2 rounded-lg bg-light-background/50 dark:bg-dark-background/50 border border-transparent">
+                <p class="text-sm text-light-text-muted dark:text-dark-text-muted">Total Amount</p>
+                <p class="text-base font-bold text-light-text dark:text-dark-text">
                     {formatCurrency(totalInvested)}
                 </p>
             </div>
-            <div class="p-1.5 rounded-lg bg-light-background/50 dark:bg-dark-background/50 border border-transparent">
-                <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">Active Positions</p>
-                <p class="text-lg font-bold text-theme-500">
+            <div class="p-2 rounded-lg bg-light-background/50 dark:bg-dark-background/50 border border-transparent">
+                <p class="text-sm text-light-text-muted dark:text-dark-text-muted">Unrealized P&L</p>
+                {#if $accountStore.currentAccount?.type === 'BINANCE_FUTURES'}
+                    {@const totalPnL = visiblePositions.reduce((sum, pos) => sum + (pos.unrealizedPnL || 0), 0)}
+                    <p class="text-base font-bold" class:text-green-500={totalPnL > 0} class:text-red-500={totalPnL < 0}>
+                        {formatCurrency(totalPnL)}
+                    </p>
+                {:else}
+                    <p class="text-base font-bold text-light-text-muted dark:text-dark-text-muted">-</p>
+                {/if}
+            </div>
+            <div class="p-2 rounded-lg bg-light-background/50 dark:bg-dark-background/50 border border-transparent">
+                <p class="text-sm text-light-text-muted dark:text-dark-text-muted">Positions</p>
+                <p class="text-base font-bold text-theme-500">
                     {openPositions.length}
                 </p>
             </div>
