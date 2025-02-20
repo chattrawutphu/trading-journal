@@ -22,6 +22,7 @@
     export let trade = null;
     export let accountId = null;
 
+    let editMode = !!trade;
     let errors = {};
     let previousSymbol = "";
     let initialFormData = null;
@@ -108,6 +109,7 @@
 
     $: if (show && !isInitialized) {
         isInitialized = true;
+        editMode = !!trade;
         if (trade) {
             initialFormData = {
                 ...defaultForm,
@@ -119,6 +121,7 @@
                     ? formatDateTimeLocal(trade.exitDate)
                     : getCurrentDateTime(),
                 tags: trade.tags || [],
+                type: trade.type || 'MANUAL'
             };
             form = { ...initialFormData };
         } else {
@@ -161,6 +164,10 @@
             errors.entryPrice = "Entry price must be greater than 0";
         }
 
+        if (form.type === 'SYNC' && (!form.quantity || form.quantity <= 0)) {
+            errors.quantity = "Quantity must be greater than 0";
+        }
+
         if (!form.amount || form.amount <= 0) {
             errors.amount = "Amount must be greater than 0";
         }
@@ -201,46 +208,18 @@
     }
 
     function prepareFormData(form) {
-        const formData = { ...form };
-        
-        try {
-            formData.quantity = formData.quantity ? parseFloat(formData.quantity) : 0;
-            formData.amount = formData.amount ? parseFloat(formData.amount) : 0;
-            formData.entryPrice = formData.entryPrice ? parseFloat(formData.entryPrice) : 0;
-            formData.exitPrice = formData.exitPrice ? parseFloat(formData.exitPrice) : null;
-            formData.pnl = formData.pnl ? parseFloat(formData.pnl) : null;
-            formData.confidenceLevel = formData.confidenceLevel ? parseInt(formData.confidenceLevel) : 5;
-            formData.greedLevel = formData.greedLevel ? parseInt(formData.greedLevel) : 5;
-            formData.leverage = formData.leverage ? parseInt(formData.leverage) : 1;
+        const data = {
+            ...form,
+            entryDate: new Date(form.entryDate),
+            exitDate: form.status === 'CLOSED' ? new Date(form.exitDate) : null,
+            quantity: form.type === 'SYNC' ? form.quantity : null,
+            amount: parseFloat(form.amount),
+            entryPrice: parseFloat(form.entryPrice),
+            exitPrice: form.status === 'CLOSED' ? parseFloat(form.exitPrice) : null,
+            pnl: form.status === 'CLOSED' ? parseFloat(form.pnl) : null
+        };
 
-            if (formData.entryDate) {
-                const entryDate = new Date(formData.entryDate);
-                if (!isNaN(entryDate.getTime())) {
-                    formData.entryDate = entryDate.toISOString();
-                }
-            }
-            if (formData.exitDate) {
-                const exitDate = new Date(formData.exitDate);
-                if (!isNaN(exitDate.getTime())) {
-                    formData.exitDate = exitDate.toISOString();
-                }
-            }
-
-            formData.status = formData.status || 'OPEN';
-            formData.side = formData.side || 'LONG';
-            formData.hasStopLoss = !!formData.hasStopLoss;
-            formData.hasTakeProfit = !!formData.hasTakeProfit;
-            formData.favorite = !!formData.favorite;
-            formData.tags = Array.isArray(formData.tags) ? formData.tags : [];
-
-            delete formData.undefined;
-            delete formData.null;
-
-            return formData;
-        } catch (error) {
-            console.error('Error preparing form data:', error);
-            throw new Error('Failed to prepare form data');
-        }
+        return data;
     }
 
     async function submitTrade() {
@@ -252,7 +231,8 @@
             } else {
                 const payload = {
                     ...formData,
-                    account: accountId
+                    account: accountId,
+                    type: 'MANUAL'
                 };
                 console.log('Submitting trade payload:', payload);
                 const result = await api.createTrade(payload);
@@ -277,36 +257,23 @@
 
     async function handleSubmit() {
         try {
-            errors = validateTradeForm(form);
-            if (Object.keys(errors).length > 0) {
-                return;
+            const tradeData = {
+                ...form,
+                account: accountId,
+                type: trade ? trade.type : 'MANUAL'
+            };
+
+            if (editMode) {
+                await api.updateTrade(trade._id, tradeData);
+            } else {
+                await api.createTrade(tradeData);
             }
-
-            if (subscriptionType === SUBSCRIPTION_TYPES.BASIC && form.status === "CLOSED") {
-                const count = await countDailyTrades(form.exitDate);
-                dailyTradeCount = count;
-
-                if (count >= 4) {
-                    showLimitError = true;
-                    return;
-                }
-                
-                if (count >= 3) {
-                    showLimitWarning = true;
-                    return;
-                }
-            }
-
-            await submitTrade();
-
-            // Dispatch events
-            window.dispatchEvent(new CustomEvent('tradeupdate'));
-            window.dispatchEvent(new CustomEvent('tradeupdated'));
 
             show = false;
-        } catch (err) {
-            console.error('Error in handleSubmit:', err);
-            errors.submit = err.message || 'An unexpected error occurred';
+            dispatch('tradeUpdated');
+        } catch (error) {
+            console.error('Error saving trade:', error);
+            errors.submit = error.message || 'An unexpected error occurred';
         }
     }
 
@@ -557,14 +524,26 @@
                                         error={errors.exitDate}
                                     />
                                 {/if}
-                                <Input
-                                    label="Quantity"
-                                    type="number"
-                                    className="no-spinners"
-                                    bind:value={form.quantity}
-                                    placeholder="0.00"
-                                    error={errors.quantity}
-                                />
+                                <div class="space-y-1">
+                                    <label
+                                        for="trade-quantity"
+                                        class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
+                                    >
+                                        Quantity
+                                    </label>
+                                    <input
+                                        id="trade-quantity"
+                                        type="number"
+                                        bind:value={form.quantity}
+                                        class="w-full px-2.5 py-1.5 h-8 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg
+                                            {form.type === 'MANUAL' ? 'opacity-50 cursor-not-allowed' : ''}"
+                                        placeholder="Enter quantity"
+                                        disabled={form.type === 'MANUAL'}
+                                    />
+                                    {#if errors.quantity}
+                                        <p class="text-sm text-red-500">{errors.quantity}</p>
+                                    {/if}
+                                </div>
                                 <Input
                                     label="Leverage"
                                     type="number"
@@ -890,24 +869,12 @@
                 class="px-4 py-2 border-t border-light-border dark:border-0 flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
                 <div class="flex items-center">
-                    {#if Object.keys(errors).length > 0}
-                        <div class="flex items-center gap-2 text-red-500">
-                            <svg
-                                class="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
+                    {#if errors.submit}
+                        <div class="flex items-center gap-2 p-2 mb-4 text-red-500 bg-red-50 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <span class="text-sm font-medium"
-                                >Please fix the errors before submitting</span
-                            >
+                            <span class="text-sm font-medium">{errors.submit}</span>
                         </div>
                     {/if}
                 </div>

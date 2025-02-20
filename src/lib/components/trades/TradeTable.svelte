@@ -4,6 +4,7 @@
     import Button from '../common/Button.svelte';
     import { api } from '$lib/utils/api';
     import { deleteModalStore } from '$lib/stores/modalStore';
+    import { accountStore } from '$lib/stores/accountStore';
 
     const dispatch = createEventDispatcher();
 
@@ -21,6 +22,13 @@
     let deleteType = '';
     let itemsToDelete = [];
     let singleItemToDelete = null;
+
+    // เพิ่ม state และ logic เหมือน OpenPositionsWidget
+    let currentPrices = new Map();
+    let binanceWs;
+
+    // เพิ่ม state สำหรับ loading
+    let isLoadingPrices = false;
 
     function formatDate(dateStr) {
         const options = { 
@@ -60,7 +68,72 @@
         return (pnl / amount) * 100;
     }
 
-    $: sortedTrades = [...trades].sort((a, b) => {
+    // เพิ่มฟังก์ชันสำหรับคำนวณ unrealized PnL
+    function calculateUnrealizedPnL(trade, currentPrice) {
+        if (!currentPrice) return null;
+        const qty = trade.quantity;
+        if (trade.side === 'LONG') {
+            return (currentPrice - trade.entryPrice) * qty;
+        } else {
+            return (trade.entryPrice - currentPrice) * qty;
+        }
+    }
+
+    // ปรับปรุงฟังก์ชัน setupBinanceWebSocket
+    function setupBinanceWebSocket() {
+        isLoadingPrices = true;
+        
+        // ปิด WebSocket เก่าถ้ามี
+        if (binanceWs) {
+            binanceWs.close();
+        }
+
+        // กรองเฉพาะ open trades และสร้าง symbols array
+        const openTrades = trades.filter(t => t.status === 'OPEN');
+        const symbols = openTrades.map(t => t.symbol.toLowerCase());
+
+        if (symbols.length === 0) {
+            isLoadingPrices = false;
+            return;
+        }
+
+        // สร้าง WebSocket connection ใหม่
+        binanceWs = new WebSocket(`wss://fstream.binance.com/ws/${symbols.map(s => `${s}@markPrice`).join('/')}`);
+
+        binanceWs.onopen = () => {
+            isLoadingPrices = true;
+        };
+
+        binanceWs.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.e === 'markPriceUpdate') {
+                isLoadingPrices = false;
+                const symbol = data.s;
+                const price = parseFloat(data.p);
+                currentPrices.set(symbol, price);
+                currentPrices = currentPrices; // Trigger Svelte reactivity
+            }
+        };
+
+        binanceWs.onerror = () => {
+            isLoadingPrices = false;
+        };
+
+        // Cleanup เมื่อ component ถูก destroy
+        return () => {
+            if (binanceWs) {
+                binanceWs.close();
+            }
+            isLoadingPrices = false;
+        };
+    }
+
+    // ปรับปรุง sortedTrades reactive statement
+    $: sortedTrades = [...trades].map(trade => ({
+        ...trade,
+        currentPrice: currentPrices.get(trade.symbol),
+        unrealizedPnL: type === 'open' ? calculateUnrealizedPnL(trade, currentPrices.get(trade.symbol)) : trade.pnl
+    })).sort((a, b) => {
         let aValue = a[sortField];
         let bValue = b[sortField];
 
@@ -118,19 +191,26 @@
     }
 
     async function handleDeleteSelected() {
+        // กรองเฉพาะ manual trades ที่เลือก
+        const manualTrades = selectedTrades.filter(id => 
+            trades.find(t => t._id === id && t.type === 'MANUAL')
+        );
+
+        if (manualTrades.length === 0) return;
+
         deleteModalStore.set({
             show: true,
             type: 'selected',
             context: 'trades',
-            count: selectedTrades.length,
+            count: manualTrades.length,
+            itemName: 'trades',
             onConfirm: async () => {
                 dispatch('delete', {
                     type: 'selected',
                     context: 'trades',
-                    items: selectedTrades
+                    items: manualTrades
                 });
                 selectedTrades = [];
-                // Dispatch events เมื่อลบสำเร็จ
                 window.dispatchEvent(new CustomEvent('tradeupdate'));
                 window.dispatchEvent(new CustomEvent('tradeupdated'));
             }
@@ -191,6 +271,19 @@
     function handleEdit(trade) {
         dispatch('edit', trade);
     }
+
+    // ปรับปรุงการแสดงผลสำหรับ open trades
+    $: if (type === 'open' && $accountStore.currentAccount?.type === 'BINANCE_FUTURES') {
+        setupBinanceWebSocket();
+    }
+
+    // Cleanup on component destroy
+    import { onDestroy } from 'svelte';
+    onDestroy(() => {
+        if (binanceWs) {
+            binanceWs.close();
+        }
+    });
 </script>
 
 <div class="overflow-x-auto">
@@ -318,6 +411,14 @@
                         </button>
                     </th>
                 {/if}
+                {#if type === 'open' && $accountStore.currentAccount?.type === 'BINANCE_FUTURES'}
+                    <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
+                        Current Price
+                    </th>
+                    <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
+                        Unrealized P&L
+                    </th>
+                {/if}
                 <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">Actions</th>
             </tr>
         </thead>
@@ -334,6 +435,22 @@
                     </td>
                     <td class="py-1 px-2">
                         <div class="flex items-center gap-2">
+                            <!-- Trade Type Icon -->
+                            {#if trade.type === 'SYNC'}
+                                <span class="text-blue-500" title="Synced trade">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </span>
+                            {:else}
+                                <span class="text-green-500" title="Manual trade">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </span>
+                            {/if}
                             {#if trade.favorite}
                                 <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
@@ -377,6 +494,28 @@
                             </span>
                         </td>
                     {/if}
+                    {#if type === 'open' && $accountStore.currentAccount?.type === 'BINANCE_FUTURES'}
+                        <td class="py-1 px-2 text-right text-light-text-muted dark:text-dark-text-muted">
+                            {#if isLoadingPrices}
+                                <span class="text-light-text-muted dark:text-dark-text-muted">
+                                    Loading...
+                                </span>
+                            {:else}
+                                {trade.currentPrice ? `$${trade.currentPrice.toFixed(2)}` : '-'}
+                            {/if}
+                        </td>
+                        <td class="py-1 px-2 text-right">
+                            {#if isLoadingPrices}
+                                <span class="text-light-text-muted dark:text-dark-text-muted">
+                                    Loading...
+                                </span>
+                            {:else}
+                                <span class={trade.unrealizedPnL > 0 ? 'text-green-500' : trade.unrealizedPnL < 0 ? 'text-red-500' : 'text-light-text-muted dark:text-dark-text-muted'}>
+                                    {trade.unrealizedPnL ? formatCurrency(trade.unrealizedPnL) : '-'}
+                                </span>
+                            {/if}
+                        </td>
+                    {/if}
                     <td class="py-1 px-2">
                         <div class="flex justify-end">
                             <button 
@@ -407,15 +546,17 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
                                 </svg>
                             </button>
-                            <button 
-                                class="icon-button text-red-500 hover:text-red-600"
-                                on:click={() => handleDelete(trade)}
-                                title="Delete trade"
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
+                            {#if trade.type === 'MANUAL'}
+                                <button 
+                                    class="icon-button text-red-500 hover:text-red-600"
+                                    on:click={() => handleDelete(trade)}
+                                    title="Delete trade"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            {/if}
                         </div>
                     </td>
                 </tr>
@@ -424,7 +565,7 @@
     </table>
     <div class="flex justify-between items-center p-2 px-4 mt-2">
         <div class="flex gap-2">
-            {#if selectedTrades.length > 0}
+            {#if selectedTrades.length > 0 && paginatedTrades.some(t => t.type === 'MANUAL')}
                 <button 
                     class="btn btn-primary flex items-center gap-1"
                     on:click={handleDeleteSelected}

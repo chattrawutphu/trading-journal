@@ -64,7 +64,6 @@ accountSchema.pre('save', async function(next) {
 // Add method to import trades
 accountSchema.methods.importTrades = async function(trades) {
     const tradePromises = trades.map(trade => {
-        // Convert Binance trade to our trade format
         const tradeData = {
             account: this._id,
             user: this.user,
@@ -77,9 +76,8 @@ accountSchema.methods.importTrades = async function(trades) {
             realizedPnl: parseFloat(trade.realizedPnl || 0),
             time: new Date(trade.time),
             status: 'CLOSED',
-            type: this.type,
-            orderId: trade.orderId,
-            source: 'IMPORT'
+            type: 'SYNC',
+            orderId: trade.orderId
         };
 
         return Trade.create(tradeData);

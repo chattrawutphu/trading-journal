@@ -76,19 +76,42 @@
         <!-- Header -->
         <div class="relative px-6 py-4 border-b border-light-border dark:border-dark-border">
             <div class="flex items-center gap-3">
-                <!-- Symbol & Side -->
+                <!-- Symbol, Type & Side -->
                 <div class="flex-1 flex items-center gap-3">
+                    <!-- Trade Type Icon -->
+                    {#if trade.type === 'SYNC'}
+                        <span class="text-blue-500" title="Synced trade">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </span>
+                    {:else}
+                        <span class="text-green-500" title="Manual trade">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </span>
+                    {/if}
+
                     <div class="flex flex-col">
                         <div class="flex items-center gap-2">
                             <h2 class="text-xl font-bold text-light-text dark:text-dark-text">
                                 {trade.symbol}
                             </h2>
+                            <!-- Status Badge -->
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                                {trade.status === 'OPEN' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-green-500/10 text-green-500'}">
+                                {trade.status}
+                            </span>
+                            <!-- Side Badge -->
                             <span class="px-2 py-0.5 rounded-full text-sm font-bold relative
-                                       {trade.side === 'LONG' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
+                                {trade.side === 'LONG' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
                                 {trade.side}
                                 {#if trade.status === 'OPEN'}
                                     <div class="absolute inset-0 rounded-full animate-ping 
-                                               {trade.side === 'LONG' ? 'bg-green-500/10' : 'bg-red-500/10'}">
+                                        {trade.side === 'LONG' ? 'bg-green-500/10' : 'bg-red-500/10'}">
                                     </div>
                                 {/if}
                             </span>
@@ -139,7 +162,23 @@
                 <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-4">
                     <h3 class="text-sm font-semibold text-light-text-muted dark:text-dark-text-muted mb-3">Trade Information</h3>
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3">
-                        <div>
+                        <div class="flex items-center gap-2">
+                            <!-- Trade Type Icon -->
+                            {#if trade.type === 'SYNC'}
+                                <span class="text-blue-500" title="Synced trade">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </span>
+                            {:else}
+                                <span class="text-green-500" title="Manual trade">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </span>
+                            {/if}
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Order ID</div>
                             <div class="text-sm font-mono text-light-text dark:text-dark-text">
                                 {trade.orderId || '-'}

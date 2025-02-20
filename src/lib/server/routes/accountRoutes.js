@@ -226,6 +226,9 @@ function processOrdersToPositions(orders) {
                         commissionAsset: order.commissionAsset,
                         status: 'OPEN',
                         pnl: 0,
+                        price: parseFloat(order.price || order.avgPrice),
+                        lastPriceUpdate: new Date(order.time),
+                        type: 'SYNC',
                         confidenceLevel: 5,
                         greedLevel: 5
                     });
@@ -253,10 +256,12 @@ function processOrdersToPositions(orders) {
                             ...pos,
                             exitDate: order.time,
                             exitPrice,
+                            price: exitPrice,
+                            lastPriceUpdate: new Date(order.time),
                             pnl,
                             commission: pos.commission + parseFloat(order.commission),
                             commissionAsset: order.commissionAsset,
-                            type: 'FUTURES',
+                            type: 'SYNC',
                             status: 'CLOSED',
                             confidenceLevel: pos.confidenceLevel,
                             greedLevel: pos.greedLevel
@@ -281,6 +286,9 @@ function processOrdersToPositions(orders) {
                         commissionAsset: order.commissionAsset,
                         status: 'OPEN',
                         pnl: 0,
+                        price: parseFloat(order.price || order.avgPrice),
+                        lastPriceUpdate: new Date(order.time),
+                        type: 'SYNC',
                         confidenceLevel: 5,
                         greedLevel: 5
                     });
@@ -306,10 +314,12 @@ function processOrdersToPositions(orders) {
                             ...pos,
                             exitDate: order.time,
                             exitPrice,
+                            price: exitPrice,
+                            lastPriceUpdate: new Date(order.time),
                             pnl,
                             commission: pos.commission + parseFloat(order.commission),
                             commissionAsset: order.commissionAsset,
-                            type: 'FUTURES',
+                            type: 'SYNC',
                             status: 'CLOSED',
                             confidenceLevel: pos.confidenceLevel,
                             greedLevel: pos.greedLevel
@@ -329,7 +339,7 @@ function processOrdersToPositions(orders) {
             status: 'OPEN',
             exitDate: null,
             exitPrice: null,
-            pnl: null
+            price: null
         });
     }
 

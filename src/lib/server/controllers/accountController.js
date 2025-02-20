@@ -270,3 +270,28 @@ export const removeSymbol = async(req, res) => {
         handleError(res, error);
     }
 };
+
+export const importTrades = async (req, res) => {
+    try {
+        const account = await Account.findOne({
+            _id: req.params.id,
+            user: req.user._id
+        });
+
+        if (!account) {
+            res.status(404);
+            throw new Error('Account not found');
+        }
+
+        const trades = req.body.trades.map(trade => ({
+            ...trade,
+            type: 'SYNC'  // กำหนด type เป็น SYNC สำหรับ imported trades
+        }));
+
+        await account.importTrades(trades);
+
+        res.json({ message: 'Trades imported successfully' });
+    } catch (error) {
+        handleError(res, error);
+    }
+};

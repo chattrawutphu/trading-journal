@@ -38,7 +38,9 @@ const tradeSchema = new mongoose.Schema({
     exitPrice: Number,
     quantity: {
         type: Number,
-        required: true
+        required: function() {
+            return this.type === 'SYNC';  // กำหนดให้ required เฉพาะ SYNC trades
+        }
     },
     amount: {
         type: Number,
@@ -107,6 +109,11 @@ const tradeSchema = new mongoose.Schema({
     excludeZeroPnL: {
         type: Boolean,
         default: false
+    },
+    type: {
+        type: String,
+        enum: ['MANUAL', 'SYNC'],
+        default: 'MANUAL'
     }
 });
 
@@ -136,6 +143,53 @@ tradeSchema.pre('save', function(next) {
 
     // Generate orderId for manual trades
     this.orderId = generateOrderId();
+    next();
+});
+
+// เพิ่ม method สำหรับอัพเดทราคาปัจจุบัน
+tradeSchema.methods.updateCurrentPrice = function(currentPrice) {
+    this.price = currentPrice;
+    this.lastPriceUpdate = new Date();
+    
+    // คำนวณ unrealized PnL สำหรับ open positions
+    if (this.status === 'OPEN') {
+        const units = this.quantity;
+        if (this.side === 'LONG') {
+            this.pnl = (currentPrice - this.entryPrice) * units;
+        } else {
+            this.pnl = (this.entryPrice - currentPrice) * units;
+        }
+    }
+    
+    return this.save();
+};
+
+// เพิ่ม method สำหรับคำนวณ unrealized PnL
+tradeSchema.methods.calculateUnrealizedPnL = function() {
+    if (this.status !== 'OPEN' || !this.price) {
+        return 0;
+    }
+
+    const units = this.quantity;
+    if (this.side === 'LONG') {
+        return (this.price - this.entryPrice) * units;
+    } else {
+        return (this.entryPrice - this.price) * units;
+    }
+};
+
+// ปรับปรุง pre-save hook
+tradeSchema.pre('save', function(next) {
+    // Generate orderId for manual trades if needed
+    if (!this.orderId && this.type === 'MANUAL') {
+        this.orderId = generateOrderId();
+    }
+
+    // Set amount if not already set
+    if (!this.amount) {
+        this.amount = this.entryPrice * this.quantity;
+    }
+
     next();
 });
 

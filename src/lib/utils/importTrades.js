@@ -117,6 +117,7 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
                 symbol: trade.symbol,
                 side: trade.side,
                 status: trade.status || 'CLOSED',
+                type: 'SYNC',
                 entryDate: new Date(trade.entryDate).toISOString(),
                 exitDate: new Date(trade.exitDate).toISOString(),
                 quantity: Math.abs(trade.quantity),
