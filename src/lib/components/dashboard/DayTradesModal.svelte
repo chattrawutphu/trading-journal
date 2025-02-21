@@ -42,8 +42,7 @@
     let selectedTrade = null;
 
     let totalUnrealizedPnL = 0;
-    let currentPrices = new Map();
-    let binanceWs;
+    let isLoadingUnrealizedPnL = true;
 
     $: if (show && accountId) {
         transactions = filterTransactionsByDate($transactionStore.transactions, date);
@@ -269,71 +268,10 @@
         dispatch('refresh');
     }
 
-    // เพิ่มฟังก์ชันสำหรับคำนวณ Unrealized P&L
-    function calculateUnrealizedPnL(trade) {
-        if (trade.status !== 'OPEN') return 0;
-        
-        const currentPrice = currentPrices.get(trade.symbol);
-        if (!currentPrice) return 0;
-
-        const quantity = parseFloat(trade.quantity);
-        const entryPrice = parseFloat(trade.entryPrice);
-        
-        if (trade.side === 'LONG') {
-            return (currentPrice - entryPrice) * quantity;
-        } else {
-            return (entryPrice - currentPrice) * quantity;
-        }
-    }
-
-    // เพิ่มฟังก์ชันสำหรับอัพเดทราคา
-    function updatePrice(symbol, price) {
-        currentPrices.set(symbol, parseFloat(price));
-        currentPrices = currentPrices; // Trigger reactivity
-
-        // คำนวณ total unrealized P&L
-        totalUnrealizedPnL = trades
-            .filter(t => t.status === 'OPEN')
-            .reduce((sum, trade) => sum + calculateUnrealizedPnL(trade), 0);
-    }
-
-    // เพิ่มฟังก์ชันสำหรับเชื่อต่อ WebSocket
-    function connectWebSocket() {
-        if (!trades.length) return;
-
-        const symbols = [...new Set(trades
-            .filter(t => t.status === 'OPEN')
-            .map(t => t.symbol.toLowerCase()))];
-        
-        if (!symbols.length) return;
-
-        const streams = symbols.map(s => `${s}@trade`).join('/');
-        binanceWs = new WebSocket(`wss://stream.binance.com:9443/ws/${streams}`);
-
-        binanceWs.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.e === 'trade') {
-                const symbol = data.s;
-                const price = data.p;
-                updatePrice(symbol, price);
-            }
-        };
-    }
-
-    // Lifecycle hooks
-    onMount(() => {
-        connectWebSocket();
-    });
-
-    onDestroy(() => {
-        if (binanceWs) {
-            binanceWs.close();
-        }
-    });
-
-    // Watch trades changes
-    $: if (show && trades) {
-        connectWebSocket();
+    function handleUnrealizedPnLUpdate(event) {
+        const { total, isLoading } = event.detail;
+        totalUnrealizedPnL = total;
+        isLoadingUnrealizedPnL = isLoading;
     }
 
     // เพิ่มฟังก์ชัน loadTransactions
@@ -479,7 +417,11 @@
                                         Unrealized P&L
                                     </div>
                                     <div class="text-lg font-semibold {totalUnrealizedPnL > 0 ? 'text-green-500' : totalUnrealizedPnL < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}">
-                                        {formatCurrency(totalUnrealizedPnL)}
+                                        {#if isLoadingUnrealizedPnL}
+                                            Loading...
+                                        {:else}
+                                            {formatCurrency(totalUnrealizedPnL)}
+                                        {/if}
                                     </div>
                                 </div>
                             {/if}
@@ -564,6 +506,7 @@
                                     on:disable
                                     on:delete={handleDelete}
                                     on:deleted={() => dispatch('refresh')}
+                                    on:unrealizedPnLUpdate={handleUnrealizedPnLUpdate}
                                 />
                             </div>
                         {/if}

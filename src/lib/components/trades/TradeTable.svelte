@@ -265,7 +265,17 @@
     }
 
     function handleView(trade) {
-        dispatch('view', trade);
+        // ถ้าเป็น open trade ให้ส่ง unrealizedPnL ไปด้วย
+        if (trade.status === 'OPEN') {
+            const tradeWithUnrealizedPnL = {
+                ...trade,
+                unrealizedPnL: trade.unrealizedPnL,
+                currentPrice: trade.currentPrice
+            };
+            dispatch('view', tradeWithUnrealizedPnL);
+        } else {
+            dispatch('view', trade);
+        }
     }
 
     function handleEdit(trade) {
@@ -284,6 +294,17 @@
             binanceWs.close();
         }
     });
+
+    // เพิ่มการ dispatch event เมื่อ unrealized P&L มีการอัพเดท
+    $: {
+        if (type === 'open' && !isLoadingPrices) {
+            const totalUnrealizedPnL = sortedTrades.reduce((sum, trade) => sum + (trade.unrealizedPnL || 0), 0);
+            dispatch('unrealizedPnLUpdate', {
+                total: totalUnrealizedPnL,
+                isLoading: isLoadingPrices
+            });
+        }
+    }
 </script>
 
 <div class="overflow-x-auto">

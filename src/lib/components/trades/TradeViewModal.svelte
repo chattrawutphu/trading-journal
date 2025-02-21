@@ -132,16 +132,50 @@
                 </div>
 
                 <!-- P&L Display -->
-                {#if trade.pnl !== undefined}
-                    <div class="text-right">
-                        <div class="text-2xl font-bold {trade.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
-                            {formatCurrency(trade.pnl)}
+                <div class="text-right flex items-center gap-4 justify-end">
+                    {#if trade.status === 'OPEN'}
+                        <!-- Current Price -->
+                        {#if trade.currentPrice}
+                            <div class="flex flex-col items-end">
+                                <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                                    Current Price
+                                </div>
+                                <div class="text-lg font-bold text-light-text dark:text-dark-text">
+                                    {formatCurrency(trade.currentPrice)}
+                                </div>
+                            </div>
+                        {/if}
+                        <!-- Unrealized P&L -->
+                        <div class="flex flex-col items-end">
+                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                                Unrealized P&L
+                            </div>
+                            <div class="text-xl font-bold {trade.unrealizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                {#if trade.unrealizedPnL !== undefined}
+                                    {formatCurrency(trade.unrealizedPnL)}
+                                    <span class="text-sm {trade.unrealizedPnL >= 0 ? 'text-green-500/70' : 'text-red-500/70'}">
+                                        ({formatPercentage((trade.unrealizedPnL / trade.amount) * 100)})
+                                    </span>
+                                {:else}
+                                    Loading...
+                                {/if}
+                            </div>
                         </div>
-                        <div class="text-sm {trade.pnl >= 0 ? 'text-green-500/70' : 'text-red-500/70'}">
-                            {formatPercentage((trade.pnl / trade.amount) * 100)}
+                    {:else}
+                        <!-- Closed P&L -->
+                        <div class="flex flex-col items-end">
+                            <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                                Realized P&L
+                            </div>
+                            <div class="text-xl font-bold {trade.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                {formatCurrency(trade.pnl)}
+                                <span class="text-sm {trade.pnl >= 0 ? 'text-green-500/70' : 'text-red-500/70'}">
+                                    ({formatPercentage((trade.pnl / trade.amount) * 100)})
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                {/if}
+                    {/if}
+                </div>
 
                 <!-- Close Button -->
                 <button 
