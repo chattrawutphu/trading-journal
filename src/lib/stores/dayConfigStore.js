@@ -8,21 +8,12 @@ function createDayConfigStore() {
         error: null
     });
 
-    let currentConfig = null;
-
     return {
         subscribe,
         loadConfig: async (accountId, date) => {
             try {
-                if (currentConfig && 
-                    currentConfig.account === accountId && 
-                    currentConfig.date === date) {
-                    return currentConfig;
-                }
-
                 update(state => ({ ...state, loading: true, error: null }));
                 const config = await api.getDayConfig(accountId, date);
-                currentConfig = config;
                 update(state => ({
                     ...state,
                     config,

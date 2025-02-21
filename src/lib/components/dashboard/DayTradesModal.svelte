@@ -43,18 +43,25 @@
     let showEditModal = false;
     let selectedTrade = null;
 
-    let totalUnrealizedPnL = 0;
+    let totalUnrealizedPnL = null;
     let isLoadingUnrealizedPnL = true;
 
     let dayConfig = null;
     let showDayConfigModal = false;
 
+    // เพิ่ม state สำหรับเก็บ total amount ของ open trades
+    let totalOpenAmount = 0;
+
     $: if (show && accountId && date) {
+        // Reset dayConfig เมื่อเปลี่ยนวัน
+        dayConfig = null;
         loadDayConfig();
     }
 
     $: if (show && accountId) {
-        transactions = filterTransactionsByDate($transactionStore.transactions, date);
+        resetUnrealizedPnL();
+        loadTransactions();
+        loadTrades();
     }
 
     $: dailyBalance = $dailyBalancesStore[date] || null;
@@ -78,9 +85,7 @@
 
     async function loadDayConfig() {
         try {
-            if (!dayConfig) {
-                dayConfig = await dayConfigStore.loadConfig(accountId, date);
-            }
+            dayConfig = await dayConfigStore.loadConfig(accountId, date);
         } catch (error) {
             console.error('Error loading day config:', error);
         }
@@ -291,6 +296,11 @@
         const { total, isLoading } = event.detail;
         totalUnrealizedPnL = total;
         isLoadingUnrealizedPnL = isLoading;
+        
+        // คำนวณ total amount จาก open trades
+        totalOpenAmount = trades
+            .filter(t => t.status === "OPEN")
+            .reduce((sum, trade) => sum + Math.abs(trade.amount || 0), 0);
     }
 
     // เพิ่มฟังก์ชัน loadTransactions
@@ -393,6 +403,12 @@
         
         return colors[Math.abs(hash) % colors.length];
     };
+
+    // เพิ่มฟังก์ชัน resetUnrealizedPnL
+    function resetUnrealizedPnL() {
+        totalUnrealizedPnL = null;
+        isLoadingUnrealizedPnL = true;
+    }
 </script>
 
 {#if loading}
@@ -491,11 +507,20 @@
                                     <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
                                         Unrealized P&L
                                     </div>
-                                    <div class="text-lg font-semibold {totalUnrealizedPnL > 0 ? 'text-green-500' : totalUnrealizedPnL < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}">
-                                        {#if isLoadingUnrealizedPnL}
-                                            Loading...
+                                    <div class="text-lg font-semibold">
+                                        {#if isLoadingUnrealizedPnL || totalUnrealizedPnL === null}
+                                            <span class="text-light-text-muted dark:text-dark-text-muted">
+                                                Loading...
+                                            </span>
                                         {:else}
-                                            {formatCurrency(totalUnrealizedPnL)}
+                                            <span class={totalUnrealizedPnL > 0 ? 'text-green-500' : totalUnrealizedPnL < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}>
+                                                {formatCurrency(totalUnrealizedPnL)}
+                                                {#if totalOpenAmount > 0}
+                                                    <span class="text-sm">
+                                                        ({((totalUnrealizedPnL / totalOpenAmount) * 100).toFixed(2)}%)
+                                                    </span>
+                                                {/if}
+                                            </span>
                                         {/if}
                                     </div>
                                 </div>
@@ -541,13 +566,13 @@
                                     </div>
                                 </div>
                             {/if}
+                            
                         {/if}
                     </div>
-                </div>
-
+                    <div class="flex justify-between items-end gap-4">
                 <!-- Add the note section after the summary section and before the tables -->
                 {#if dayConfig?.note}
-                    <div class="px-8 py-4 border-b border-light-border dark:border-0 bg-light-hover/30 dark:bg-dark-hover/30">
+                    <div class="w-full py-4 border-b border-light-border dark:border-0">
                         <div class="flex items-center gap-2 mb-2">
                             <svg class="w-4 h-4 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -573,6 +598,10 @@
                         </div>
                     </div>
                 {/if}
+                    </div>
+                </div>
+
+
 
                 <!-- Tables Content -->
                 <div class="px-8 py-6">

@@ -305,6 +305,14 @@
             });
         }
     }
+
+    // เพิ่มฟังก์ชันสำหรับคำนวณ Unrealized P&L %
+    function calculateUnrealizedPnLPercentage(trade) {
+        if (trade.status !== 'OPEN' || !trade.entryPrice || !trade.unrealizedPnL) return null;
+
+        const percentage = (trade.unrealizedPnL / trade.entryPrice) * 100;
+        return percentage.toFixed(2);
+    }
 </script>
 
 <div class="overflow-x-auto">
@@ -357,7 +365,7 @@
                                    hover:bg-theme-500/10 hover:text-theme-500 transition-colors"
                             on:click={() => handleSort('entryPrice')}
                         >
-                            Entry Price {sortField === 'entryPrice' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
+                            Entry {sortField === 'entryPrice' ? (sortDirection === 'desc' ? '↓' : '↑') : ''}
                         </button>
                     </th>
                     <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
@@ -434,10 +442,13 @@
                 {/if}
                 {#if type === 'open' && $accountStore.currentAccount?.type === 'BINANCE_FUTURES'}
                     <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                        Current Price
+                        Curr. Price
                     </th>
                     <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
-                        Unrealized P&L
+                        Unr. P&L
+                    </th>
+                    <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">
+                        Unr. P&L %
                     </th>
                 {/if}
                 <th class="text-right py-1 px-2 font-medium text-light-text-muted dark:text-dark-text-muted">Actions</th>
@@ -533,6 +544,17 @@
                             {:else}
                                 <span class={trade.unrealizedPnL > 0 ? 'text-green-500' : trade.unrealizedPnL < 0 ? 'text-red-500' : 'text-light-text-muted dark:text-dark-text-muted'}>
                                     {trade.unrealizedPnL ? formatCurrency(trade.unrealizedPnL) : '-'}
+                                </span>
+                            {/if}
+                        </td>
+                        <td class="py-1 px-2 text-right">
+                            {#if isLoadingPrices}
+                                <span class="text-light-text-muted dark:text-dark-text-muted">
+                                    Loading...
+                                </span>
+                            {:else if trade.status === 'OPEN'}
+                                <span class={calculateUnrealizedPnLPercentage(trade) > 0 ? 'text-green-500' : calculateUnrealizedPnLPercentage(trade) < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}>
+                                    {calculateUnrealizedPnLPercentage(trade)}%
                                 </span>
                             {/if}
                         </td>
