@@ -255,10 +255,10 @@ function processOrdersToPositions(orders) {
 
                         positions.push({
                             ...pos,
-                            exitDate: order.time,
+                            exitDate: order.updateTime,
                             exitPrice,
                             price: exitPrice,
-                            lastPriceUpdate: new Date(order.time),
+                            lastPriceUpdate: new Date(order.updateTime),
                             pnl,
                             commission: pos.commission + parseFloat(order.commission),
                             commissionAsset: order.commissionAsset,
@@ -313,10 +313,10 @@ function processOrdersToPositions(orders) {
 
                         positions.push({
                             ...pos,
-                            exitDate: order.time,
+                            exitDate: order.updateTime,
                             exitPrice,
                             price: exitPrice,
-                            lastPriceUpdate: new Date(order.time),
+                            lastPriceUpdate: new Date(order.updateTime),
                             pnl,
                             commission: pos.commission + parseFloat(order.commission),
                             commissionAsset: order.commissionAsset,
