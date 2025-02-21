@@ -16,6 +16,8 @@
     import TradeModal from "$lib/components/trades/TradeModal.svelte";
     import { dailyBalancesStore } from '$lib/stores/dailyBalancesStore';
     import { onMount, onDestroy } from "svelte";
+    import { dayConfigStore } from '$lib/stores/dayConfigStore';
+    import DayConfigModal from './DayConfigModal.svelte';
 
     const dispatch = createEventDispatcher();
 
@@ -44,6 +46,13 @@
     let totalUnrealizedPnL = 0;
     let isLoadingUnrealizedPnL = true;
 
+    let dayConfig = null;
+    let showDayConfigModal = false;
+
+    $: if (show && accountId && date) {
+        loadDayConfig();
+    }
+
     $: if (show && accountId) {
         transactions = filterTransactionsByDate($transactionStore.transactions, date);
     }
@@ -64,6 +73,16 @@
             trades = filteredTrades;
         } catch (error) {
             console.error('Error loading trades:', error);
+        }
+    }
+
+    async function loadDayConfig() {
+        try {
+            if (!dayConfig) {
+                dayConfig = await dayConfigStore.loadConfig(accountId, date);
+            }
+        } catch (error) {
+            console.error('Error loading day config:', error);
         }
     }
 
@@ -336,6 +355,44 @@
         loadTransactions();
         loadTrades();
     }
+
+    function handleConfigEdit() {
+        showDayConfigModal = true;
+    }
+
+    async function handleConfigUpdated(event) {
+        const updatedConfig = event.detail;
+        if (updatedConfig) {
+            dayConfig = updatedConfig;
+        }
+        await loadDayConfig();
+    }
+
+    async function handleFavoriteToggle() {
+        try {
+            dayConfig = await dayConfigStore.toggleFavorite(accountId, date);
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+        }
+    }
+
+    $: getTagColor = (tag) => {
+        const colors = [
+            { bg: 'bg-blue-500/10', text: 'text-blue-500' },
+            { bg: 'bg-green-500/10', text: 'text-green-500' },
+            { bg: 'bg-purple-500/10', text: 'text-purple-500' },
+            { bg: 'bg-orange-500/10', text: 'text-orange-500' },
+            { bg: 'bg-pink-500/10', text: 'text-pink-500' },
+            { bg: 'bg-teal-500/10', text: 'text-teal-500' },
+            { bg: 'bg-indigo-500/10', text: 'text-indigo-500' },
+        ];
+        
+        const hash = tag.split('').reduce((acc, char) => {
+            return char.charCodeAt(0) + ((acc << 5) - acc);
+        }, 0);
+        
+        return colors[Math.abs(hash) % colors.length];
+    };
 </script>
 
 {#if loading}
@@ -348,9 +405,21 @@
         <div class="card w-full max-w-4xl mx-auto relative transform ease-out max-h-[90vh] flex flex-col">
             <!-- Header -->
             <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
-                <h2 class="text-xl font-bold text-light-text dark:text-dark-text">
-                    {displayDate}
-                </h2>
+                <div class="flex items-center gap-4">
+                    <!-- Favorite Star -->
+                    <button
+                        class="text-light-text-muted dark:text-dark-text-muted hover:text-yellow-500 transition-colors"
+                        on:click={handleFavoriteToggle}
+                        title={dayConfig?.favorite ? "Remove from favorites" : "Add to favorites"}
+                    >
+                        <svg class="w-6 h-6" fill={dayConfig?.favorite ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                        </svg>
+                    </button>
+                    <h2 class="text-xl font-bold text-light-text dark:text-dark-text">
+                        {displayDate}
+                    </h2>
+                </div>
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-4 md:gap-1">
                         <Button variant="secondary" size="xs" on:click={handleDeposit}>
@@ -364,6 +433,12 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
                             </svg>
                             <span class="hidden md:flex">Withdraw</span>
+                        </Button>
+                        <Button variant="secondary" size="xs" on:click={handleConfigEdit}>
+                            <svg class="w-5 h-5 md:w-3 md:h-3 mr-0 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            <span class="hidden md:flex">Edit</span>
                         </Button>
                     </div>
                     <Button variant="primary" size="sm" on:click={handleNewTrade}>
@@ -469,6 +544,35 @@
                         {/if}
                     </div>
                 </div>
+
+                <!-- Add the note section after the summary section and before the tables -->
+                {#if dayConfig?.note}
+                    <div class="px-8 py-4 border-b border-light-border dark:border-0 bg-light-hover/30 dark:bg-dark-hover/30">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-4 h-4 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Notes</h3>
+                        </div>
+                        <div class="prose prose-sm max-w-none text-light-text dark:text-dark-text">
+                            {dayConfig.note}
+                        </div>
+                    </div>
+                {/if}
+
+                <!-- Add the tags section at the bottom of the modal -->
+                {#if dayConfig?.tags?.length > 0}
+                    <div class="px-8 py-4 mt-4 border-t border-light-border dark:border-0">
+                        <div class="flex flex-wrap gap-2">
+                            {#each dayConfig.tags as tag}
+                                {@const tagColor = getTagColor(tag)}
+                                <div class="flex items-center gap-1 px-2 py-1 rounded-full {tagColor.bg} {tagColor.text} text-sm">
+                                    <span>{tag}</span>
+                                </div>
+                            {/each}
+                        </div>
+                    </div>
+                {/if}
 
                 <!-- Tables Content -->
                 <div class="px-8 py-6">
@@ -627,6 +731,14 @@
         selectedTrade = null;
         dispatch('refresh');
     }}
+/>
+
+<DayConfigModal
+    bind:show={showDayConfigModal}
+    {accountId}
+    {date}
+    config={dayConfig}
+    on:configUpdated={handleConfigUpdated}
 />
 
 <style lang="postcss">

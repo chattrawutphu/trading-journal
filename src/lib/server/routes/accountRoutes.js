@@ -14,6 +14,7 @@ import {
     removeSymbol
 } from '../controllers/accountController.js';
 import crypto from 'crypto';
+import DayConfig from '../models/DayConfig.js';
 
 const router = express.Router();
 
@@ -368,6 +369,85 @@ router.route('/:id/symbols')
 
 router.route('/:id/symbols/:symbol')
     .delete(removeSymbol);
+
+// เพิ่ม Day Config routes
+router.get('/:accountId/day-configs/:date', async (req, res) => {
+    try {
+        const { accountId, date } = req.params;
+        
+        let config = await DayConfig.findOne({ 
+            account: accountId,
+            date: date
+        });
+
+        // ถ้าไม่มี config ให้สร้างใหม่
+        if (!config) {
+            config = {
+                account: accountId,
+                date: date,
+                note: '',
+                tags: [],
+                favorite: false
+            };
+        }
+
+        res.json(config);
+    } catch (error) {
+        console.error('Error getting day config:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.post('/day-configs', async (req, res) => {
+    try {
+        const config = new DayConfig(req.body);
+        await config.save();
+        res.status(201).json(config);
+    } catch (error) {
+        console.error('Error creating day config:', error);
+        res.status(400).json({ message: error.message });
+    }
+});
+
+router.put('/:accountId/day-configs/:date', async (req, res) => {
+    try {
+        const { accountId, date } = req.params;
+        const config = await DayConfig.findOneAndUpdate(
+            { account: accountId, date: date },
+            req.body,
+            { new: true, upsert: true }
+        );
+        res.json(config);
+    } catch (error) {
+        console.error('Error updating day config:', error);
+        res.status(400).json({ message: error.message });
+    }
+});
+
+router.post('/:accountId/day-configs/:date/favorite', async (req, res) => {
+    try {
+        const { accountId, date } = req.params;
+        const config = await DayConfig.findOne({ account: accountId, date: date });
+        
+        if (config) {
+            config.favorite = !config.favorite;
+            await config.save();
+        } else {
+            const newConfig = new DayConfig({
+                account: accountId,
+                date: date,
+                favorite: true
+            });
+            await newConfig.save();
+            return res.json(newConfig);
+        }
+        
+        res.json(config);
+    } catch (error) {
+        console.error('Error toggling favorite:', error);
+        res.status(400).json({ message: error.message });
+    }
+});
 
 // Helper function to create signature using ES modules syntax
 function createSignature(secretKey, queryString) {

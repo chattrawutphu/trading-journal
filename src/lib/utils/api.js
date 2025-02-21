@@ -363,5 +363,30 @@ export const api = {
             console.error('Error fetching Binance trade history:', error);
             throw error;
         }
+    },
+
+    // Day Config endpoints
+    async getDayConfig(accountId, date) {
+        return await api.fetch(`/accounts/${accountId}/day-configs/${date}`);
+    },
+
+    async createDayConfig(data) {
+        return await api.fetch('/accounts/day-configs', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async updateDayConfig(accountId, date, data) {
+        return await api.fetch(`/accounts/${accountId}/day-configs/${date}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async toggleDayFavorite(accountId, date) {
+        return await api.fetch(`/accounts/${accountId}/day-configs/${date}/favorite`, {
+            method: 'POST'
+        });
     }
 };
