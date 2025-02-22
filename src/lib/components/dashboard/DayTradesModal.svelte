@@ -69,12 +69,15 @@
     async function loadTrades() {
         try {
             const response = await api.getTrades(accountId);
-            // Filter trades by date
+            // Filter trades by date more precisely
             const filteredTrades = response.filter(trade => {
                 const tradeDate = trade.status === "CLOSED" 
-                    ? new Date(trade.exitDate).toISOString().split('T')[0]
-                    : new Date(trade.entryDate).toISOString().split('T')[0];
-                return tradeDate === date;
+                    ? new Date(trade.exitDate) 
+                    : new Date(trade.entryDate);
+                
+                // Convert both dates to local date string for comparison
+                const tradeLocalDate = tradeDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+                return tradeLocalDate === date;
             });
             
             trades = filteredTrades;

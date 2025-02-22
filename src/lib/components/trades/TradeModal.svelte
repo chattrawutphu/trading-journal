@@ -269,6 +269,11 @@
                 await api.createTrade(tradeData);
             }
 
+            // Reset states before closing
+            isInitialized = false;
+            editMode = false;
+            trade = null; // Reset trade state
+            resetForm();
             show = false;
             dispatch('tradeUpdated');
         } catch (error) {
@@ -279,6 +284,8 @@
 
     function handleClose() {
         isInitialized = false;
+        editMode = false; 
+        trade = null; // Reset trade state
         show = false;
         resetForm();
         dispatch('close');
