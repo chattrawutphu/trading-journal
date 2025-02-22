@@ -309,8 +309,7 @@
     // เพิ่มฟังก์ชันสำหรับคำนวณ Unrealized P&L %
     function calculateUnrealizedPnLPercentage(trade) {
         if (trade.status !== 'OPEN' || !trade.entryPrice || !trade.unrealizedPnL) return null;
-
-        const percentage = (trade.unrealizedPnL / trade.entryPrice) * 100;
+        const percentage = (trade.unrealizedPnL / trade.amount) * 100;
         return percentage.toFixed(2);
     }
 </script>
