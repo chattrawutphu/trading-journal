@@ -1,6 +1,7 @@
 <script>
     import { fade } from 'svelte/transition';
     import { formatCurrency, formatPercentage } from '$lib/utils/formatters';
+    import { binanceExchange } from '$lib/exchanges';
     
     export let show = false;
     export let trade = null;
@@ -63,6 +64,11 @@
         }, 0);
         
         return colors[Math.abs(hash) % colors.length];
+    }
+
+    // Add unrealized PnL calculation
+    $: if (trade && trade.status === 'OPEN' && trade.currentPrice) {
+        trade.unrealizedPnL = binanceExchange.calculateUnrealizedPnL(trade, trade.currentPrice);
     }
 </script>
 

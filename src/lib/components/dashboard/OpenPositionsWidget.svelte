@@ -7,6 +7,7 @@
     import TradeViewModal from "$lib/components/trades/TradeViewModal.svelte";
     import TradeModal from "$lib/components/trades/TradeModal.svelte";
     import { accountStore } from '$lib/stores/accountStore';
+    import { binanceExchange } from '$lib/exchanges';
 
     const dispatch = createEventDispatcher();
 
@@ -284,7 +285,7 @@
 
         // สร้าง WebSocket connection ใหม่
         const symbols = openPositions.map(p => p.symbol.toLowerCase());
-        binanceWs = new WebSocket(`wss://fstream.binance.com/ws/${symbols.map(s => `${s}@markPrice`).join('/')}`);
+        binanceWs = binanceExchange.createPriceWebSocket(symbols);
 
         binanceWs.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -308,7 +309,7 @@
     $: visiblePositions = openPositions.map(position => ({
         ...position,
         currentPrice: currentPrices.get(position.symbol),
-        unrealizedPnL: calculateUnrealizedPnL(position, currentPrices.get(position.symbol))
+        unrealizedPnL: binanceExchange.calculateUnrealizedPnL(position, currentPrices.get(position.symbol))
     }));
 </script>
 

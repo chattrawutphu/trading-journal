@@ -5,6 +5,7 @@
     import { api } from '$lib/utils/api';
     import { deleteModalStore } from '$lib/stores/modalStore';
     import { accountStore } from '$lib/stores/accountStore';
+    import { binanceExchange } from '$lib/exchanges';
 
     const dispatch = createEventDispatcher();
 
@@ -98,7 +99,7 @@
         }
 
         // สร้าง WebSocket connection ใหม่
-        binanceWs = new WebSocket(`wss://fstream.binance.com/ws/${symbols.map(s => `${s}@markPrice`).join('/')}`);
+        binanceWs = binanceExchange.createPriceWebSocket(symbols);
 
         binanceWs.onopen = () => {
             isLoadingPrices = true;
@@ -132,7 +133,7 @@
     $: sortedTrades = [...trades].map(trade => ({
         ...trade,
         currentPrice: currentPrices.get(trade.symbol),
-        unrealizedPnL: type === 'open' ? calculateUnrealizedPnL(trade, currentPrices.get(trade.symbol)) : trade.pnl
+        unrealizedPnL: type === 'open' ? binanceExchange.calculateUnrealizedPnL(trade, currentPrices.get(trade.symbol)) : trade.pnl
     })).sort((a, b) => {
         let aValue = a[sortField];
         let bValue = b[sortField];
