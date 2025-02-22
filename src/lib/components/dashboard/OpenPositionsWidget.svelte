@@ -344,11 +344,15 @@
                 <p class="text-sm text-light-text-muted dark:text-dark-text-muted">Unrealized P&L</p>
                 {#if $accountStore.currentAccount?.type === 'BINANCE_FUTURES'}
                     {@const totalPnL = visiblePositions.reduce((sum, pos) => sum + (pos.unrealizedPnL || 0), 0)}
-                    <p class="text-base font-bold" class:text-green-500={totalPnL > 0} class:text-red-500={totalPnL < 0}>
+                    <p class="text-base font-bold" 
+                       class:text-green-500={totalPnL > 0} 
+                       class:text-red-500={totalPnL < 0}
+                       class:text-light-text={totalPnL === 0} 
+                       class:dark:text-dark-text={totalPnL === 0}>
                         {formatCurrency(totalPnL)}
                     </p>
                 {:else}
-                    <p class="text-base font-bold text-light-text-muted dark:text-dark-text-muted">-</p>
+                    <p class="text-base font-bold text-light-text dark:text-dark-text">-</p>
                 {/if}
             </div>
             <div class="p-2 rounded-lg bg-light-background/50 dark:bg-dark-background/50 border border-transparent">
@@ -504,7 +508,11 @@
                                         <p class="text-sm text-light-text-muted dark:text-dark-text-muted mb-1">
                                             Unrealized P&L
                                         </p>
-                                        <p class="text-sm font-medium" class:text-green-500={position.unrealizedPnL > 0} class:text-red-500={position.unrealizedPnL < 0}>
+                                        <p class="text-sm font-medium" 
+                                           class:text-green-500={position.unrealizedPnL > 0} 
+                                           class:text-red-500={position.unrealizedPnL < 0}
+                                           class:text-light-text={position.unrealizedPnL === 0} 
+                                           class:dark:text-dark-text={position.unrealizedPnL === 0}>
                                             {position.unrealizedPnL ? formatCurrency(position.unrealizedPnL) : '-'}
                                         </p>
                                     </div>
