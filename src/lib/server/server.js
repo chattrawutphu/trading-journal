@@ -18,6 +18,7 @@ import MongoStore from 'connect-mongo';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import './schedulers/subscriptionScheduler.js';
 import mongoose from 'mongoose';
+import dayTagRoutes from './routes/dayTagRoutes.js';
 
 // Get the directory path for ES modules
 const __filename = fileURLToPath(
@@ -121,6 +122,10 @@ app.use('/api/transactions', async(req, res, next) => {
 app.use('/api/subscription', async(req, res, next) => {
     await connectToDatabase();
     return subscriptionRoutes(req, res, next);
+});
+app.use('/api/day-tags', async(req, res, next) => {
+    await connectToDatabase();
+    return dayTagRoutes(req, res, next);
 });
 
 // 404 handler

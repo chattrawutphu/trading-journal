@@ -3,11 +3,13 @@
     import { fade } from "svelte/transition";
     import Button from "../common/Button.svelte";
     import Modal from '../common/Modal.svelte';
-    import TradeOptionSelect from "../trades/TradeOptionSelect.svelte";
+    import DayTagSelect from "./DayTagSelect.svelte";
     import { dayConfigStore } from '$lib/stores/dayConfigStore';
     import { subscriptionStore } from '$lib/stores/subscriptionStore';
     import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
     import { goto } from '$app/navigation';
+    import { dayTagStore } from '$lib/stores/dayTagStore';
+    import { api } from '$lib/utils/api';
 
     const dispatch = createEventDispatcher();
 
@@ -24,6 +26,7 @@
 
     let error = null;
     let isSubmitting = false;
+    let loading = false;
 
     function resetForm() {
         formState = {
@@ -43,12 +46,32 @@
         dispatch('close');
     }
 
+    async function removeTag(tag) {
+        try {
+            // ลบ tag ออกจาก formState
+            formState.tags = formState.tags.filter(t => t !== tag);
+
+            // หา tag ID จาก dayTagStore
+            const tagToUpdate = $dayTagStore.tags.find(t => t.value === tag);
+            if (tagToUpdate) {
+                // อัพเดทจำนวนการใช้งานของ tag ที่ถูกลบ
+                await api.updateDayTagUsage([tagToUpdate._id]);
+                await dayTagStore.loadTags(); // โหลด tags ใหม่เพื่ออัพเดทจำนวนการใช้งาน
+            }
+        } catch (error) {
+            console.error('Failed to update tag usage count:', error);
+        }
+    }
+
     async function handleSubmit() {
         if (isSubmitting) return;
         
         try {
             isSubmitting = true;
             error = null;
+
+            // เก็บ tags เดิมไว้เพื่อเปรียบเทียบ
+            const originalTags = config?.tags || [];
 
             const data = {
                 account: accountId,
@@ -60,31 +83,50 @@
 
             let updatedConfig;
             if (config) {
-                updatedConfig = await dayConfigStore.updateConfig(accountId, date, data);
+                updatedConfig = await api.updateDayConfig(accountId, date, data);
             } else {
-                updatedConfig = await dayConfigStore.saveConfig(data);
+                updatedConfig = await api.createDayConfig(data);
+            }
+
+            // หา tags ที่ต้องอัพเดทจำนวนการใช้งาน (ทั้งที่เพิ่มและลบ)
+            const allAffectedTags = [...new Set([...originalTags, ...formState.tags])];
+            const tagIdsToUpdate = $dayTagStore.tags
+                .filter(tag => allAffectedTags.includes(tag.value))
+                .map(tag => tag._id);
+
+            if (tagIdsToUpdate.length > 0) {
+                await api.updateDayTagUsage(tagIdsToUpdate);
+                await dayTagStore.loadTags();
             }
 
             dispatch('configUpdated', updatedConfig);
             handleClose();
         } catch (err) {
             error = err.message;
+            console.error('Error saving day config:', err);
         } finally {
             isSubmitting = false;
         }
     }
 
-    function handleTagSelect(event) {
+    async function handleTagSelect(event) {
         const tagValue = event.detail.value;
+        if (!tagValue || typeof tagValue !== 'string') return;
+        
         const maxTags = subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 3 : 7;
         
         if (formState.tags.length < maxTags && !formState.tags.includes(tagValue)) {
-            formState.tags = [...formState.tags, tagValue];
+            try {
+                // ตรวจสอบว่า tag มีอยู่แล้วหรือไม่
+                const existingTag = $dayTagStore.tags.find(t => t.value === tagValue);
+                if (!existingTag) {
+                    await dayTagStore.addTag(tagValue);
+                }
+                formState.tags = [...formState.tags, tagValue];
+            } catch (error) {
+                console.error('Failed to add tag:', error);
+            }
         }
-    }
-
-    function removeTag(tag) {
-        formState.tags = formState.tags.filter(t => t !== tag);
     }
 
     function getTagColor(tag) {
@@ -117,6 +159,17 @@
             formState.note = event.target.value.slice(0, maxLength);
         }
     }
+
+    // เพิ่มฟังก์ชันสำหรับดึงจำนวนการใช้งานของ tag
+    function getTagUsageCount(tagValue) {
+        const tag = $dayTagStore.tags.find(t => t.value === tagValue);
+        return tag ? tag.usageCount : 0;
+    }
+
+    onMount(() => {
+        // โหลด day tags เมื่อ component ถูกโหลด
+        dayTagStore.loadTags();
+    });
 </script>
 
 {#if show}
@@ -166,11 +219,13 @@
                     </span>
                 </div>
                 <div class="space-y-2">
-                    <TradeOptionSelect
+                    <DayTagSelect
                         type="TAG"
                         placeholder="Add tags..."
                         value=""
                         on:change={handleTagSelect}
+                        loading={$dayTagStore.loading}
+                        error={$dayTagStore.error}
                     />
                     
                     {#if formState.tags.length > 0}
@@ -179,6 +234,9 @@
                                 {@const tagColor = getTagColor(tag)}
                                 <div class="flex items-center gap-1 px-2 py-1 rounded-full {tagColor.bg} {tagColor.text} text-sm">
                                     <span>{tag}</span>
+                                    <span class="ml-1 text-xs opacity-75">
+                                        ({getTagUsageCount(tag)})
+                                    </span>
                                     <button
                                         type="button"
                                         class="hover:opacity-75"

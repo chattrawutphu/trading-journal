@@ -18,6 +18,8 @@
     import { onMount, onDestroy } from "svelte";
     import { dayConfigStore } from '$lib/stores/dayConfigStore';
     import DayConfigModal from './DayConfigModal.svelte';
+    import { dayTagStore } from '$lib/stores/dayTagStore';
+    import DayTagHistoryModal from './DayTagHistoryModal.svelte';
 
     const dispatch = createEventDispatcher();
 
@@ -51,6 +53,10 @@
 
     // เพิ่ม state สำหรับเก็บ total amount ของ open trades
     let totalOpenAmount = 0;
+
+    let showTagHistoryModal = false;
+    let selectedTag = null;
+    let selectedTagColor = null;
 
     $: if (show && accountId && date) {
         // Reset dayConfig เมื่อเปลี่ยนวัน
@@ -412,6 +418,31 @@
         totalUnrealizedPnL = null;
         isLoadingUnrealizedPnL = true;
     }
+
+    // เพิ่มฟังก์ชันสำหรับดึงจำนวนการใช้งานของ tag
+    function getTagUsageCount(tagValue) {
+        const tag = $dayTagStore.tags.find(t => t.value === tagValue);
+        return tag ? tag.usageCount : 0;
+    }
+
+    function handleTagClick(tag, color) {
+        selectedTag = tag;
+        selectedTagColor = color;
+        showTagHistoryModal = true;
+    }
+
+    async function handleDaySelect(event) {
+        const day = event.detail;
+        showTagHistoryModal = false;
+        // รอให้ modal ปิดก่อนเปิด DayTradesModal ใหม่
+        await tick();
+        dispatch('openDay', day);
+    }
+
+    onMount(async () => {
+        // ... existing onMount code ...
+        await dayTagStore.loadTags(); // เพิ่มการโหลด tags
+    });
 </script>
 
 {#if loading}
@@ -591,11 +622,17 @@
                 <!-- Add the tags section at the bottom of the modal -->
                 {#if dayConfig?.tags?.length > 0}
                     <div class="px-8 py-4 mt-4 border-t border-light-border dark:border-0">
-                        <div class="flex flex-wrap gap-2">
+                        <div class="flex gap-2">
                             {#each dayConfig.tags as tag}
                                 {@const tagColor = getTagColor(tag)}
-                                <div class="flex items-center gap-1 px-2 py-1 rounded-full {tagColor.bg} {tagColor.text} text-sm">
+                                <div 
+                                    class="flex items-center gap-1 px-2 py-1 rounded-full {tagColor.bg} {tagColor.text} text-sm cursor-pointer hover:opacity-80"
+                                    on:click={() => handleTagClick(tag, tagColor)}
+                                >
                                     <span>{tag}</span>
+                                    <span class="ml-1 text-xs opacity-75">
+                                        ({getTagUsageCount(tag)})
+                                    </span>
                                 </div>
                             {/each}
                         </div>
@@ -773,6 +810,13 @@
     on:configUpdated={handleConfigUpdated}
 />
 
+<DayTagHistoryModal
+    bind:show={showTagHistoryModal}
+    tag={selectedTag}
+    tagColor={selectedTagColor}
+    on:selectDay={handleDaySelect}
+/>
+
 <style lang="postcss">
     .card {
         @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-xl shadow-xl;
@@ -781,5 +825,12 @@
     /* Add these styles if needed */
     :global(.modal) {
         overscroll-behavior: contain;
+    }
+
+    /* เพิ่ม style สำหรับ tag count */
+    :global(.tag-count) {
+        @apply ml-1.5 px-1.5 py-0.5 text-xs rounded-full 
+        bg-light-hover/50 dark:bg-dark-hover/50
+        text-light-text-muted dark:text-dark-text-muted;
     }
 </style>

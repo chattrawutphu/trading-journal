@@ -388,5 +388,49 @@ export const api = {
         return await api.fetch(`/accounts/${accountId}/day-configs/${date}/favorite`, {
             method: 'POST'
         });
-    }
+    },
+
+    // Day Tags endpoints
+    async getDayTags() {
+        return await api.fetch('/day-tags');
+    },
+
+    async createDayTag(tag) {
+        if (!tag || typeof tag !== 'string') {
+            throw new Error('Tag value is required and must be a string');
+        }
+        
+        const trimmedTag = tag.trim();
+        if (!trimmedTag) {
+            throw new Error('Tag value cannot be empty');
+        }
+
+        return await api.fetch('/day-tags', {
+            method: 'POST',
+            body: JSON.stringify({ value: trimmedTag }),
+        });
+    },
+
+    async deleteDayTag(tagId) {
+        return await api.fetch(`/day-tags/${tagId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    async incrementDayTagUsage(tagId) {
+        return await api.fetch(`/day-tags/${tagId}/increment`, {
+            method: 'POST',
+        });
+    },
+
+    async updateDayTagUsage(tagIds) {
+        return await api.fetch('/day-tags/update-usage', {
+            method: 'POST',
+            body: JSON.stringify({ tagIds }),
+        });
+    },
+
+    async getTaggedDays(tag) {
+        return await api.fetch(`/day-tags/${encodeURIComponent(tag)}/days`);
+    },
 };
