@@ -540,7 +540,7 @@
                             {#if trades.filter(t => t.status === "OPEN").length > 0}
                                 <div class="space-y-1">
                                     <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
-                                        Unrealized P&L
+                                        Day Unrealized P&L
                                     </div>
                                     <div class="text-lg font-semibold">
                                         {#if isLoadingUnrealizedPnL || totalUnrealizedPnL === null}
@@ -550,9 +550,9 @@
                                         {:else}
                                             <span class="text-yellow-500">
                                                 {formatCurrency(totalUnrealizedPnL)}
-                                                {#if totalOpenAmount > 0}
+                                                {#if dailyBalance?.startBalance}
                                                     <span class="text-sm">
-                                                        ({((totalUnrealizedPnL / totalOpenAmount) * 100).toFixed(2)}%)
+                                                        ({((totalUnrealizedPnL / Math.abs(dailyBalance.startBalance)) * 100).toFixed(2)}%)
                                                     </span>
                                                 {/if}
                                             </span>

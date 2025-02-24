@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { accountStore } from '$lib/stores/accountStore';
     import { binanceExchange } from '$lib/exchanges';
+    import { dailyBalancesStore } from '$lib/stores/dailyBalancesStore';
     
     export let totalPnL;
     export let openTrades;
@@ -10,6 +11,13 @@
     export let textSize = 'medium';
     export let isPreview = false;
     export let trades = [];
+
+    // Add helper function for date formatting
+    function formatDateForInput(date) {
+        const d = new Date(date);
+        d.setHours(12, 0, 0, 0);
+        return d.toISOString().slice(0, 10);
+    }
 
     // Add state variables for trading statistics
     let averageWin = 0;
@@ -235,9 +243,20 @@
                                     <div>
                                         <p class="text-lg font-bold text-yellow-500">
                                             ${totalUnrealizedPnL.toFixed(2)}
-                                            {#if totalOpenAmount > 0}
+                                            {#if trades.length > 0}
                                                 <span class="text-sm text-yellow-500/70">
-                                                    ({((totalUnrealizedPnL / totalOpenAmount) * 100).toFixed(2)}%)
+                                                    {#if isLoadingPrices}
+                                                        Loading...
+                                                    {:else}
+                                                        <!-- Get yesterday's date -->
+                                                        {@const yesterday = new Date()}
+                                                        {@const yesterdayKey = formatDateForInput(new Date(yesterday.setDate(yesterday.getDate() - 1)))}
+                                                        {#if $dailyBalancesStore[yesterdayKey]?.endBalance}
+                                                            ({((totalUnrealizedPnL / Math.abs($dailyBalancesStore[yesterdayKey].endBalance)) * 100).toFixed(2)}%)
+                                                        {:else}
+                                                            (N/A)
+                                                        {/if}
+                                                    {/if}
                                                 </span>
                                             {/if}
                                         </p>
