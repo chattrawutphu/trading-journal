@@ -12,6 +12,7 @@
     import { tradeDate } from '$lib/stores/tradeDateStore';
     import Modal from '../common/Modal.svelte';
     import { api } from '$lib/utils/api';
+    import { formatShortDate } from '$lib/utils/date';
     import TradeViewModal from "$lib/components/trades/TradeViewModal.svelte";
     import TradeModal from "$lib/components/trades/TradeModal.svelte";
     import { dailyBalancesStore } from '$lib/stores/dailyBalancesStore';
@@ -431,12 +432,12 @@
         showTagHistoryModal = true;
     }
 
-    async function handleDaySelect(event) {
-        const day = event.detail;
+    function handleDaySelect(day) {
+        // Logic to handle day selection
+        show = true;
+        date = day.date;
+        displayDate = formatShortDate(day.date);
         showTagHistoryModal = false;
-        // รอให้ modal ปิดก่อนเปิด DayTradesModal ใหม่
-        await tick();
-        dispatch('openDay', day);
     }
 
     onMount(async () => {
@@ -547,7 +548,7 @@
                                                 Loading...
                                             </span>
                                         {:else}
-                                            <span class={totalUnrealizedPnL > 0 ? 'text-green-500' : totalUnrealizedPnL < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}>
+                                            <span class="text-yellow-500">
                                                 {formatCurrency(totalUnrealizedPnL)}
                                                 {#if totalOpenAmount > 0}
                                                     <span class="text-sm">
@@ -814,7 +815,8 @@
     bind:show={showTagHistoryModal}
     tag={selectedTag}
     tagColor={selectedTagColor}
-    on:selectDay={handleDaySelect}
+    {accountId}
+    onDaySelect={handleDaySelect}
 />
 
 <style lang="postcss">

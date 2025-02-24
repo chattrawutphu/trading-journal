@@ -15,6 +15,7 @@ import {
 } from '../controllers/accountController.js';
 import { binanceExchange } from '../../exchanges/binance.js';
 import DayConfig from '../models/DayConfig.js';
+import Account from '../models/Account.js';
 
 const router = express.Router();
 
@@ -196,6 +197,34 @@ router.post('/:accountId/day-configs/:date/favorite', async (req, res) => {
     } catch (error) {
         console.error('Error toggling favorite:', error);
         res.status(400).json({ message: error.message });
+    }
+});
+
+// Add DELETE endpoint for day configs
+router.delete('/:accountId/day-configs/:date', async (req, res) => {
+    try {
+        const { accountId, date } = req.params;
+  
+        // Validate accountId belongs to user
+        const account = await Account.findOne({ _id: accountId, user: req.user._id });
+        if (!account) {
+            return res.status(404).json({ message: 'Account not found' });
+        }
+  
+        // Find the config with exact date string match
+        const result = await DayConfig.findOneAndDelete({ 
+            account: accountId,
+            date: date
+        });
+  
+        if (!result) {
+            return res.status(404).json({ message: 'Day config not found' });
+        }
+  
+        res.json({ message: 'Day config deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting day config:', error);
+        res.status(500).json({ message: 'Error deleting day config' });
     }
 });
 

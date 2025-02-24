@@ -156,10 +156,10 @@
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
                                 Unrealized P&L
                             </div>
-                            <div class="text-xl font-bold {trade.unrealizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}">
+                            <div class="text-xl font-bold text-yellow-500">
                                 {#if trade.unrealizedPnL !== undefined}
                                     {formatCurrency(trade.unrealizedPnL)}
-                                    <span class="text-sm {trade.unrealizedPnL >= 0 ? 'text-green-500/70' : 'text-red-500/70'}">
+                                    <span class="text-sm text-yellow-500/70">
                                         ({formatPercentage((trade.unrealizedPnL / trade.amount) * 100)})
                                     </span>
                                 {:else}

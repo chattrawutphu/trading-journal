@@ -1,5 +1,7 @@
 <script>
     import { onMount } from "svelte";
+    import { accountStore } from '$lib/stores/accountStore';
+    import { binanceExchange } from '$lib/exchanges';
     
     export let totalPnL;
     export let openTrades;
@@ -8,6 +10,76 @@
     export let textSize = 'medium';
     export let isPreview = false;
     export let trades = [];
+
+    // Add state variables for trading statistics
+    let averageWin = 0;
+    let averageLoss = 0;
+    let profitFactor = 0;
+    let largestWin = 0;
+    let largestLoss = 0;
+
+    // Add state for unrealized PnL
+    let currentPrices = new Map();
+    let binanceWs;
+    let isLoadingPrices = true;
+    let totalUnrealizedPnL = 0;
+    let totalOpenAmount = 0;
+
+    // Add WebSocket setup function
+    function setupBinanceWebSocket() {
+        isLoadingPrices = true;
+        
+        if (binanceWs) {
+            binanceWs.close();
+        }
+
+        const symbols = openTrades.map(t => t.symbol.toLowerCase());
+        if (symbols.length === 0) {
+            isLoadingPrices = false;
+            return;
+        }
+
+        binanceWs = binanceExchange.createPriceWebSocket(symbols);
+
+        binanceWs.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.e === 'markPriceUpdate') {
+                isLoadingPrices = false;
+                const symbol = data.s;
+                const price = parseFloat(data.p);
+                currentPrices.set(symbol, price);
+                currentPrices = currentPrices;
+                
+                // Calculate total unrealized PnL
+                totalUnrealizedPnL = openTrades.reduce((sum, trade) => {
+                    const currentPrice = currentPrices.get(trade.symbol);
+                    if (!currentPrice) return sum;
+                    return sum + binanceExchange.calculateUnrealizedPnL(trade, currentPrice);
+                }, 0);
+
+                // Calculate total open amount
+                totalOpenAmount = openTrades.reduce((sum, trade) => sum + Math.abs(trade.amount || 0), 0);
+            }
+        };
+
+        binanceWs.onerror = () => {
+            isLoadingPrices = false;
+        };
+    }
+
+    // Setup WebSocket when there are open trades and account is Exchange/Broker
+    $: if (openTrades.length > 0 && ['BINANCE_FUTURES', 'BROKER'].includes($accountStore.currentAccount?.type)) {
+        setupBinanceWebSocket();
+    }
+
+    // Cleanup on component destroy
+    onMount(() => {
+        return () => {
+            if (binanceWs) {
+                binanceWs.close();
+            }
+        };
+    });
 
     // Calendar logic
     let selectedMonth = new Date().getMonth();
@@ -93,97 +165,209 @@
         if (pnl < 0) return "text-red-800 dark:text-red-200 font-semibold";
         return "text-light-text-muted dark:text-dark-text-muted";
     }
+
+    // Add new calculations
+    $: {
+        // Calculate average win and loss
+        let wins = closedTrades.filter(t => t.pnl > 0);
+        let losses = closedTrades.filter(t => t.pnl < 0);
+        
+        averageWin = wins.length > 0 
+            ? wins.reduce((sum, t) => sum + t.pnl, 0) / wins.length 
+            : 0;
+            
+        averageLoss = losses.length > 0 
+            ? Math.abs(losses.reduce((sum, t) => sum + t.pnl, 0)) / losses.length 
+            : 0;
+
+        // Calculate profit factor
+        let grossProfit = wins.reduce((sum, t) => sum + t.pnl, 0);
+        let grossLoss = Math.abs(losses.reduce((sum, t) => sum + t.pnl, 0));
+        profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : 0;
+
+        // Calculate largest win/loss
+        largestWin = wins.length > 0 
+            ? Math.max(...wins.map(t => t.pnl))
+            : 0;
+            
+        largestLoss = losses.length > 0 
+            ? Math.abs(Math.min(...losses.map(t => t.pnl)))
+            : 0;
+    }
 </script>
 
-<div class="card p-4 h-full {textSize}">
-    <!-- Container for all stats -->
-    <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
-        <!-- Total P&L -->
-        <div class="flex md:flex-col items-center md:items-stretch gap-4 md:gap-2">
-            <div class="flex items-center justify-between flex-1 md:mb-2">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full {totalPnL >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
-                        <svg class="w-4 h-4 {totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+<div class="card h-full flex flex-col {textSize}">
+    <!-- Scrollable content -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar">
+        <div class="p-3">
+            <div class="flex flex-col gap-2">
+                <!-- Total P&L -->
+                <div class="flex items-center justify-between p-2 rounded-lg hover:bg-light-hover/30 dark:hover:bg-dark-hover/30">
+                    <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full {totalPnL >= 0 ? 'bg-green-500' : 'bg-red-500'} bg-opacity-10 flex items-center justify-center">
+                                <svg class="w-4 h-4 {totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Total P&L</h3>
+                            <p class="text-lg font-bold {totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                ${totalPnL.toFixed(2)}
+                            </p>
+                        </div>
                     </div>
-                    <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted md:hidden">
-                        Total P&L
-                    </h3>
                 </div>
-                <p class="text-xl md:text-2xl font-bold {totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}">
-                    ${totalPnL.toFixed(2)}
-                </p>
-            </div>
-            <h3 class="hidden md:block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
-                Total P&L
-            </h3>
-        </div>
 
-        <!-- Open Positions -->
-        <div class="flex md:flex-col items-center md:items-stretch gap-4 md:gap-2">
-            <div class="flex items-center justify-between flex-1 md:mb-2">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-yellow-500 bg-opacity-10 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+                <!-- Unrealized P&L - Only show for Exchange/Broker accounts with open trades -->
+                {#if openTrades.length > 0 && ['BINANCE_FUTURES', 'BROKER'].includes($accountStore.currentAccount?.type)}
+                    <div class="flex items-center justify-between p-2 rounded-lg hover:bg-light-hover/30 dark:hover:bg-dark-hover/30">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-yellow-500 bg-opacity-10 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Unrealized P&L</h3>
+                                {#if isLoadingPrices}
+                                    <p class="text-lg font-bold text-light-text-muted dark:text-dark-text-muted">Loading...</p>
+                                {:else}
+                                    <div>
+                                        <p class="text-lg font-bold text-yellow-500">
+                                            ${totalUnrealizedPnL.toFixed(2)}
+                                            {#if totalOpenAmount > 0}
+                                                <span class="text-sm text-yellow-500/70">
+                                                    ({((totalUnrealizedPnL / totalOpenAmount) * 100).toFixed(2)}%)
+                                                </span>
+                                            {/if}
+                                        </p>
+                                    </div>
+                                {/if}
+                            </div>
+                        </div>
                     </div>
-                    <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted md:hidden">
-                        Open Positions
-                    </h3>
-                </div>
-                <p class="text-xl md:text-2xl font-bold text-light-text dark:text-dark-text">
-                    {openTrades.length}
-                </p>
-            </div>
-            <h3 class="hidden md:block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
-                Open Positions
-            </h3>
-        </div>
+                {/if}
 
-        <!-- Total Trades -->
-        <div class="flex md:flex-col items-center md:items-stretch gap-4 md:gap-2">
-            <div class="flex items-center justify-between flex-1 md:mb-2">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-theme-500 bg-opacity-10 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
+                <!-- Open Positions -->
+                <div class="flex items-center justify-between p-2 rounded-lg hover:bg-light-hover/30 dark:hover:bg-dark-hover/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-yellow-500 bg-opacity-10 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Open Positions</h3>
+                            <p class="text-lg font-bold text-light-text dark:text-dark-text">{openTrades.length}</p>
+                        </div>
                     </div>
-                    <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted md:hidden">
-                        Total Trades
-                    </h3>
                 </div>
-                <p class="text-xl md:text-2xl font-bold text-light-text dark:text-dark-text">
-                    {openTrades.length + closedTrades.length}
-                </p>
-            </div>
-            <h3 class="hidden md:block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
-                Total Trades
-            </h3>
-        </div>
 
-        <!-- Win Rate -->
-        <div class="flex md:flex-col items-center md:items-stretch gap-4 md:gap-2">
-            <div class="flex items-center justify-between flex-1 md:mb-2">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-green-500 bg-opacity-10 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                        </svg>
+                <!-- Total Trades -->
+                <div class="flex items-center justify-between p-2 rounded-lg hover:bg-light-hover/30 dark:hover:bg-dark-hover/30">
+                    <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-theme-500 bg-opacity-10 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                            </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Total Trades</h3>
+                            <p class="text-lg font-bold text-light-text dark:text-dark-text">{openTrades.length + closedTrades.length}</p>
+                        </div>
                     </div>
-                    <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted md:hidden">
-                        Win Rate
-                    </h3>
                 </div>
-                <p class="text-xl md:text-2xl font-bold text-light-text dark:text-dark-text">
-                    {winRate}%
-                </p>
+
+                <!-- Win Rate -->
+                <div class="flex items-center justify-between p-2 rounded-lg hover:bg-light-hover/30 dark:hover:bg-dark-hover/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-green-500 bg-opacity-10 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Win Rate</h3>
+                            <p class="text-lg font-bold text-light-text dark:text-dark-text">{winRate}%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Average Win
+                <div class="flex items-center justify-between p-2 rounded-lg hover:bg-light-hover/30 dark:hover:bg-dark-hover/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-green-500 bg-opacity-10 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11l3 3L22 4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Average Win</h3>
+                            <p class="text-lg font-bold text-green-500">${averageWin.toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                Average Loss
+                <div class="flex items-center justify-between p-2 rounded-lg hover:bg-light-hover/30 dark:hover:bg-dark-hover/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-red-500 bg-opacity-10 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Average Loss</h3>
+                            <p class="text-lg font-bold text-red-500">${averageLoss.toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                Profit Factor
+                <div class="flex items-center justify-between p-2 rounded-lg hover:bg-light-hover/30 dark:hover:bg-dark-hover/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-theme-500 bg-opacity-10 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Profit Factor</h3>
+                            <p class="text-lg font-bold text-theme-500">{profitFactor}</p>
+                        </div>
+                    </div>
+                </div>
+
+                Largest Win
+                <div class="flex items-center justify-between p-2 rounded-lg hover:bg-light-hover/30 dark:hover:bg-dark-hover/30">
+                    <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-green-500 bg-opacity-10 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                            </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Largest Win</h3>
+                            <p class="text-lg font-bold text-green-500">${largestWin.toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                Largest Loss 
+                <div class="flex items-center justify-between p-2 rounded-lg hover:bg-light-hover/30 dark:hover:bg-dark-hover/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-red-500 bg-opacity-10 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Largest Loss</h3>
+                            <p class="text-lg font-bold text-red-500">${largestLoss.toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>-->
             </div>
-            <h3 class="hidden md:block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
-                Win Rate
-            </h3>
         </div>
     </div>
 </div>
@@ -191,9 +375,32 @@
 <style lang="postcss">
     .card {
         @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-0 rounded-lg shadow-lg;
+        min-height: 0; /* This is important for flex containers to allow scrolling */
     }
 
-    /* Adjust text sizes based on the textSize prop */
+    /* Custom scrollbar styles */
+    .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: var(--theme-500) transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        @apply bg-theme-500/50 rounded-full;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        @apply bg-theme-500;
+    }
+
+    /* Existing styles */
     .small {
         @apply text-sm;
     }
@@ -205,10 +412,6 @@
     }
     .extra-large {
         @apply text-xl;
-    }
-
-    .aspect-square {
-        aspect-ratio: 1;
     }
 
     /* Add smooth transitions */

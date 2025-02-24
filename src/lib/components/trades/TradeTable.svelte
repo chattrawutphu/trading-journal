@@ -542,7 +542,7 @@
                                     Loading...
                                 </span>
                             {:else}
-                                <span class={trade.unrealizedPnL > 0 ? 'text-green-500' : trade.unrealizedPnL < 0 ? 'text-red-500' : 'text-light-text-muted dark:text-dark-text-muted'}>
+                                <span class="text-yellow-500">
                                     {trade.unrealizedPnL ? formatCurrency(trade.unrealizedPnL) : '-'}
                                 </span>
                             {/if}
@@ -553,7 +553,7 @@
                                     Loading...
                                 </span>
                             {:else if trade.status === 'OPEN'}
-                                <span class={calculateUnrealizedPnLPercentage(trade) > 0 ? 'text-green-500' : calculateUnrealizedPnLPercentage(trade) < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}>
+                                <span class="text-yellow-500">
                                     {calculateUnrealizedPnLPercentage(trade)}%
                                 </span>
                             {/if}

@@ -88,6 +88,24 @@ function createDayConfigStore() {
         },
         clearError: () => {
             update(state => ({ ...state, error: null }));
+        },
+        deleteConfig: async (accountId, date) => {
+            try {
+                update(state => ({ ...state, loading: true, error: null }));
+                await api.deleteDayConfig(accountId, date);
+                update(state => ({
+                    ...state,
+                    config: null,
+                    loading: false
+                }));
+            } catch (error) {
+                update(state => ({
+                    ...state,
+                    loading: false,
+                    error: error.message
+                }));
+                throw error;
+            }
         }
     };
 }

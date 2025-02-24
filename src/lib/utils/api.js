@@ -433,4 +433,10 @@ export const api = {
     async getTaggedDays(tag) {
         return await api.fetch(`/day-tags/${encodeURIComponent(tag)}/days`);
     },
+
+    async deleteDayConfig(accountId, date) {
+        return await api.fetch(`/accounts/${accountId}/day-configs/${date}`, {
+            method: 'DELETE'
+        });
+    },
 };

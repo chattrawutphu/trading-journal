@@ -3,6 +3,7 @@
     import { theme } from "$lib/stores/themeStore";
     import { accountStore } from "$lib/stores/accountStore";
     import { transactionStore } from "$lib/stores/transactionStore";
+    import { binanceExchange } from '$lib/exchanges';
     import DayTradesModal from "./DayTradesModal.svelte";
     import Select from "../common/Select.svelte";
     import DatePicker from '../common/DatePicker.svelte';
@@ -27,6 +28,11 @@
     let dailyBalances = {};
     let selectedDayBalance = null;
 
+    // Add state for current prices and loading state
+    let currentPrices = new Map();
+    let binanceWs;
+    let isLoadingPrices = true;
+
     // เพิ่ม reactive statement สำหรับ monthly stats โดยให้ track dailyBalances ด้วย
     $: monthlyStats = calculateMonthlyStats(statsPerDay, dailyBalances);
 
@@ -34,6 +40,23 @@
     $: {
         if (selectedMonth !== undefined && selectedYear !== undefined && dailyBalances) {
             monthlyStats = calculateMonthlyStats(statsPerDay, dailyBalances);
+        }
+    }
+
+    // Add reactive statement for statsPerDay
+    $: statsPerDay = {};
+    $: {
+        calendarDays.forEach(day => {
+            if (day !== null) {
+                statsPerDay[day] = getDayStats(day);
+            }
+        });
+    }
+
+    // Make statsPerDay reactive to currentPrices changes
+    $: {
+        if (currentPrices) {
+            statsPerDay = { ...statsPerDay };
         }
     }
 
@@ -111,7 +134,6 @@
     }
 
     let calendarDays = [];
-    let statsPerDay = {};
 
     // Combine all calculations into one reactive block
     $: {
@@ -151,13 +173,19 @@
                     else if (trade.pnl < 0) newDailyTrades[dateKey].losses++;
                 } else {
                     newDailyTrades[dateKey].openTrades++;
+                    // Calculate unrealized P&L for open trades
+                    const currentPrice = currentPrices.get(trade.symbol);
+                    if (currentPrice) {
+                        const unrealizedPnL = binanceExchange.calculateUnrealizedPnL(trade, currentPrice);
+                        newDailyTrades[dateKey].unrealizedPnl = (newDailyTrades[dateKey].unrealizedPnl || 0) + (unrealizedPnL || 0);
+                    }
                 }
             } catch (err) {
                 console.error("Error processing trade date:", err);
             }
         });
 
-        // Then process transactions
+        // Process transactions
         if (Array.isArray($transactionStore.transactions)) {
             $transactionStore.transactions.forEach((transaction) => {
                 const transDate = normalizeDate(transaction.date);
@@ -183,7 +211,7 @@
             });
         }
 
-        // Update dailyTrades with new object
+        // Update dailyTrades
         dailyTrades = newDailyTrades;
 
         // 2. Then calculate calendar days
@@ -319,7 +347,7 @@
             if (isNaN(date.getTime())) return null;
 
             const dateKey = date.toISOString().split("T")[0];
-            return dailyTrades[dateKey] || {
+            const stats = dailyTrades[dateKey] || {
                 trades: [],
                 pnl: 0,
                 symbols: new Set(),
@@ -329,6 +357,20 @@
                 transactions: [],
                 startBalance: $dailyBalancesStore[dateKey]?.startBalance || 0,
             };
+
+            // Calculate unrealized P&L for open trades
+            if (stats.trades.length > 0) {
+                const openTrades = stats.trades.filter(t => t.status === "OPEN");
+                stats.openTrades = openTrades.length;
+                stats.unrealizedPnl = openTrades.reduce((sum, trade) => {
+                    const currentPrice = currentPrices.get(trade.symbol);
+                    if (!currentPrice) return sum;
+                    const unrealizedPnL = binanceExchange.calculateUnrealizedPnL(trade, currentPrice);
+                    return sum + (unrealizedPnL || 0);
+                }, 0);
+            }
+
+            return stats;
         } catch (err) {
             console.error("Error getting day stats:", err);
             return null;
@@ -625,6 +667,54 @@
             window.removeEventListener('scroll', handleScroll, true);
         };
     });
+
+    // Add WebSocket setup function
+    function setupBinanceWebSocket() {
+        isLoadingPrices = true;
+        
+        if (binanceWs) {
+            binanceWs.close();
+        }
+
+        const openTrades = trades.filter(t => t.status === "OPEN");
+        const symbols = [...new Set(openTrades.map(t => t.symbol.toLowerCase()))];
+        
+        if (symbols.length === 0) {
+            isLoadingPrices = false;
+            return;
+        }
+
+        binanceWs = binanceExchange.createPriceWebSocket(symbols);
+
+        binanceWs.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.e === 'markPriceUpdate') {
+                isLoadingPrices = false;
+                const symbol = data.s;
+                const price = parseFloat(data.p);
+                currentPrices.set(symbol, price);
+                currentPrices = new Map(currentPrices); // Create new Map to trigger reactivity
+            }
+        };
+
+        binanceWs.onerror = () => {
+            isLoadingPrices = false;
+        };
+    }
+
+    // Setup WebSocket when trades change
+    $: if (!isPreview && trades.some(t => t.status === "OPEN") && $accountStore.currentAccount?.type === 'BINANCE_FUTURES') {
+        setupBinanceWebSocket();
+    }
+
+    // Cleanup WebSocket on component destroy
+    onMount(() => {
+        return () => {
+            if (binanceWs) {
+                binanceWs.close();
+            }
+        };
+    });
 </script>
 
 <div class="card h-full flex flex-col">
@@ -877,6 +967,31 @@
                                                 {#if $dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))]?.startBalance && !isNaN($dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance) && $dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance !== 0}
                                                     <span class="pnl-percentage whitespace-nowrap text-xs {getTextClass(statsPerDay[day])}">
                                                         {((statsPerDay[day].pnl / Math.abs($dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance)) * 100).toFixed(1)}%
+                                                    </span>
+                                                {:else}
+                                                    <span class="pnl-percentage whitespace-nowrap text-xs text-light-text-muted dark:text-dark-text-muted">
+                                                        N/A
+                                                    </span>
+                                                {/if}
+                                            </div>
+                                        {/if}
+
+                                        {#if statsPerDay[day].openTrades > 0}
+                                            <div class="pnl-stats flex-wrap flex flex-col md:flex-row justify-between items-start md:items-center">
+                                                <span class="text-sm font-bold whitespace-nowrap text-yellow-600 dark:text-yellow-400">
+                                                    {#if isLoadingPrices}
+                                                        Loading...
+                                                    {:else}
+                                                        {formatPnL(statsPerDay[day].unrealizedPnl || 0)}
+                                                    {/if}
+                                                </span>
+                                                {#if $dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))]?.startBalance && !isNaN($dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance) && $dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance !== 0}
+                                                    <span class="pnl-percentage whitespace-nowrap text-xs text-yellow-600 dark:text-yellow-400">
+                                                        {#if isLoadingPrices}
+                                                            Loading...
+                                                        {:else}
+                                                            {((statsPerDay[day].unrealizedPnl || 0) / Math.abs($dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance) * 100).toFixed(1)}%
+                                                        {/if}
                                                     </span>
                                                 {:else}
                                                     <span class="pnl-percentage whitespace-nowrap text-xs text-light-text-muted dark:text-dark-text-muted">

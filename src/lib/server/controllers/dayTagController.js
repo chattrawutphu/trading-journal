@@ -201,11 +201,49 @@ export const getTaggedDays = async(req, res) => {
                 ]
             });
 
+            // ดึงข้อมูล trades ทั้งหมดของวันนี้
+            const trades = await Trade.find({
+                account: config.account,
+                status: 'CLOSED',
+                exitDate: { 
+                    $gte: startOfDay,
+                    $lte: endOfDay
+                }
+            });
+
+            // คำนวณข้อมูลเพิ่มเติม
+            const totalPnL = trades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+            const winCount = trades.filter(t => t.pnl > 0).length;
+            const lossCount = trades.filter(t => t.pnl < 0).length;
+            const winRate = trades.length > 0 ? (winCount / trades.length * 100).toFixed(1) : 0;
+            
+            // คำนวณ average trade
+            const avgWin = winCount > 0 
+                ? trades.filter(t => t.pnl > 0).reduce((sum, t) => sum + t.pnl, 0) / winCount 
+                : 0;
+            const avgLoss = lossCount > 0
+                ? Math.abs(trades.filter(t => t.pnl < 0).reduce((sum, t) => sum + t.pnl, 0)) / lossCount
+                : 0;
+            
+            // คำนวณ largest win/loss
+            const largestWin = trades.reduce((max, t) => t.pnl > max ? t.pnl : max, 0);
+            const largestLoss = Math.abs(trades.reduce((min, t) => t.pnl < min ? t.pnl : min, 0));
+
             return {
                 date: config.date,
                 note: config.note,
                 tradesCount,
-                accountId: config.account
+                accountId: config.account,
+                totalPnL,
+                winCount,
+                lossCount,
+                winRate,
+                avgWin,
+                avgLoss,
+                largestWin,
+                largestLoss,
+                openTrades: tradesCount - trades.length,
+                closedTrades: trades.length
             };
         }));
 
