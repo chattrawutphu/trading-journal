@@ -566,9 +566,7 @@
                             </svg>
                         </span>
                     {/if}
-                    <h2
-                        class="text-lg font-bold bg-gradient-to-r from-theme-500 to-theme-600 bg-clip-text text-transparent"
-                    >
+                    <h2 class="text-lg font-bold text-light-text dark:text-dark-text">
                         {trade ? "Edit Trade" : "New Trade"}
                     </h2>
                     {#if form.symbol}

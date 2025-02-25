@@ -611,40 +611,53 @@
                         {/if}
                     </div>
                     <div class="flex justify-between items-end gap-4">
-                <!-- Add the note section after the summary section and before the tables -->
-                {#if dayConfig?.note}
-                    <div class="w-full py-4 border-b border-light-border dark:border-0">
-                        <div class="flex items-center gap-2 mb-2">
-                            <svg class="w-4 h-4 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Notes</h3>
+                <!-- Replace the existing note and tags section with this new layout -->
+                <div class="flex justify-between items-start gap-4 px-8 py-4">
+                    <!-- Notes Section - Left side -->
+                    {#if dayConfig?.note}
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg class="w-4 h-4 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Notes</h3>
+                            </div>
+                            <div class="prose prose-sm max-w-none text-light-text dark:text-dark-text rich-text-content">
+                                {@html dayConfig.note}
+                            </div>
                         </div>
-                        <div class="prose prose-sm max-w-none text-light-text dark:text-dark-text rich-text-content">
-                            {@html dayConfig.note}
-                        </div>
-                    </div>
-                {/if}
+                    {/if}
 
-                <!-- Add the tags section at the bottom of the modal -->
-                {#if dayConfig?.tags?.length > 0}
-                    <div class="px-8 py-4 mt-4 border-t border-light-border dark:border-0">
-                        <div class="flex gap-2">
-                            {#each dayConfig.tags as tag}
-                                {@const tagColor = getTagColor(tag)}
-                                <div 
-                                    class="flex items-center gap-1 px-2 py-1 rounded-full {tagColor.bg} {tagColor.text} text-sm cursor-pointer hover:opacity-80"
-                                    on:click={() => handleTagClick(tag, tagColor)}
-                                >
-                                    <span>{tag}</span>
-                                    <span class="ml-1 text-xs opacity-75">
-                                        ({getTagUsageCount(tag)})
-                                    </span>
-                                </div>
-                            {/each}
+                    <!-- Tags Section - Right side -->
+                    {#if dayConfig?.tags?.length > 0}
+                        <div class="flex flex-col min-w-[200px]">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg class="w-4 h-4 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/>
+                                </svg>
+                                <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Tags</h3>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                {#each dayConfig.tags as tag}
+                                    {@const tagColor = getTagColor(tag)}
+                                    <button 
+                                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-full {tagColor.bg} {tagColor.text} text-sm cursor-pointer hover:opacity-80 transition-opacity"
+                                        on:click={() => handleTagClick(tag, tagColor)}
+                                        title="Click to view tag history"
+                                    >
+                                        <svg class="w-3.5 h-3.5 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/>
+                                        </svg>
+                                        <span>{tag}</span>
+                                        <span class="text-xs opacity-75 bg-black/5 dark:bg-white/5 px-1.5 rounded-full">
+                                            {getTagUsageCount(tag)}
+                                        </span>
+                                    </button>
+                                {/each}
+                            </div>
                         </div>
-                    </div>
-                {/if}
+                    {/if}
+                </div>
                     </div>
                 </div>
 

@@ -5,6 +5,8 @@
     import Modal from '../common/Modal.svelte';
     import { api } from '$lib/utils/api';
     import { dayTagStore } from '$lib/stores/dayTagStore';
+    import { subscriptionStore } from '$lib/stores/subscriptionStore';
+    import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
     import { Editor } from '@tiptap/core';
     import StarterKit from '@tiptap/starter-kit';
     import Link from '@tiptap/extension-link';
@@ -20,6 +22,8 @@
     export let show = false;
     export let tag = null;
     export let config = null;
+
+    $: subscriptionType = $subscriptionStore.type || SUBSCRIPTION_TYPES.BASIC;
 
     let editor;
     let editorElement;
@@ -59,7 +63,7 @@
                     })
                 ],
                 content: formState.note || '',
-                editable: !(subscriptionType === SUBSCRIPTION_TYPES.BASIC),
+                editable: subscriptionType !== SUBSCRIPTION_TYPES.BASIC,
                 onUpdate: ({ editor }) => {
                     formState.note = editor.getHTML();
                 }
@@ -377,7 +381,7 @@
                     </div>
                     <div 
                         bind:this={editorElement}
-                        class="border border-light-border dark:border-dark-hover rounded-b-md bg-light-bg dark:bg-dark-bg p-2 min-h-[200px]"
+                        class="border border-light-border dark:border-dark-hover rounded-b-md bg-light-bg dark:bg-dark-bg p-2"
                         data-placeholder="Add notes for this tag..."
                     ></div>
                 </div>
@@ -431,10 +435,12 @@
 
     .editor-container {
         @apply text-light-text dark:text-dark-text;
+        min-height: 200px;
     }
     
     :global(.ProseMirror) {
-        @apply outline-none min-h-[200px] p-2;
+        @apply outline-none p-2;
+        min-height: 200px;
     }
     
     :global(.ProseMirror p) {
@@ -471,6 +477,7 @@
         color: #adb5bd;
         pointer-events: none;
         height: 0;
+        font-style: italic;
     }
 
     /* Rich text content styles */
