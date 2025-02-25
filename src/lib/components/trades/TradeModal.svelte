@@ -12,9 +12,18 @@
     import { tradeDate } from '$lib/stores/tradeDateStore';
     import { api } from "$lib/utils/api";
     import { tradeTagStore } from '$lib/stores/tradeTagStore';
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import Modal from '../common/Modal.svelte';
     import LimitReachedModal from '../common/LimitReachedModal.svelte';
+    import { Editor } from '@tiptap/core';
+    import StarterKit from '@tiptap/starter-kit';
+    import Link from '@tiptap/extension-link';
+    import Underline from '@tiptap/extension-underline';
+    import TextAlign from '@tiptap/extension-text-align';
+    import Highlight from '@tiptap/extension-highlight';
+    import Color from '@tiptap/extension-color';
+    import TextStyle from '@tiptap/extension-text-style';
+    import Image from '@tiptap/extension-image';
 
     const dispatch = createEventDispatcher();
 
@@ -42,11 +51,11 @@
         entryReason: "",
         exitReason: "",
         strategy: "",
-        emotions: "",
+        emotions: "neutral",
         notes: "",
         url: "",
-        confidenceLevel: 5,
-        greedLevel: 5,
+        confidenceLevel: 0,
+        greedLevel: 0,
         hasStopLoss: false,
         hasTakeProfit: false,
         favorite: false,
@@ -57,6 +66,7 @@
     let form = { ...defaultForm };
 
     const emotionOptions = [
+        { value: "neutral", label: "😐 Neutral" },
         { value: "confident", label: "😊 Confident" },
         { value: "fearful", label: "😨 Fearful" },
         { value: "angry", label: "😡 Angry" },
@@ -66,7 +76,6 @@
         { value: "frustrated", label: "😤 Frustrated" },
         { value: "excited", label: "🤩 Excited" },
         { value: "anxious", label: "😰 Anxious" },
-        { value: "neutral", label: "😐 Neutral" },
     ];
 
     function getCurrentDate() {
@@ -101,6 +110,10 @@
     }
 
     function resetForm() {
+        if (editor) {
+            editor.destroy();
+            editor = null;
+        }
         initialFormData = null;
         form = { ...defaultForm };
         errors = {};
@@ -121,9 +134,13 @@
                     ? formatDateTimeLocal(trade.exitDate)
                     : getCurrentDateTime(),
                 tags: trade.tags || [],
-                type: trade.type || 'MANUAL'
+                type: trade.type || 'MANUAL',
+                notes: trade.notes || ''
             };
             form = { ...initialFormData };
+            if (editor) {
+                editor.commands.setContent(form.notes || '');
+            }
         } else {
             resetForm();
             if ($tradeDate) {
@@ -153,33 +170,56 @@
         }
     }
 
+    // แยก validation rules ออกมาให้ชัดเจน
+    const validationRules = {
+        symbol: {
+            required: true,
+            message: "Symbol is required"
+        },
+        entryPrice: {
+            required: true,
+            min: 0,
+            message: "Entry price must be greater than 0"
+        },
+        amount: {
+            required: true,
+            min: 0,
+            message: "Amount must be greater than 0"
+        },
+        exitPrice: {
+            required: (form) => form.status === "CLOSED",
+            min: 0,
+            message: "Exit price must be greater than 0"
+        },
+        pnl: {
+            required: (form) => form.status === "CLOSED",
+            message: "P&L is required for closed trades"
+        }
+    };
+
+    // ปรับปรุงฟังก์ชัน validateForm
     function validateForm(form) {
         const errors = {};
         
-        if (!form.symbol?.trim()) {
-            errors.symbol = "Symbol is required";
-        }
-        
-        if (!form.entryPrice || form.entryPrice <= 0) {
-            errors.entryPrice = "Entry price must be greater than 0";
-        }
+        Object.entries(validationRules).forEach(([field, rules]) => {
+            // ตรวจสอบว่าต้อง validate field นี้หรือไม่
+            const shouldValidate = typeof rules.required === 'function' 
+                ? rules.required(form) 
+                : rules.required;
 
-        if (form.type === 'SYNC' && (!form.quantity || form.quantity <= 0)) {
-            errors.quantity = "Quantity must be greater than 0";
-        }
+            if (!shouldValidate) return;
 
-        if (!form.amount || form.amount <= 0) {
-            errors.amount = "Amount must be greater than 0";
-        }
-
-        if (form.status === "CLOSED") {
-            if (!form.exitPrice || form.exitPrice <= 0) {
-                errors.exitPrice = "Exit price must be greater than 0";
+            // ตรวจสอบค่าว่าง
+            if (!form[field] || form[field].toString().trim() === '') {
+                errors[field] = rules.message;
+                return;
             }
-            if (!form.pnl) {
-                errors.pnl = "Please enter P&L";
+
+            // ตรวจสอบค่าต่ำสุด (ถ้ามี)
+            if (rules.min !== undefined && Number(form[field]) <= rules.min) {
+                errors[field] = rules.message;
             }
-        }
+        });
 
         return errors;
     }
@@ -216,7 +256,8 @@
             amount: parseFloat(form.amount),
             entryPrice: parseFloat(form.entryPrice),
             exitPrice: form.status === 'CLOSED' ? parseFloat(form.exitPrice) : null,
-            pnl: form.status === 'CLOSED' ? parseFloat(form.pnl) : null
+            pnl: form.status === 'CLOSED' ? parseFloat(form.pnl) : null,
+            notes: form.notes || ''
         };
 
         return data;
@@ -256,36 +297,63 @@
     }
 
     async function handleSubmit() {
+        // Clear previous errors
+        errors = {};
+        
+        // Client-side validation
+        const validationErrors = validateForm(form);
+        if (Object.keys(validationErrors).length > 0) {
+            errors = validationErrors;
+            return;
+        }
+
         try {
-            const tradeData = {
-                ...form,
-                account: accountId,
-                type: trade ? trade.type : 'MANUAL'
-            };
+            const tradeData = prepareFormData(form);
 
             if (editMode) {
                 await api.updateTrade(trade._id, tradeData);
             } else {
-                await api.createTrade(tradeData);
+                await api.createTrade({
+                    ...tradeData,
+                    account: accountId,
+                    type: 'MANUAL'
+                });
             }
 
-            // Reset states before closing
-            isInitialized = false;
-            editMode = false;
-            trade = null; // Reset trade state
-            resetForm();
-            show = false;
+            handleClose();
             dispatch('tradeUpdated');
         } catch (error) {
             console.error('Error saving trade:', error);
-            errors.submit = error.message || 'An unexpected error occurred';
+            
+            // แยก server validation errors ออกมาแสดงที่ footer
+            if (error.message.includes('validation failed')) {
+                const errorFields = [];
+                Object.keys(validationRules).forEach(field => {
+                    if (error.message.includes(`Path \`${field}\` is required`)) {
+                        errorFields.push(field);
+                    }
+                });
+                
+                if (errorFields.length > 0) {
+                    errors.server = `Required fields missing: ${errorFields.join(', ')}`;
+                } else {
+                    errors.server = 'Validation failed. Please check your input.';
+                }
+            } else {
+                errors.server = error.message || 'An unexpected error occurred';
+            }
         }
     }
 
     function handleClose() {
+        if (editor) {
+            editor.destroy();
+            editor = null;
+        }
         isInitialized = false;
         editMode = false; 
-        trade = null; // Reset trade state
+        activeTab = 'details'; // รีเซ็ตแท็บกลับไปที่ details
+        trade = null;
         show = false;
         resetForm();
         dispatch('close');
@@ -312,8 +380,55 @@
         goto('/subscription');
     }
 
-    onMount(() => {
-        tradeTagStore.loadTags();
+    // TipTap editor setup
+    let editor;
+    let editorElement;
+    
+    $: if (show && editorElement && !editor) {
+        initEditor();
+    }
+    
+    function initEditor() {
+        try {
+            if (editor) {
+                editor.destroy();
+            }
+            
+            editor = new Editor({
+                element: editorElement,
+                extensions: [
+                    StarterKit,
+                    Link.configure({
+                        openOnClick: false,
+                    }),
+                    Underline,
+                    TextAlign.configure({
+                        types: ['heading', 'paragraph'],
+                    }),
+                    Highlight,
+                    TextStyle,
+                    Color,
+                    Image.configure({
+                        inline: true,
+                        allowBase64: true
+                    })
+                ],
+                content: form.notes || '',
+                editable: !(subscriptionType === SUBSCRIPTION_TYPES.BASIC),
+                onUpdate: ({ editor }) => {
+                    form.notes = editor.getHTML();
+                }
+            });
+        } catch (error) {
+            console.error('Error initializing editor:', error);
+        }
+    }
+    
+    onDestroy(() => {
+        if (editor) {
+            editor.destroy();
+            editor = null;
+        }
     });
 
     async function handleTagSelect(event) {
@@ -359,6 +474,69 @@
         if (shouldProceed) {
             await submitTrade();
         }
+    }
+
+    // เพิ่มฟังก์ชันป้องกันการ submit form
+    function preventFormSubmit(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // เพิ่มตัวแปรสำหรับจัดการแท็บ
+    let activeTab = 'details'; // 'details' หรือ 'journal'
+
+    // เพิ่มการจัดการเมื่อเปลี่ยนแท็บ
+    function handleTabChange(tab) {
+        activeTab = tab;
+        if (tab === 'journal' && editorElement && !editor) {
+            // ให้เวลา DOM update ก่อนที่จะ initialize editor
+            setTimeout(() => {
+                initEditor();
+            }, 0);
+        }
+    }
+
+    // แก้ไขฟังก์ชันสำหรับแปลงค่าเป็นข้อความ
+    function getLevelText(value) {
+        return value.toString();
+    }
+
+    function isImageUrl(url) {
+        if (!url) return false;
+        return url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null;
+    }
+
+    function handleImageError(event) {
+        event.target.style.display = 'none';
+    }
+
+    // เพิ่มฟังก์ชันสำหรับแทรกรูปภาพ
+    async function handleImageUpload() {
+        if (subscriptionType === SUBSCRIPTION_TYPES.BASIC) return;
+        
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        
+        input.onchange = async () => {
+            const file = input.files[0];
+            if (file) {
+                try {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        editor?.chain().focus().setImage({ 
+                            src: e.target.result,
+                            alt: file.name 
+                        }).run();
+                    };
+                    reader.readAsDataURL(file);
+                } catch (error) {
+                    console.error('Error uploading image:', error);
+                }
+            }
+        };
+        
+        input.click();
     }
 </script>
 
@@ -423,25 +601,41 @@
 
             <!-- Scrollable Content -->
             <div class="px-4 py-3 max-h-[calc(100vh-10rem)] overflow-y-auto">
-                <form on:submit|preventDefault={handleSubmit} class="space-y-2">
-                    <!-- Basic Info Section -->
-                    <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-md p-3 space-y-2"
+                <!-- Tab Navigation -->
+                <div class="flex border-b border-light-border dark:border-dark-hover mb-4">
+                    <button
+                        class="px-4 py-2 -mb-px text-sm font-medium {activeTab === 'details' ? 'text-theme-500 border-b-2 border-theme-500' : 'text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text'}"
+                        on:click={() => handleTabChange('details')}
                     >
-                        <h3
-                            class="text-base font-semibold text-light-text dark:text-dark-text mb-2"
-                        >
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
                             Trade Details
-                        </h3>
+                        </div>
+                    </button>
+                    <button
+                        class="px-4 py-2 -mb-px text-sm font-medium {activeTab === 'journal' ? 'text-theme-500 border-b-2 border-theme-500' : 'text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text'}"
+                        on:click={() => handleTabChange('journal')}
+                    >
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Trade Journal
+                        </div>
+                    </button>
+                </div>
 
+                <form on:submit|preventDefault={handleSubmit} class="space-y-2">
+                    {#if activeTab === 'details'}
+                        <!-- Trade Details Tab -->
+                        <div class="space-y-4">
+                            <!-- Symbol & Side -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label
-                                for="trade-symbol"
-                                    class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-1"
-                                >
-                                    Symbol
-                                    <span class="text-red-500">*</span>
+                                    <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-1">
+                                        Symbol <span class="text-red-500">*</span>
                                 </label>
                                 <div class="input-wrapper">
                                     <TradeOptionSelect
@@ -454,11 +648,10 @@
                                     />
                                 </div>
                                 {#if errors.symbol}
-                                    <p class="mt-2 text-sm text-red-500">
-                                        {errors.symbol}
-                                    </p>
+                                        <p class="mt-1 text-sm text-red-500">{errors.symbol}</p>
                                 {/if}
                             </div>
+                                <div>
                             <Select
                                 label="Side"
                                 options={sideOptions}
@@ -466,8 +659,13 @@
                                 required
                                 disabled={form.type === 'SYNC'}
                             />
+                                    {#if errors.side}
+                                        <p class="mt-1 text-sm text-red-500">{errors.side}</p>
+                                    {/if}
+                                </div>
                         </div>
 
+                            <!-- Status & Strategy -->
                         <div class="grid grid-cols-2 gap-4">
                             <Select
                                 label="Status"
@@ -477,10 +675,7 @@
                                 disabled={form.type === 'SYNC'}
                             />
                             <div>
-                                <label
-                                    for="trade-strategy"
-                                    class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted mb-1"
-                                >
+                                    <label class="block text-xs font-medium text-light-text-muted dark:text-dark-text-muted mb-1">
                                     Strategy
                                 </label>
                                 <div class="input-wrapper">
@@ -494,19 +689,9 @@
                         </div>
                     </div>
 
-                    <!-- Trade Details Section -->
-                    <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-md p-3 space-y-2"
-                    >
-                        <h3
-                            class="text-base font-semibold text-light-text dark:text-dark-text mb-2"
-                        >
-                            Entry & Exit
-                        </h3>
-
-                        <div class="grid grid-cols-2 gap-x-6 gap-y-4">
-                            <!-- Left Column -->
-                            <div class="space-y-4">
+                        <!-- Entry & Exit Dates -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
                                 <Input
                                     label="Entry Date"
                                     type="datetime-local"
@@ -516,7 +701,12 @@
                                     error={errors.entryDate}
                                     disabled={form.type === 'SYNC'}
                                 />
+                                {#if errors.entryDate}
+                                    <p class="mt-1 text-sm text-red-500">{errors.entryDate}</p>
+                                {/if}
+                            </div>
                                 {#if form.status === "CLOSED"}
+                                <div>
                                     <Input
                                         label="Exit Date"
                                         type="datetime-local"
@@ -526,41 +716,16 @@
                                         error={errors.exitDate}
                                         disabled={form.type === 'SYNC'}
                                     />
+                                    {#if errors.exitDate}
+                                        <p class="mt-1 text-sm text-red-500">{errors.exitDate}</p>
                                 {/if}
-                                <div class="space-y-1">
-                                    <label
-                                        for="trade-quantity"
-                                        class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
-                                    >
-                                        Quantity
-                                    </label>
-                                    <input
-                                        id="trade-quantity"
-                                        type="number"
-                                        bind:value={form.quantity}
-                                        class="w-full px-2.5 py-1.5 h-8 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg
-                                            {form.type === 'MANUAL' || form.type === 'SYNC' ? 'opacity-50 cursor-not-allowed' : ''}"
-                                        placeholder="Enter quantity"
-                                        disabled={form.type === 'MANUAL' || form.type === 'SYNC'}
-                                    />
-                                    {#if errors.quantity}
-                                        <p class="text-sm text-red-500">{errors.quantity}</p>
-                                    {/if}
                                 </div>
-                                <Input
-                                    label="Leverage"
-                                    type="number"
-                                    step="1"
-                                    min="1"
-                                    bind:value={form.leverage}
-                                    placeholder="1"
-                                    error={errors.leverage}
-                                    disabled={form.type === 'SYNC'}
-                                />
+                                    {/if}
                             </div>
 
-                            <!-- Right Column -->
-                            <div class="space-y-4">
+                        <!-- Prices & Amount -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
                                 <Input
                                     label="Entry Price"
                                     type="number"
@@ -571,7 +736,12 @@
                                     error={errors.entryPrice}
                                     disabled={form.type === 'SYNC'}
                                 />
+                                {#if errors.entryPrice}
+                                    <p class="mt-1 text-sm text-red-500">{errors.entryPrice}</p>
+                                {/if}
+                            </div>
                                 {#if form.status === "CLOSED"}
+                                <div>
                                     <Input
                                         label="Exit Price"
                                         type="number"
@@ -582,7 +752,16 @@
                                         error={errors.exitPrice}
                                         disabled={form.type === 'SYNC'}
                                     />
+                                    {#if errors.exitPrice}
+                                        <p class="mt-1 text-sm text-red-500">{errors.exitPrice}</p>
                                 {/if}
+                                </div>
+                            {/if}
+                        </div>
+
+                        <!-- Amount & PNL -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
                                 <Input
                                     label="Amount (USD)"
                                     type="number"
@@ -593,8 +772,13 @@
                                     error={errors.amount}
                                     disabled={form.type === 'SYNC'}
                                 />
+                                {#if errors.amount}
+                                    <p class="mt-1 text-sm text-red-500">{errors.amount}</p>
+                                {/if}
+                            </div>
                                 {#if form.status === "CLOSED"}
                                     <div class="flex items-end gap-2">
+                                    <div class="flex-1">
                                         <Input
                                             label="P&L"
                                             type="number"
@@ -605,6 +789,10 @@
                                             error={errors.pnl}
                                             disabled={form.type === 'SYNC'}
                                         />
+                                        {#if errors.pnl}
+                                            <p class="mt-1 text-sm text-red-500">{errors.pnl}</p>
+                                        {/if}
+                                    </div>
                                         <Button
                                             type="button"
                                             variant="secondary"
@@ -612,138 +800,136 @@
                                             on:click={calculatePnL}
                                             disabled={form.type === 'SYNC'}
                                         >
-                                            <svg
-                                                class="w-4 h-4"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                                />
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                             </svg>
                                         </Button>
                                     </div>
                                 {/if}
-                            </div>
-                        </div>
                     </div>
 
-                    <!-- Analysis Section -->
-                    <div
-                        class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-md p-3 space-y-2"
-                    >
-                        <h3
-                            class="text-base font-semibold text-light-text dark:text-dark-text mb-2"
-                        >
-                            Analysis
-                        </h3>
-
-                        <!-- Reasons -->
-                        <div class="grid grid-cols-1 gap-4">
+                        <!-- Risk Management -->
+                        <div class="grid grid-cols-2 gap-4">
                             <Input
-                                label="Entry Reason"
-                                type="text"
-                                bind:value={form.entryReason}
-                                placeholder="Why did you enter this trade?"
+                                label="Leverage"
+                                type="number"
+                                step="1"
+                                min="1"
+                                bind:value={form.leverage}
+                                placeholder="1"
+                                error={errors.leverage}
+                                disabled={form.type === 'SYNC'}
                             />
-                            {#if form.status === "CLOSED"}
-                                <Input
-                                    label="Exit Reason"
-                                    type="text"
-                                    bind:value={form.exitReason}
-                                    placeholder="Why did you exit this trade?"
-                                />
-                            {/if}
-                        </div>
-
-                        <!-- Trade Levels -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <Select
-                                label="Confidence Level"
-                                options={levelOptions}
-                                bind:value={form.confidenceLevel}
-                            />
-                            <Select
-                                label="Greed Level"
-                                options={levelOptions}
-                                bind:value={form.greedLevel}
-                            />
-                        </div>
-
-                        <!-- Trade Settings -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <label
-                                class="flex items-center gap-1.5 p-1.5 rounded hover:bg-light-hover dark:hover:bg-dark-hover cursor-pointer group select-none"
-                            >
+                            <div class="flex items-center gap-4 mt-6">
+                                <label class="flex items-center gap-1.5 p-1.5 rounded hover:bg-light-hover dark:hover:bg-dark-hover cursor-pointer group select-none">
                                 <input
                                     type="checkbox"
                                     bind:checked={form.hasStopLoss}
                                     class="checkbox"
                                 />
-                                <span
-                                    class="text-sm text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text"
-                                >
+                                    <span class="text-sm text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text">
                                     Has Stop Loss
                                 </span>
                             </label>
-                            <label
-                                class="flex items-center gap-1.5 p-1.5 rounded hover:bg-light-hover dark:hover:bg-dark-hover cursor-pointer group select-none"
-                            >
+                                <label class="flex items-center gap-1.5 p-1.5 rounded hover:bg-light-hover dark:hover:bg-dark-hover cursor-pointer group select-none">
                                 <input
                                     type="checkbox"
                                     bind:checked={form.hasTakeProfit}
                                     class="checkbox"
                                 />
-                                <span
-                                    class="text-sm text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text"
-                                >
+                                    <span class="text-sm text-light-text-muted dark:text-dark-text-muted group-hover:text-light-text dark:group-hover:text-dark-text">
                                     Has Take Profit
                                 </span>
                             </label>
                         </div>
+                        </div>
+                    {:else}
+                        <!-- Trade Journal Tab -->
+                        <div class="space-y-4">
+                            <!-- Entry & Exit Reasons -->
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-1">
+                                        Entry Reason
+                                    </label>
+                                    <textarea
+                                        bind:value={form.entryReason}
+                                        rows="3"
+                                        class="w-full px-2.5 py-1.5 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg resize-none"
+                                        placeholder="Why did you enter this trade?"
+                                    ></textarea>
                     </div>
 
-                    <!-- Additional Info Section -->
-                    <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-md p-3 space-y-2">
-                        <h3 class="text-base font-semibold text-light-text dark:text-dark-text mb-2 flex justify-between items-center">
-                            Additional Information
-                            {#if subscriptionType === SUBSCRIPTION_TYPES.BASIC}
-                                <button
-                                    type="button"
-                                    class="upgrade-button-section group"
-                                    on:click={upgradePlan}
-                                >
-                                    <span class="flex items-center gap-1.5">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                                        </svg>
-                                        Upgrade to Pro
-                                        <svg 
-                                            class="w-4 h-4 transition-transform group-hover:translate-x-0.5" 
-                                            fill="none" 
-                                            stroke="currentColor" 
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                                d="M9 5l7 7-7 7"/>
-                                        </svg>
-                                    </span>
-                                </button>
+                                {#if form.status === "CLOSED"}
+                                    <div>
+                                        <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted mb-1">
+                                            Exit Reason
+                                        </label>
+                                        <textarea
+                                            bind:value={form.exitReason}
+                                            rows="3"
+                                            class="w-full px-2.5 py-1.5 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg resize-none"
+                                            placeholder="Why did you exit this trade?"
+                                        ></textarea>
+                                    </div>
                             {/if}
-                        </h3>
+                            </div>
 
-                        <div class="space-y-3">
+                            <!-- Confidence & Greed Levels -->
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="space-y-1">
-                                    <label
-                                        for="trade-emotions"
-                                        class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
-                                    >
+                                    <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                                        Confidence Level
+                                    </label>
+                                    <div class="flex items-center gap-2">
+                                        <div class="relative flex-1">
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="10"
+                                                bind:value={form.confidenceLevel}
+                                                class="w-full h-1 bg-light-border dark:bg-dark-hover rounded-lg appearance-none cursor-pointer
+                                                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
+                                                    [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-theme-500
+                                                    [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3
+                                                    [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-theme-500"
+                                            />
+                                        </div>
+                                        <div class="px-2 py-0.5 text-xs rounded-full bg-theme-500/10 text-theme-500 min-w-[2rem] text-center">
+                                            {getLevelText(form.confidenceLevel)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-1">
+                                    <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                                        Greed Level
+                                    </label>
+                                    <div class="flex items-center gap-2">
+                                        <div class="relative flex-1">
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="10"
+                                                bind:value={form.greedLevel}
+                                                class="w-full h-1 bg-light-border dark:bg-dark-hover rounded-lg appearance-none cursor-pointer
+                                                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
+                                                    [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-theme-500
+                                                    [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3
+                                                    [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-theme-500"
+                                            />
+                                        </div>
+                                        <div class="px-2 py-0.5 text-xs rounded-full bg-theme-500/10 text-theme-500 min-w-[2rem] text-center">
+                                            {getLevelText(form.greedLevel)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Emotions & Tags -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
                                         Emotions
                                     </label>
                                     <Select
@@ -754,10 +940,7 @@
                                     />
                                 </div>
                                 <div class="space-y-1">
-                                    <label
-                                        for="trade-tags"
-                                        class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
-                                    >
+                                    <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
                                         Tags ({form.tags.length}/7)
                                     </label>
                                     <div class="space-y-2">
@@ -796,46 +979,187 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Notes -->
                             <div class="space-y-1">
-                                <label
-                                    for="trade-notes"
-                                    class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
-                                >
+                                <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
                                     Notes
                                 </label>
-                                <textarea
-                                    id="trade-notes"
-                                    bind:value={form.notes}
-                                    rows="3"
-                                    class="w-full px-2.5 py-1.5 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg resize-none
-                                        {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'opacity-50 cursor-not-allowed' : ''}"
-                                    placeholder="Additional notes about the trade..."
+                                <div class="editor-container {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'opacity-50 pointer-events-none' : ''}">
+                                    <div class="editor-menu border border-light-border dark:border-dark-hover rounded-t-md bg-light-bg dark:bg-dark-hover p-1 flex flex-wrap gap-1">
+                                        <button 
+                                            type="button"
+                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('bold') ? 'bg-theme-500/10' : ''}" 
+                                            on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleBold().run()}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h8a4 4 0 100-8H6v8zm0 0h8a4 4 0 110 8H6v-8z"/>
+                                            </svg>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('italic') ? 'bg-theme-500/10' : ''}" 
+                                            on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleItalic().run()}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4h-8"/>
+                                            </svg>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('underline') ? 'bg-theme-500/10' : ''}" 
+                                            on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleUnderline().run()}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 16h14M8 4v4m4-4v4m4-4v4"/>
+                                            </svg>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('highlight') ? 'bg-theme-500/10' : ''}" 
+                                            on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleHighlight().run()}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                            </svg>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive({ textAlign: 'left' }) ? 'bg-theme-500/10' : ''}" 
+                                            on:click|preventDefault|stopPropagation={() => editor?.chain().focus().setTextAlign('left').run()}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"/>
+                                            </svg>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive({ textAlign: 'center' }) ? 'bg-theme-500/10' : ''}" 
+                                            on:click|preventDefault|stopPropagation={() => editor?.chain().focus().setTextAlign('center').run()}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M4 18h16"/>
+                                            </svg>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive({ textAlign: 'right' }) ? 'bg-theme-500/10' : ''}" 
+                                            on:click|preventDefault|stopPropagation={() => editor?.chain().focus().setTextAlign('right').run()}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M10 12h10M4 18h16"/>
+                                            </svg>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('bulletList') ? 'bg-theme-500/10' : ''}" 
+                                            on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleBulletList().run()}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                                            </svg>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('orderedList') ? 'bg-theme-500/10' : ''}" 
+                                            on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleOrderedList().run()}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h10M7 16h10M3 8h.01M3 12h.01M3 16h.01"/>
+                                            </svg>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('link') ? 'bg-theme-500/10' : ''}" 
+                                            on:click|preventDefault|stopPropagation={() => {
+                                                const url = window.prompt('URL:');
+                                                if (url) {
+                                                    editor?.chain().focus().setLink({ href: url }).run();
+                                                } else if (editor?.isActive('link')) {
+                                                    editor?.chain().focus().unsetLink().run();
+                                                }
+                                            }}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                            </svg>
+                                        </button>
+                                        <div class="relative">
+                                            <input 
+                                                type="color" 
+                                                class="absolute opacity-0 w-full h-full cursor-pointer" 
+                                                on:input|preventDefault|stopPropagation={(e) => editor?.chain().focus().setColor(e.target.value).run()}
                                     disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
+                                            <button 
+                                                type="button"
+                                                class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover" 
+                                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                                            </svg>
+                                        </div>
+                                        <div class="w-px h-6 bg-light-border dark:bg-dark-hover mx-1"></div>
+                                        <button 
+                                            type="button"
+                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover"
+                                            on:click={handleImageUpload}
+                                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div 
+                                        bind:this={editorElement}
+                                        class="border border-light-border dark:border-dark-hover rounded-b-md bg-light-bg dark:bg-dark-bg p-2 min-h-[100px]"
+                                        data-placeholder="Write your trade notes here..."
+                                    ></div>
+                                </div>
                             </div>
 
                             <div class="space-y-1">
-                                <label
-                                    for="trade-url"
-                                    class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
-                                >
+                                <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
                                     URL
                                 </label>
+                                <div class="space-y-2">
                                 <input
-                                    id="trade-url"
                                     type="url"
                                     bind:value={form.url}
-                                    class="w-full px-2.5 py-1.5 h-8 text-sm rounded-md border border-light-border dark:border-0 bg-light-bg dark:bg-dark-bg
+                                        class="w-full px-2.5 py-1.5 h-8 text-sm rounded-md border border-light-border dark:border-dark-hover bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text
                                         {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'opacity-50 cursor-not-allowed' : ''}"
                                     placeholder="Enter a URL (e.g., TradingView chart, image, etc.)"
                                     disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                                 />
+                                    {#if form.url && isImageUrl(form.url)}
+                                        <div class="rounded-lg overflow-hidden border border-light-border dark:border-dark-hover">
+                                            <img
+                                                src={form.url}
+                                                alt="Trade Reference"
+                                                class="w-full max-h-48 object-contain bg-light-hover dark:bg-dark-hover"
+                                                on:error={handleImageError}
+                                            />
+                                        </div>
+                                    {/if}
+                                </div>
                                 {#if errors.url}
                                     <p class="text-sm text-red-500">{errors.url}</p>
                                 {/if}
                             </div>
                         </div>
-                    </div>
+                    {/if}
                 </form>
             </div>
 
@@ -843,7 +1167,7 @@
             <div
                 class="px-4 py-2 border-t border-light-border dark:border-0 flex justify-between gap-4 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90 z-10"
             >
-                <div class="flex items-center">
+                <div class="flex-1">
                     {#if form.type === 'SYNC'}
                         <div class="flex items-center gap-2 text-light-text-muted dark:text-dark-text-muted">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -854,12 +1178,13 @@
                             </span>
                         </div>
                     {/if}
-                    {#if errors.submit}
-                        <div class="flex items-center gap-2 p-2 mb-4 text-red-500 bg-red-50 rounded-lg">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <!-- Server Validation Error Message -->
+                    {#if errors.server}
+                        <div class="flex items-center gap-2 text-red-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <span class="text-sm font-medium">{errors.submit}</span>
+                            <span class="text-sm font-medium">{errors.server}</span>
                         </div>
                     {/if}
                 </div>
@@ -890,7 +1215,6 @@
         description="You've used 3 of 4 daily trades. You can delete existing trades to add new ones, or upgrade to Pro for unlimited trading."
         upgradeText="Upgrade to Pro"
         cancelText="Cancel"
-        showContinueButton={true}
         width="md"
         on:close={() => handleLimitWarningClose(false)}
         on:continue={() => handleLimitWarningClose(true)}
@@ -978,5 +1302,111 @@
 
     .upgrade-button:hover {
         animation: none;
+    }
+
+    /* Quill editor styles */
+    :global(.ql-toolbar) {
+        @apply bg-light-bg dark:bg-dark-hover border-light-border dark:border-dark-hover rounded-t-md !important;
+    }
+    
+    :global(.ql-container) {
+        @apply bg-light-bg dark:bg-dark-bg border-light-border dark:border-dark-hover rounded-b-md !important;
+        min-height: 100px;
+    }
+    
+    :global(.ql-editor) {
+        @apply text-light-text dark:text-dark-text !important;
+        min-height: 100px;
+    }
+    
+    :global(.ql-snow .ql-stroke) {
+        @apply stroke-light-text-muted dark:stroke-dark-text-muted !important;
+    }
+    
+    :global(.ql-snow .ql-fill) {
+        @apply fill-light-text-muted dark:fill-dark-text-muted !important;
+    }
+    
+    :global(.ql-snow .ql-picker) {
+        @apply text-light-text-muted dark:text-dark-text-muted !important;
+    }
+    
+    :global(.ql-snow.ql-toolbar button:hover),
+    :global(.ql-snow .ql-toolbar button:hover) {
+        @apply bg-light-hover dark:bg-dark-hover !important;
+    }
+    
+    :global(.ql-snow.ql-toolbar button.ql-active),
+    :global(.ql-snow .ql-toolbar button.ql-active) {
+        @apply bg-theme-500/10 !important;
+    }
+
+    .editor-container {
+        @apply text-light-text dark:text-dark-text;
+    }
+    
+    :global(.ProseMirror) {
+        @apply outline-none min-h-[100px] p-2;
+    }
+    
+    :global(.ProseMirror p) {
+        @apply mb-1;
+    }
+    
+    :global(.ProseMirror ul),
+    :global(.ProseMirror ol) {
+        @apply pl-5;
+    }
+    
+    :global(.ProseMirror ul) {
+        @apply list-disc;
+    }
+    
+    :global(.ProseMirror ol) {
+        @apply list-decimal;
+    }
+
+    :global(.ProseMirror p.is-editor-empty:first-child::before) {
+        content: attr(data-placeholder);
+        float: left;
+        color: #adb5bd;
+        pointer-events: none;
+        height: 0;
+    }
+
+    textarea {
+        @apply focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent
+        dark:focus:ring-offset-dark-card dark:placeholder-dark-text-muted/50;
+    }
+    
+    /* สำหรับ Firefox */
+    textarea {
+        scrollbar-width: thin;
+        scrollbar-color: var(--theme-500) transparent;
+    }
+    
+    /* สำหรับ Chrome, Safari และ Edge */
+    textarea::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    textarea::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    textarea::-webkit-scrollbar-thumb {
+        background-color: var(--theme-500);
+        border-radius: 2px;
+    }
+
+    /* เพิ่ม styles สำหรับรูปภาพ */
+    :global(.ProseMirror img) {
+        @apply max-w-full h-auto rounded-lg;
+        max-height: 400px;
+        object-fit: contain;
+    }
+
+    :global(.ProseMirror .image-container) {
+        @apply my-2 flex justify-center;
     }
 </style>

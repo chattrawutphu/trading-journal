@@ -321,8 +321,12 @@
                         <div class="space-y-3">
                             <div>
                                 <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Notes</div>
-                                <div class="text-sm text-light-text dark:text-dark-text mt-1 whitespace-pre-line">
-                                    {trade.notes || '-'}
+                                <div class="text-sm text-light-text dark:text-dark-text mt-1 rich-text-content">
+                                    {#if trade.notes}
+                                        {@html trade.notes}
+                                    {:else}
+                                        <p>-</p>
+                                    {/if}
                                 </div>
                             </div>
                         </div>
@@ -334,18 +338,32 @@
                     <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-4">
                         <h3 class="text-sm font-semibold text-light-text-muted dark:text-dark-text-muted mb-3">Reference</h3>
                         <div class="space-y-3">
-                            <a href={trade.url} 
-                               target="_blank" 
-                               rel="noopener noreferrer"
-                               class="text-sm text-theme-500 hover:underline break-all">
+                            <a 
+                                href={trade.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                class="text-sm text-theme-500 hover:underline break-all inline-flex items-center gap-1"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                </svg>
                                 {trade.url}
                             </a>
                             {#if isImageUrl(trade.url)}
-                                <div class="mt-2 rounded-lg overflow-hidden">
-                                    <img src={trade.url} 
-                                         alt="Trade Reference" 
-                                         class="w-full max-h-96 object-contain"
-                                         on:error={handleImageError} />
+                                <div class="mt-2 rounded-lg overflow-hidden border border-light-border dark:border-dark-hover">
+                                    <a 
+                                        href={trade.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        class="block hover:opacity-90 transition-opacity"
+                                    >
+                                        <img 
+                                            src={trade.url} 
+                                            alt="Trade Reference" 
+                                            class="w-full max-h-96 object-contain bg-light-hover dark:bg-dark-hover"
+                                            on:error={handleImageError}
+                                        />
+                                    </a>
                                 </div>
                             {/if}
                         </div>
@@ -404,5 +422,50 @@
 
     .animate-ping {
         animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    /* Rich text content styles */
+    :global(.rich-text-content p) {
+        @apply mb-2;
+    }
+    
+    :global(.rich-text-content ul) {
+        @apply list-disc pl-5 mb-2;
+    }
+    
+    :global(.rich-text-content ol) {
+        @apply list-decimal pl-5 mb-2;
+    }
+    
+    :global(.rich-text-content a) {
+        @apply text-theme-500 hover:underline;
+    }
+    
+    :global(.rich-text-content strong) {
+        @apply font-bold;
+    }
+    
+    :global(.rich-text-content em) {
+        @apply italic;
+    }
+    
+    :global(.rich-text-content u) {
+        @apply underline;
+    }
+    
+    :global(.rich-text-content mark) {
+        @apply bg-yellow-200 dark:bg-yellow-500/30;
+    }
+    
+    :global(.rich-text-content .text-left) {
+        text-align: left;
+    }
+    
+    :global(.rich-text-content .text-center) {
+        text-align: center;
+    }
+    
+    :global(.rich-text-content .text-right) {
+        text-align: right;
     }
 </style>

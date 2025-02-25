@@ -431,7 +431,18 @@ export const api = {
     },
 
     async getTaggedDays(tag) {
-        return await api.fetch(`/day-tags/${encodeURIComponent(tag)}/days`);
+        return await api.fetch(`/day-tags/${tag}/days`);
+    },
+
+    async getTagHistory(tag) {
+        return await api.fetch(`/tag-history/${encodeURIComponent(tag)}`);
+    },
+
+    async updateTagHistory(tag, data) {
+        return await api.fetch(`/tag-history/${encodeURIComponent(tag)}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
     },
 
     async deleteDayConfig(accountId, date) {

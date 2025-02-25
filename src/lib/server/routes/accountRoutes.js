@@ -75,18 +75,46 @@ router.post('/binance-history', async(req, res) => {
         // Process orders into positions
         const positions = binanceExchange.processOrdersToPositions(orders);
 
-        const symbols = [...new Set(positions.map(pos => pos.symbol))];
-        const startDate = new Date(Math.min(...positions.map(pos => pos.entryDate))).toISOString();
-        const endDate = new Date(Math.max(...positions.map(pos => pos.exitDate))).toISOString();
+        // สร้าง Map เพื่อเก็บ trade ID และ status ล่าสุด
+        const tradeStatusMap = new Map();
+        for (const order of orders) {
+            const tradeId = `${order.symbol}_${order.positionSide}_${order.time}`;
+            tradeStatusMap.set(tradeId, {
+                status: order.status,
+                updateTime: order.updateTime
+            });
+        }
+
+        // อัพเดท positions ด้วยข้อมูล status ล่าสุด
+        const updatedPositions = positions.map(pos => {
+            if (pos.orders && pos.orders.length > 0) {
+                const firstOrder = pos.orders[0];
+                const tradeId = `${firstOrder.symbol}_${firstOrder.positionSide}_${firstOrder.time}`;
+                const latestStatus = tradeStatusMap.get(tradeId);
+                
+                if (latestStatus) {
+                    return {
+                        ...pos,
+                        status: latestStatus.status === 'FILLED' ? pos.status : 'OPEN',
+                        lastUpdate: new Date(latestStatus.updateTime)
+                    };
+                }
+            }
+            return pos;
+        });
+
+        const symbols = [...new Set(updatedPositions.map(pos => pos.symbol))];
+        const startDate = new Date(Math.min(...updatedPositions.map(pos => pos.entryDate))).toISOString();
+        const endDate = new Date(Math.max(...updatedPositions.map(pos => pos.exitDate || Date.now()))).toISOString();
 
         res.json({
             success: true,
             data: {
-                totalTrades: positions.length,
+                totalTrades: updatedPositions.length,
                 symbols,
                 startDate,
                 endDate,
-                trades: positions
+                trades: updatedPositions
             }
         });
     } catch (error) {

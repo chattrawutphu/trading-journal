@@ -1,15 +1,10 @@
 <script>
-    import { createEventDispatcher, onMount, onDestroy } from "svelte";
+    import { createEventDispatcher, onDestroy } from "svelte";
     import { fade } from "svelte/transition";
     import Button from "../common/Button.svelte";
     import Modal from '../common/Modal.svelte';
-    import DayTagSelect from "./DayTagSelect.svelte";
-    import { dayConfigStore } from '$lib/stores/dayConfigStore';
-    import { subscriptionStore } from '$lib/stores/subscriptionStore';
-    import { SUBSCRIPTION_TYPES } from '$lib/config/subscription';
-    import { goto } from '$app/navigation';
-    import { dayTagStore } from '$lib/stores/dayTagStore';
     import { api } from '$lib/utils/api';
+    import { dayTagStore } from '$lib/stores/dayTagStore';
     import { Editor } from '@tiptap/core';
     import StarterKit from '@tiptap/starter-kit';
     import Link from '@tiptap/extension-link';
@@ -23,22 +18,20 @@
     const dispatch = createEventDispatcher();
 
     export let show = false;
-    export let accountId;
-    export let date;
+    export let tag = null;
     export let config = null;
 
     let editor;
     let editorElement;
 
     let formState = {
+        tagName: '',
         note: '',
-        tags: [],
         favorite: false
     };
 
     let error = null;
     let isSubmitting = false;
-    let loading = false;
 
     function initEditor() {
         try {
@@ -78,14 +71,21 @@
 
     function resetForm() {
         formState = {
+            tagName: tag || '',
             note: config?.note || '',
-            tags: config?.tags || [],
             favorite: config?.favorite || false
         };
         if (editor) {
             editor.commands.setContent(formState.note || '');
         }
     }
+
+    onDestroy(() => {
+        if (editor) {
+            editor.destroy();
+            editor = null;
+        }
+    });
 
     $: if (show || config) {
         resetForm();
@@ -101,23 +101,56 @@
         dispatch('close');
     }
 
-    async function removeTag(tag) {
+    async function handleSubmit() {
+        if (isSubmitting) return;
+        
         try {
-            // ลบ tag ออกจาก formState
-            formState.tags = formState.tags.filter(t => t !== tag);
+            isSubmitting = true;
+            error = null;
 
-            // หา tag ID จาก dayTagStore
-            const tagToUpdate = $dayTagStore.tags.find(t => t.value === tag);
-            if (tagToUpdate) {
-                // อัพเดทจำนวนการใช้งานของ tag ที่ถูกลบ
-                await api.updateDayTagUsage([tagToUpdate._id]);
-                await dayTagStore.loadTags(); // โหลด tags ใหม่เพื่ออัพเดทจำนวนการใช้งาน
+            const data = {
+                note: formState.note,
+                favorite: formState.favorite
+            };
+
+            // ถ้ามีการเปลี่ยนแปลงชื่อ tag
+            if (formState.tagName !== tag) {
+                // ลบ tag เก่า
+                const oldTag = $dayTagStore.tags.find(t => t.value === tag);
+                if (oldTag) {
+                    await api.deleteDayTag(oldTag._id);
+                }
+                
+                // สร้าง tag ใหม่
+                await dayTagStore.addTag(formState.tagName);
+                
+                // อัพเดท tag history สำหรับ tag ใหม่
+                const updatedHistory = await api.updateTagHistory(formState.tagName, data);
+                dispatch('configUpdated', updatedHistory);
+                
+                // รีโหลด tags
+                await dayTagStore.loadTags();
+            } else {
+                // ถ้าไม่มีการเปลี่ยนชื่อ tag ให้อัพเดทแค่ note และ favorite
+                const updatedHistory = await api.updateTagHistory(tag, data);
+                dispatch('configUpdated', updatedHistory);
             }
-        } catch (error) {
-            console.error('Failed to update tag usage count:', error);
+
+            handleClose();
+        } catch (err) {
+            error = err.message;
+            console.error('Error saving tag history:', err);
+        } finally {
+            isSubmitting = false;
         }
     }
 
+    // Initialize editor when showing modal
+    $: if (show && editorElement && !editor) {
+        initEditor();
+    }
+
+    // เพิ่มฟังก์ชันสำหรับแทรกรูปภาพ
     async function handleImageUpload() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -143,135 +176,13 @@
         
         input.click();
     }
-
-    async function handleSubmit() {
-        if (isSubmitting) return;
-        
-        try {
-            isSubmitting = true;
-            error = null;
-
-            // เก็บ tags เดิมไว้เพื่อเปรียบเทียบ
-            const originalTags = config?.tags || [];
-
-            const data = {
-                account: accountId,
-                date,
-                note: formState.note,
-                tags: formState.tags,
-                favorite: formState.favorite
-            };
-
-            let updatedConfig;
-            if (config) {
-                updatedConfig = await api.updateDayConfig(accountId, date, data);
-            } else {
-                updatedConfig = await api.createDayConfig(data);
-            }
-
-            // หา tags ที่ต้องอัพเดทจำนวนการใช้งาน (ทั้งที่เพิ่มและลบ)
-            const allAffectedTags = [...new Set([...originalTags, ...formState.tags])];
-            const tagIdsToUpdate = $dayTagStore.tags
-                .filter(tag => allAffectedTags.includes(tag.value))
-                .map(tag => tag._id);
-
-            if (tagIdsToUpdate.length > 0) {
-                await api.updateDayTagUsage(tagIdsToUpdate);
-                await dayTagStore.loadTags();
-            }
-
-            dispatch('configUpdated', updatedConfig);
-            handleClose();
-        } catch (err) {
-            error = err.message;
-            console.error('Error saving day config:', err);
-        } finally {
-            isSubmitting = false;
-        }
-    }
-
-    async function handleTagSelect(event) {
-        const tagValue = event.detail.value;
-        if (!tagValue || typeof tagValue !== 'string') return;
-        
-        const maxTags = subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 3 : 7;
-        
-        if (formState.tags.length < maxTags && !formState.tags.includes(tagValue)) {
-            try {
-                // ตรวจสอบว่า tag มีอยู่แล้วหรือไม่
-                const existingTag = $dayTagStore.tags.find(t => t.value === tagValue);
-                if (!existingTag) {
-                    await dayTagStore.addTag(tagValue);
-                }
-                formState.tags = [...formState.tags, tagValue];
-            } catch (error) {
-                console.error('Failed to add tag:', error);
-            }
-        }
-    }
-
-    function getTagColor(tag) {
-        const colors = [
-            { bg: 'bg-blue-500/10', text: 'text-blue-500' },
-            { bg: 'bg-green-500/10', text: 'text-green-500' },
-            { bg: 'bg-purple-500/10', text: 'text-purple-500' },
-            { bg: 'bg-orange-500/10', text: 'text-orange-500' },
-            { bg: 'bg-pink-500/10', text: 'text-pink-500' },
-            { bg: 'bg-teal-500/10', text: 'text-teal-500' },
-            { bg: 'bg-indigo-500/10', text: 'text-indigo-500' },
-        ];
-        
-        const hash = tag.split('').reduce((acc, char) => {
-            return char.charCodeAt(0) + ((acc << 5) - acc);
-        }, 0);
-        
-        return colors[Math.abs(hash) % colors.length];
-    }
-
-    function upgradePlan() {
-        goto('/subscription');
-    }
-
-    $: subscriptionType = $subscriptionStore.type || SUBSCRIPTION_TYPES.BASIC;
-
-    function handleNoteInput(event) {
-        const maxLength = subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 200 : 500;
-        if (event.target.value.length > maxLength) {
-            formState.note = event.target.value.slice(0, maxLength);
-        }
-    }
-
-    // เพิ่มฟังก์ชันสำหรับดึงจำนวนการใช้งานของ tag
-    function getTagUsageCount(tagValue) {
-        const tag = $dayTagStore.tags.find(t => t.value === tagValue);
-        return tag ? tag.usageCount : 0;
-    }
-
-    onMount(() => {
-        // โหลด day tags เมื่อ component ถูกโหลด
-        dayTagStore.loadTags();
-    });
-
-    // Initialize editor when showing modal
-    $: if (show && editorElement && !editor) {
-        initEditor();
-    }
-
-    // เพิ่มฟังก์ชัน cleanup
-    onDestroy(() => {
-        if (editor) {
-            editor.destroy();
-            editor = null;
-        }
-    });
 </script>
 
 {#if show}
     <Modal 
         {show} 
-        title="Day Configuration" 
+        title="Tag Configuration" 
         on:close={handleClose}
-        let:closeModal
         width="w-full max-w-2xl"
     >
         <form 
@@ -279,6 +190,24 @@
             on:submit|preventDefault={handleSubmit}
             on:click|stopPropagation
         >
+            <!-- Tag Name Section -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                    <label for="tagName" class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                        Tag Name
+                    </label>
+                </div>
+                <input
+                    id="tagName"
+                    type="text"
+                    bind:value={formState.tagName}
+                    class="w-full px-3 py-2 text-sm rounded-md border border-light-border dark:border-0 
+                           bg-light-bg dark:bg-dark-bg focus:ring-1 focus:ring-theme-500
+                           focus:outline-none focus:border-theme-500"
+                    placeholder="Enter tag name..."
+                />
+            </div>
+
             <!-- Note Section -->
             <div class="space-y-2">
                 <div class="flex justify-between items-center">
@@ -286,7 +215,7 @@
                         Notes
                     </label>
                     <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                        {formState.note.length}/{subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 200 : 500}
+                        {formState.note.length}/500
                     </span>
                 </div>
                 <div class="editor-container {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'opacity-50 pointer-events-none' : ''}">
@@ -422,9 +351,8 @@
                             />
                             <button 
                                 type="button"
-                                class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover"
-                                on:click|preventDefault|stopPropagation={() => editor?.chain().focus().setColor(getTagColor(formState.tags[0]).text).run()}
-                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC || formState.tags.length === 0}
+                                class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover" 
+                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
@@ -439,7 +367,8 @@
                         <button 
                             type="button"
                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover"
-                            on:click={handleImageUpload}
+                            on:click|preventDefault|stopPropagation={handleImageUpload}
+                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -449,53 +378,8 @@
                     <div 
                         bind:this={editorElement}
                         class="border border-light-border dark:border-dark-hover rounded-b-md bg-light-bg dark:bg-dark-bg p-2 min-h-[200px]"
-                        data-placeholder="Add notes for this trading day..."
+                        data-placeholder="Add notes for this tag..."
                     ></div>
-                </div>
-            </div>
-
-            <!-- Tags Section -->
-            <div class="space-y-2">
-                <div class="flex justify-between items-center">
-                    <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
-                        Tags ({formState.tags.length}/{subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 3 : 7})
-                    </label>
-                    <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                        {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'Basic plan: 3 tags max' : 'Pro plan: 7 tags max'}
-                    </span>
-                </div>
-                <div class="space-y-2">
-                    <DayTagSelect
-                        type="TAG"
-                        placeholder="Add tags..."
-                        value=""
-                        on:change={handleTagSelect}
-                        loading={$dayTagStore.loading}
-                        error={$dayTagStore.error}
-                    />
-                    
-                    {#if formState.tags.length > 0}
-                        <div class="flex flex-wrap gap-2 mt-2">
-                            {#each formState.tags as tag}
-                                {@const tagColor = getTagColor(tag)}
-                                <div class="flex items-center gap-1 px-2 py-1 rounded-full {tagColor.bg} {tagColor.text} text-sm">
-                                    <span>{tag}</span>
-                                    <span class="ml-1 text-xs opacity-75">
-                                        ({getTagUsageCount(tag)})
-                                    </span>
-                                    <button
-                                        type="button"
-                                        class="hover:opacity-75"
-                                        on:click={() => removeTag(tag)}
-                                    >
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            {/each}
-                        </div>
-                    {/if}
                 </div>
             </div>
 
@@ -535,13 +419,14 @@
 {/if}
 
 <style lang="postcss">
-    .upgrade-button-section {
-        @apply px-3 py-1 rounded-full text-sm font-medium
-        bg-gradient-to-r from-theme-500/10 to-theme-600/10
-        text-theme-500
-        transition-all duration-200
-        hover:from-theme-500 hover:to-theme-600 hover:text-white
-        focus:outline-none focus:ring-2 focus:ring-theme-500/50;
+    :global(.input) {
+        background-color: var(--bg-color) !important;
+        color: var(--text-color) !important;
+        border-color: var(--border-color) !important;
+    }
+
+    :global(.input[disabled]) {
+        cursor: not-allowed;
     }
 
     .editor-container {
@@ -565,5 +450,71 @@
 
     :global(.ProseMirror .image-container) {
         @apply my-2 flex justify-center;
+    }
+
+    :global(.ProseMirror ul),
+    :global(.ProseMirror ol) {
+        @apply pl-5;
+    }
+    
+    :global(.ProseMirror ul) {
+        @apply list-disc;
+    }
+    
+    :global(.ProseMirror ol) {
+        @apply list-decimal;
+    }
+
+    :global(.ProseMirror p.is-editor-empty:first-child::before) {
+        content: attr(data-placeholder);
+        float: left;
+        color: #adb5bd;
+        pointer-events: none;
+        height: 0;
+    }
+
+    /* Rich text content styles */
+    :global(.rich-text-content p) {
+        @apply mb-2;
+    }
+    
+    :global(.rich-text-content ul) {
+        @apply list-disc pl-5 mb-2;
+    }
+    
+    :global(.rich-text-content ol) {
+        @apply list-decimal pl-5 mb-2;
+    }
+    
+    :global(.rich-text-content a) {
+        @apply text-theme-500 hover:underline;
+    }
+    
+    :global(.rich-text-content strong) {
+        @apply font-bold;
+    }
+    
+    :global(.rich-text-content em) {
+        @apply italic;
+    }
+    
+    :global(.rich-text-content u) {
+        @apply underline;
+    }
+    
+    :global(.rich-text-content mark) {
+        @apply bg-yellow-200 dark:bg-yellow-500/30;
+    }
+    
+    :global(.rich-text-content .text-left) {
+        text-align: left;
+    }
+    
+    :global(.rich-text-content .text-center) {
+        text-align: center;
+    }
+    
+    :global(.rich-text-content .text-right) {
+        text-align: right;
     }
 </style> 

@@ -620,8 +620,8 @@
                             </svg>
                             <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Notes</h3>
                         </div>
-                        <div class="prose prose-sm max-w-none text-light-text dark:text-dark-text">
-                            {dayConfig.note}
+                        <div class="prose prose-sm max-w-none text-light-text dark:text-dark-text rich-text-content">
+                            {@html dayConfig.note}
                         </div>
                     </div>
                 {/if}

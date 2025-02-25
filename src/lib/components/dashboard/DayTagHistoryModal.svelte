@@ -10,6 +10,7 @@
     import DayConfigModal from './DayConfigModal.svelte';
     import { deleteModalStore } from '$lib/stores/modalStore';
     import { dayTagStore } from '$lib/stores/dayTagStore';
+    import TagConfigModal from './TagConfigModal.svelte';
 
     const dispatch = createEventDispatcher();
 
@@ -31,6 +32,8 @@
     let showDayConfigModal = false;
     let selectedDayConfig = null;
     let selectedDate = null;
+    let tagConfig = null;
+    let showTagConfigModal = false;
 
     // Add new state variables for table functionality
     let sortField = 'date';
@@ -39,8 +42,11 @@
     let currentPage = 1;
     let itemsPerPage = 10;
 
+    let tagHistory = null;
+
     $: if (show && tag) {
         loadTaggedDays();
+        loadTagHistory();
     }
 
     async function loadTaggedDays() {
@@ -67,6 +73,16 @@
             console.error('Error loading tagged days:', err);
         } finally {
             loading = false;
+        }
+    }
+
+    async function loadTagHistory() {
+        if (tag) {
+            try {
+                tagHistory = await api.getTagHistory(tag);
+            } catch (err) {
+                console.error('Error loading tag history:', err);
+            }
         }
     }
 
@@ -250,6 +266,40 @@
             currentPage = page;
         }
     }
+
+    async function handleTagConfigEdit() {
+        showTagConfigModal = true;
+    }
+
+    async function handleTagFavoriteToggle() {
+        if (!tagHistory) return;
+        
+        try {
+            const updatedHistory = {
+                ...tagHistory,
+                favorite: !tagHistory.favorite
+            };
+            
+            await api.updateTagHistory(tag, updatedHistory);
+            tagHistory = updatedHistory;
+            dispatch('tagHistoryUpdated', updatedHistory);
+        } catch (err) {
+            console.error('Error updating tag favorite:', err);
+        }
+    }
+
+    async function handleTagConfigUpdated(event) {
+        const updatedHistory = event.detail;
+        if (updatedHistory) {
+            tagHistory = updatedHistory;
+            if (updatedHistory.tag !== tag) {
+                tag = updatedHistory.tag;
+                await loadTaggedDays();
+            }
+            dispatch('tagHistoryUpdated', updatedHistory);
+        }
+        showTagConfigModal = false;
+    }
 </script>
 
 {#if show}
@@ -259,6 +309,16 @@
             <!-- Header -->
             <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
                 <div class="flex items-center gap-4">
+                    <!-- Favorite Star -->
+                    <button
+                        class="text-light-text-muted dark:text-dark-text-muted hover:text-yellow-500 transition-colors"
+                        on:click={handleTagFavoriteToggle}
+                        title={tagHistory?.favorite ? "Remove from favorites" : "Add to favorites"}
+                    >
+                        <svg class="w-6 h-6" fill={tagHistory?.favorite ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                        </svg>
+                    </button>
                     <div class="flex items-center gap-1 px-3 py-1.5 rounded-full {tagColor.bg} {tagColor.text}">
                         <span class="text-sm font-medium">{tag}</span>
                     </div>
@@ -267,6 +327,12 @@
                     </h2>
                 </div>
                 <div class="flex items-center gap-4">
+                    <Button variant="secondary" size="xs" on:click={handleTagConfigEdit}>
+                        <svg class="w-5 h-5 md:w-3 md:h-3 mr-0 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        <span class="hidden md:flex">Edit</span>
+                    </Button>
                     <button 
                         class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
                         on:click={handleClose}
@@ -277,6 +343,21 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Add note section if exists -->
+            {#if tagHistory?.note}
+                <div class="px-8 py-4 border-b border-light-border dark:border-0 bg-light-hover/30 dark:bg-dark-hover/30">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-4 h-4 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Notes</h3>
+                    </div>
+                    <div class="prose prose-sm max-w-none text-light-text dark:text-dark-text rich-text-content">
+                        {@html tagHistory.note}
+                    </div>
+                </div>
+            {/if}
 
             <!-- Summary Stats -->
             <div class="px-8 py-4 border-b border-light-border dark:border-0 bg-light-hover/30 dark:bg-dark-hover/30">
@@ -497,6 +578,14 @@
     date={selectedDate}
     config={selectedDayConfig}
     on:configUpdated={handleConfigUpdated}
+/>
+
+<!-- Add TagConfigModal -->
+<TagConfigModal
+    bind:show={showTagConfigModal}
+    {tag}
+    config={tagHistory}
+    on:configUpdated={handleTagConfigUpdated}
 />
 
 <style lang="postcss">

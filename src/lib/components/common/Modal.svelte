@@ -6,6 +6,7 @@
     export let show = false;
     export let title = '';
     export let showDefaultHeader = true;
+    export let width = '';
 </script>
 
 {#if show}
@@ -15,8 +16,8 @@
         on:click|self={() => dispatch('close')}
     >
         <div 
-            class="bg-light-card dark:bg-dark-card border border-light-border dark:border-0 
-                   rounded-xl shadow-xl max-w-full"
+            class="w-full {width} bg-light-card dark:bg-dark-card border border-light-border dark:border-0 
+                   rounded-xl shadow-xl"
             on:click|stopPropagation
         >
             <!-- Default Header - แสดงเฉพาะเมื่อ showDefaultHeader เป็น true -->
