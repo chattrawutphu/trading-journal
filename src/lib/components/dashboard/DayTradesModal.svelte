@@ -63,9 +63,6 @@
         // Reset dayConfig เมื่อเปลี่ยนวัน
         dayConfig = null;
         loadDayConfig();
-    }
-
-    $: if (show && accountId) {
         resetUnrealizedPnL();
         loadTransactions();
         loadTrades();
@@ -122,6 +119,14 @@
     }
 
     function close() {
+        // Reset all data when closing
+        trades = [];
+        transactions = [];
+        dayConfig = null;
+        totalUnrealizedPnL = null;
+        isLoadingUnrealizedPnL = true;
+        selectedTrade = null;
+        selectedTransaction = null;
         dispatch('close');
     }
 
@@ -370,12 +375,6 @@
         ? Math.round((dailySummary.winCount / trades.filter(t => t.status === 'CLOSED').length) * 100) 
         : 0;
 
-    // Watch for changes
-    $: if (show && accountId) {
-        loadTransactions();
-        loadTrades();
-    }
-
     function handleConfigEdit() {
         showDayConfigModal = true;
     }
@@ -430,6 +429,13 @@
         selectedTag = tag;
         selectedTagColor = color;
         showTagHistoryModal = true;
+    }
+
+    function handleTagHistoryUpdate(event) {
+        const updatedConfig = event.detail;
+        if (updatedConfig && updatedConfig.date === date) {
+            dayConfig = updatedConfig;
+        }
     }
 
     function handleDaySelect(day) {
@@ -817,6 +823,7 @@
     tagColor={selectedTagColor}
     {accountId}
     onDaySelect={handleDaySelect}
+    on:configUpdated={handleTagHistoryUpdate}
 />
 
 <style lang="postcss">

@@ -9,6 +9,7 @@
     import { dayConfigStore } from '$lib/stores/dayConfigStore';
     import DayConfigModal from './DayConfigModal.svelte';
     import { deleteModalStore } from '$lib/stores/modalStore';
+    import { dayTagStore } from '$lib/stores/dayTagStore';
 
     const dispatch = createEventDispatcher();
 
@@ -133,15 +134,39 @@
             type: 'single',
             context: 'days',
             count: 1,
-            itemName: `day ${formatShortDate(day.date)}`,
+            itemName: `tag from ${formatShortDate(day.date)}`,
             onConfirm: async () => {
                 try {
-                    // Use the date directly from the day object
-                    const formattedDate = day.date;
-                    await dayConfigStore.deleteConfig(accountId, formattedDate);
+                    // Load current day config
+                    const currentConfig = await dayConfigStore.loadConfig(accountId, day.date);
+                    if (!currentConfig) return;
+
+                    // Remove the tag from the config
+                    const updatedTags = currentConfig.tags.filter(t => t !== tag);
+
+                    // Update the day config
+                    const data = {
+                        ...currentConfig,
+                        tags: updatedTags
+                    };
+
+                    // Save the updated config
+                    const updatedConfig = await api.updateDayConfig(accountId, day.date, data);
+
+                    // Update tag usage count
+                    const tagToUpdate = $dayTagStore.tags.find(t => t.value === tag);
+                    if (tagToUpdate) {
+                        await api.updateDayTagUsage([tagToUpdate._id]);
+                        await dayTagStore.loadTags();
+                    }
+
+                    // Reload the tagged days
                     await loadTaggedDays();
+
+                    // Dispatch event to update DayTradeModal
+                    dispatch('configUpdated', updatedConfig);
                 } catch (error) {
-                    console.error('Error deleting day:', error);
+                    console.error('Error removing tag from day:', error);
                 }
             }
         });
@@ -153,21 +178,46 @@
             type: 'selected',
             context: 'days',
             count: selectedDays.length,
-            itemName: 'days',
+            itemName: `tag from ${selectedDays.length} days`,
             onConfirm: async () => {
                 try {
-                    await Promise.all(
-                        selectedDays.map(dayId => {
-                            const day = taggedDays.find(d => d._id === dayId);
-                            // Use the date directly from the day object
-                            const formattedDate = day.date;
-                            return dayConfigStore.deleteConfig(accountId, formattedDate);
-                        })
-                    );
+                    // Process each selected day
+                    const updatedConfigs = await Promise.all(selectedDays.map(async (date) => {
+                        // Load current day config
+                        const currentConfig = await dayConfigStore.loadConfig(accountId, date);
+                        if (!currentConfig) return null;
+
+                        // Remove the tag from the config
+                        const updatedTags = currentConfig.tags.filter(t => t !== tag);
+
+                        // Update the day config
+                        const data = {
+                            ...currentConfig,
+                            tags: updatedTags
+                        };
+
+                        // Save the updated config
+                        return await api.updateDayConfig(accountId, date, data);
+                    }));
+
+                    // Update tag usage count
+                    const tagToUpdate = $dayTagStore.tags.find(t => t.value === tag);
+                    if (tagToUpdate) {
+                        await api.updateDayTagUsage([tagToUpdate._id]);
+                        await dayTagStore.loadTags();
+                    }
+
                     selectedDays = [];
                     await loadTaggedDays();
+
+                    // Dispatch event to update DayTradeModal for each updated config
+                    updatedConfigs.forEach(config => {
+                        if (config) {
+                            dispatch('configUpdated', config);
+                        }
+                    });
                 } catch (error) {
-                    console.error('Error deleting selected days:', error);
+                    console.error('Error removing tag from selected days:', error);
                 }
             }
         });
@@ -283,7 +333,7 @@
                                         <input 
                                             type="checkbox" 
                                             class="checkbox"
-                                            on:click={() => selectedDays = selectedDays.length === taggedDays.length ? [] : taggedDays.map(d => d._id)}
+                                            on:click={() => selectedDays = selectedDays.length === taggedDays.length ? [] : taggedDays.map(d => d.date)}
                                             checked={selectedDays.length === taggedDays.length && taggedDays.length > 0}
                                         />
                                     </th>
@@ -334,8 +384,8 @@
                                             <input 
                                                 type="checkbox"
                                                 class="checkbox"
-                                                on:click={() => handleSelect(day._id)}
-                                                checked={selectedDays.includes(day._id)}
+                                                on:click={() => handleSelect(day.date)}
+                                                checked={selectedDays.includes(day.date)}
                                             />
                                         </td>
                                         <td class="py-1 px-2 text-sm font-medium text-light-text dark:text-dark-text">
