@@ -544,7 +544,12 @@
     async function loadDailyBalances() {
         if (!$accountStore.currentAccount) return;
         try {
-            await dailyBalancesStore.fetch($accountStore.currentAccount._id);
+            // แทนที่จะเรียก fetch ใหม่ทุกครั้ง ให้ใช้ dailyBalances ที่มีอยู่แล้ว 
+            // ถ้ายังไม่มีข้อมูลเลยในครั้งแรกค่อย fetch
+            if (Object.keys($dailyBalancesStore).length === 0) {
+                await dailyBalancesStore.fetch($accountStore.currentAccount._id);
+            }
+            // ไม่จำเป็นต้อง fetch ทุกครั้งที่เปลี่ยนเดือน เพราะข้อมูลควรจะถูกโหลดครั้งเดียวตอนเริ่มต้นหรือเมื่อมีการอัพเดทเท่านั้น
         } catch (err) {
             console.error('Error loading daily balances:', err);
         }

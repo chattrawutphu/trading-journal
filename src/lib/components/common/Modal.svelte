@@ -5,6 +5,7 @@
     const dispatch = createEventDispatcher();
     export let show = false;
     export let width = '';
+    export let hideHeader = false;
 </script>
 
 {#if show}
@@ -19,6 +20,7 @@
             on:click|stopPropagation
         >
             <!-- Header -->
+            {#if !hideHeader}
             <div class="px-6 py-4 border-b border-light-border dark:border-dark-border flex justify-between items-start">
                 <slot name="title"></slot>
                 <button 
@@ -31,6 +33,7 @@
                     </svg>
                 </button>
             </div>
+            {/if}
 
             <!-- Content -->
             <div class="relative">

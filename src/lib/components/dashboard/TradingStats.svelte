@@ -195,11 +195,6 @@
         loadStats();
     }
 
-    // เพิ่ม watch สำหรับ dailyBalancesStore
-    $: if ($dailyBalancesStore && Object.keys($dailyBalancesStore).length > 0) {
-        loadStats();
-    }
-
     function formatPercentage(value) {
         // แปลงเป็น number ก่อนใช้งาน
         const numValue = Number(value);

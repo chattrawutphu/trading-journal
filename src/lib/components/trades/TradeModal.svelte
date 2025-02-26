@@ -54,8 +54,8 @@
         emotions: "neutral",
         notes: "",
         url: "",
-        confidenceLevel: 0,
-        greedLevel: 0,
+        confidenceLevel: 1,
+        greedLevel: 1,
         hasStopLoss: false,
         hasTakeProfit: false,
         favorite: false,
@@ -281,6 +281,10 @@
             }
             dispatch('tradeUpdated');
             
+            // ส่ง global event ไปยัง window เพื่อให้ component อื่นๆ รับทราบ
+            window.dispatchEvent(new CustomEvent('tradeupdate'));
+            window.dispatchEvent(new CustomEvent('tradeupdated'));
+            
             // รีเซ็ตค่าทั้งหมดก่อนปิด modal
             resetForm();
             trade = null;
@@ -322,6 +326,10 @@
 
             handleClose();
             dispatch('tradeUpdated');
+            
+            // ส่ง global event ไปยัง window เพื่อให้ component อื่นๆ รับทราบ
+            window.dispatchEvent(new CustomEvent('tradeupdate'));
+            window.dispatchEvent(new CustomEvent('tradeupdated'));
         } catch (error) {
             console.error('Error saving trade:', error);
             
@@ -883,7 +891,7 @@
                                         <div class="relative flex-1">
                                             <input
                                                 type="range"
-                                                min="0"
+                                                min="1"
                                                 max="10"
                                                 bind:value={form.confidenceLevel}
                                                 class="w-full h-1 bg-light-border dark:bg-dark-hover rounded-lg appearance-none cursor-pointer
@@ -907,7 +915,7 @@
                                         <div class="relative flex-1">
                                             <input
                                                 type="range"
-                                                min="0"
+                                                min="1"
                                                 max="10"
                                                 bind:value={form.greedLevel}
                                                 class="w-full h-1 bg-light-border dark:bg-dark-hover rounded-lg appearance-none cursor-pointer

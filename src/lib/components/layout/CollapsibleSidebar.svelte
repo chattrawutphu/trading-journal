@@ -147,7 +147,9 @@
 
     function formatSubscriptionType(type) {
         if (!type) return 'basic';
-        return type.toLowerCase();
+        const lowerType = type.toLowerCase();
+        if (lowerType === 'pro_plus') return 'pro+';
+        return lowerType;
     }
 
     function getSubscriptionBadgeStyle(type) {
@@ -213,10 +215,6 @@
                 >
                     Trading Journal
                 </h1>
-            {:else}
-                <div class="w-8 h-8 flex items-center justify-center">
-                    <div class="w-6 h-6 rounded-md bg-gradient-purple"></div>
-                </div>
             {/if}
             <button
                 class="text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 dark:hover:text-theme-400 p-2 rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200"

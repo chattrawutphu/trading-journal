@@ -25,14 +25,16 @@
 {#if show}
     <Modal
         {show}
-        title="Confirm Delete"
+        hideHeader={true}
+        width="max-w-sm"
         on:close
     >
-        <div class="p-4 w-[300px]">
-            <p class="text-light-text dark:text-dark-text text-sm">
+        <div class="px-6 py-5">
+            <h3 class="text-lg font-medium text-light-text dark:text-dark-text mb-4">Confirm Delete</h3>
+            <p class="text-light-text dark:text-dark-text">
                 {getMessage()}
             </p>
-            <div class="flex justify-end gap-2 mt-4">
+            <div class="flex justify-end gap-3 mt-6">
                 <Button
                     variant="secondary"
                     size="xs"

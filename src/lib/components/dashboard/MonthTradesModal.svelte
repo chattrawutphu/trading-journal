@@ -263,10 +263,12 @@
 {#if showDeleteConfirmModal}
     <Modal
         show={showDeleteConfirmModal}
-        title="Confirm Delete"
+        hideHeader={true}
+        width="max-w-sm"
         on:close={() => showDeleteConfirmModal = false}
     >
         <div class="p-6">
+            <h3 class="text-lg font-medium text-light-text dark:text-dark-text mb-4">Confirm Delete</h3>
             <p class="text-light-text dark:text-dark-text">
                 {#if deleteContext?.type === 'selected'}
                     Are you sure you want to delete {deleteContext.items.length} selected items?
