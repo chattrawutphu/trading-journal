@@ -547,19 +547,19 @@
         <div class="card w-full max-w-2xl mx-auto relative transform ease-out">
             <!-- Header -->
             <div
-                class="px-4 py-3 border-b border-light-border dark:border-0 flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card rounded-t-xl bg-opacity-90 dark:bg-opacity-90 z-10"
+                class="px-6 py-4 bg-theme-500/10 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 rounded-t-xl z-10"
             >
                 <div class="flex-1 flex items-center gap-3">
                     <!-- Trade Type Icon -->
                     {#if form.type === 'SYNC'}
-                        <span class="text-blue-500" title="Synced trade">
+                        <span class="text-theme-500" title="Synced trade">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                         </span>
                     {:else}
-                        <span class="text-green-500" title="Manual trade">
+                        <span class="text-theme-500" title="Manual trade">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -571,7 +571,7 @@
                     </h2>
                     {#if form.symbol}
                         <div
-                            class="text-base px-3 py-1 rounded-full bg-light-hover dark:bg-dark-hover text-light-text-muted dark:text-dark-text-muted"
+                            class="text-base px-3 py-1 rounded-full bg-theme-500/10 text-theme-500 font-medium"
                         >
                             {form.symbol}
                         </div>
@@ -582,7 +582,7 @@
                     on:click={handleClose}
                 >
                     <svg 
-                        class="w-6 h-6" 
+                        class="w-5 h-5" 
                         fill="none" 
                         stroke="currentColor" 
                         viewBox="0 0 24 24"

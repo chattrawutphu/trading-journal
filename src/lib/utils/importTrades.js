@@ -127,8 +127,8 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
                 pnl: trade.pnl || 0,
                 commission: trade.commission || 0,
                 commissionAsset: trade.commissionAsset || 'USDT',
-                confidenceLevel: trade.confidenceLevel || 5,
-                greedLevel: trade.greedLevel || 5
+                confidenceLevel: Math.max(trade.confidenceLevel || 1, 1),
+                greedLevel: Math.max(trade.greedLevel || 1, 1)
             };
 
             // Log the trade details for debugging
@@ -297,20 +297,26 @@ export async function syncTrades(accountId, api) {
                 // Check if this is a partial close or full close
                 if (closedTrade.status === 'CLOSED') {
                     console.log(`Updating open trade ${openTrade.orderId} with closed data`);
+                    // Debug closeHistory data
+                    console.log('positionHistory from Binance:', closedTrade.positionHistory);
                     
                     const updatedTrade = {
                         ...openTrade,
                         ...closedTrade,
                         status: 'CLOSED',
-                        confidenceLevel: openTrade.confidenceLevel,
-                        greedLevel: openTrade.greedLevel,
+                        confidenceLevel: Math.max(openTrade.confidenceLevel || 1, 1),
+                        greedLevel: Math.max(openTrade.greedLevel || 1, 1),
                         tags: openTrade.tags,
                         notes: openTrade.notes,
                         exitDate: closedTrade.exitDate,
                         exitPrice: closedTrade.exitPrice,
                         pnl: closedTrade.pnl,
-                        commission: openTrade.commission + closedTrade.commission
+                        commission: openTrade.commission + closedTrade.commission,
+                        positionHistory: closedTrade.positionHistory || [] // Use positionHistory
                     };
+
+                    // Debug updated trade object
+                    console.log('Updated trade with positionHistory:', updatedTrade.positionHistory);
 
                     await api.updateTrade(openTrade._id, updatedTrade);
                     
@@ -331,8 +337,12 @@ export async function syncTrades(accountId, api) {
                             amount: Math.abs(closedTrade.entryPrice * closedTrade.quantity),
                             entryPrice: closedTrade.entryPrice,
                             commission: closedTrade.commission,
+                            confidenceLevel: Math.max(openTrade.confidenceLevel || 1, 1),
+                            greedLevel: Math.max(openTrade.greedLevel || 1, 1),
                             // Update PnL from partial closes that may have occurred
-                            pnl: closedTrade.pnl || openTrade.pnl || 0
+                            pnl: closedTrade.pnl || openTrade.pnl || 0,
+                            // Update position history if available
+                            positionHistory: closedTrade.positionHistory || openTrade.positionHistory || []
                         };
 
                         await api.updateTrade(openTrade._id, updatedTrade);

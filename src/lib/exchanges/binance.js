@@ -170,15 +170,41 @@ function processOrdersToPositions(orders) {
                         price: parseFloat(order.price || order.avgPrice),
                         lastPriceUpdate: new Date(order.time),
                         type: 'SYNC',
-                        confidenceLevel: 5,
-                        greedLevel: 5
+                        confidenceLevel: 1,
+                        greedLevel: 1,
+                        amount: parseFloat(order.avgPrice) * parseFloat(order.executedQty),
+                        positionHistory: [{
+                            date: new Date(order.updateTime || order.time).toISOString(),
+                            quantity: parseFloat(order.executedQty),
+                            percentage: 100,
+                            price: parseFloat(order.avgPrice),
+                            pnl: 0,
+                            orderId: order.orderId,
+                            action: 'INCREASE'
+                        }]
                     });
                 } else {
                     // Add to LONG position
                     const pos = openPositions.get(key);
-                    const totalQty = pos.quantity + parseFloat(order.executedQty);
+                    const newQty = parseFloat(order.executedQty);
+                    const totalQty = pos.quantity + newQty;
+                    const newPrice = parseFloat(order.avgPrice);
+                    
+                    // Calculate weighted average entry price
                     pos.entryPrice = ((pos.entryPrice * pos.quantity) + 
-                        (parseFloat(order.avgPrice) * parseFloat(order.executedQty))) / totalQty;
+                        (newPrice * newQty)) / totalQty;
+                    
+                    // Add this increase to positionHistory
+                    pos.positionHistory.push({
+                        date: new Date(order.updateTime || order.time).toISOString(),
+                        quantity: newQty,
+                        percentage: (newQty / pos.quantity * 100).toFixed(2),
+                        price: newPrice,
+                        pnl: 0,
+                        orderId: order.orderId,
+                        action: 'INCREASE'
+                    });
+                    
                     pos.quantity = totalQty;
                     pos.orders.push(order);
                     pos.commission += parseFloat(order.commission);
@@ -197,12 +223,38 @@ function processOrdersToPositions(orders) {
 
                         if (isPartialClose) {
                             // For partial close, reduce the position quantity but keep it open
+                            const initialQty = pos.quantity;
+                            const closePercentage = (closeQty / initialQty) * 100;
+                            
+                            // Track this partial close in history
+                            pos.positionHistory.push({
+                                date: new Date(order.updateTime).toISOString(),
+                                quantity: closeQty,
+                                percentage: closePercentage.toFixed(2),
+                                price: exitPrice,
+                                pnl: pnl,
+                                orderId: order.orderId,
+                                action: 'DECREASE'
+                            });
+                            
                             pos.quantity -= closeQty;
+                            pos.amount = pos.entryPrice * pos.quantity; // Update amount
                             pos.pnl += pnl;
                             pos.commission += parseFloat(order.commission);
                             pos.orders.push(order);
                         } else {
                             // For full close, mark as closed and remove from open positions
+                            // Track the final close in history
+                            pos.positionHistory.push({
+                                date: new Date(order.updateTime).toISOString(),
+                                quantity: closeQty,
+                                percentage: 100,
+                                price: exitPrice,
+                                pnl: pnl,
+                                orderId: order.orderId,
+                                action: 'DECREASE'
+                            });
+                            
                             positions.push({
                                 ...pos,
                                 exitDate: order.updateTime,
@@ -213,7 +265,8 @@ function processOrdersToPositions(orders) {
                                 commission: pos.commission + parseFloat(order.commission),
                                 commissionAsset: order.commissionAsset,
                                 type: 'SYNC',
-                                status: 'CLOSED'
+                                status: 'CLOSED',
+                                positionHistory: pos.positionHistory
                             });
 
                             openPositions.delete(key);
@@ -239,12 +292,36 @@ function processOrdersToPositions(orders) {
                         price: parseFloat(order.price || order.avgPrice),
                         lastPriceUpdate: new Date(order.time),
                         type: 'SYNC',
-                        confidenceLevel: 5,
-                        greedLevel: 5
+                        confidenceLevel: 1,
+                        greedLevel: 1,
+                        amount: parseFloat(order.avgPrice) * parseFloat(order.executedQty),
+                        positionHistory: [{
+                            date: new Date(order.updateTime || order.time).toISOString(),
+                            quantity: parseFloat(order.executedQty),
+                            percentage: 100,
+                            price: parseFloat(order.avgPrice),
+                            pnl: 0,
+                            orderId: order.orderId,
+                            action: 'INCREASE'
+                        }]
                     });
                 } else {
                     const pos = openPositions.get(key);
-                    const totalQty = pos.quantity + parseFloat(order.executedQty);
+                    const newQty = parseFloat(order.executedQty);
+                    const totalQty = pos.quantity + newQty;
+                    const newPrice = parseFloat(order.avgPrice);
+                    
+                    // Add this increase to positionHistory
+                    pos.positionHistory.push({
+                        date: new Date(order.updateTime || order.time).toISOString(),
+                        quantity: newQty,
+                        percentage: (newQty / pos.quantity * 100).toFixed(2),
+                        price: newPrice,
+                        pnl: 0,
+                        orderId: order.orderId,
+                        action: 'INCREASE'
+                    });
+                    
                     pos.entryPrice = ((pos.entryPrice * pos.quantity) + 
                         (parseFloat(order.avgPrice) * parseFloat(order.executedQty))) / totalQty;
                     pos.quantity = totalQty;
@@ -264,12 +341,38 @@ function processOrdersToPositions(orders) {
 
                         if (isPartialClose) {
                             // For partial close, reduce the position quantity but keep it open
+                            const initialQty = pos.quantity;
+                            const closePercentage = (closeQty / initialQty) * 100;
+                            
+                            // Track this partial close in history
+                            pos.positionHistory.push({
+                                date: new Date(order.updateTime).toISOString(),
+                                quantity: closeQty,
+                                percentage: closePercentage.toFixed(2),
+                                price: exitPrice,
+                                pnl: pnl,
+                                orderId: order.orderId,
+                                action: 'DECREASE'
+                            });
+                            
                             pos.quantity -= closeQty;
+                            pos.amount = pos.entryPrice * pos.quantity; // Update amount
                             pos.pnl += pnl;
                             pos.commission += parseFloat(order.commission);
                             pos.orders.push(order);
                         } else {
                             // For full close, mark as closed and remove from open positions
+                            // Track the final close in history
+                            pos.positionHistory.push({
+                                date: new Date(order.updateTime).toISOString(),
+                                quantity: closeQty,
+                                percentage: 100,
+                                price: exitPrice,
+                                pnl: pnl,
+                                orderId: order.orderId,
+                                action: 'DECREASE'
+                            });
+                            
                             positions.push({
                                 ...pos,
                                 exitDate: order.updateTime,
@@ -280,7 +383,8 @@ function processOrdersToPositions(orders) {
                                 commission: pos.commission + parseFloat(order.commission),
                                 commissionAsset: order.commissionAsset,
                                 type: 'SYNC',
-                                status: 'CLOSED'
+                                status: 'CLOSED',
+                                positionHistory: pos.positionHistory
                             });
 
                             openPositions.delete(key);

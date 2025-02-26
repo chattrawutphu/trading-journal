@@ -114,6 +114,24 @@ const tradeSchema = new mongoose.Schema({
         type: String,
         enum: ['MANUAL', 'SYNC'],
         default: 'MANUAL'
+    },
+    // Rename closeHistory to positionHistory and update validation
+    positionHistory: {
+        type: Array,
+        default: [],
+        validate: {
+            validator: function(v) {
+                // Validate structure if needed
+                if (!Array.isArray(v)) return false;
+                return v.every(item => 
+                    item.date && item.quantity && 
+                    item.percentage && item.price && 
+                    typeof item.pnl !== 'undefined' &&
+                    item.action // Check for action field (INCREASE or DECREASE)
+                );
+            },
+            message: props => 'Invalid positionHistory structure'
+        }
     }
 });
 
@@ -188,6 +206,15 @@ tradeSchema.pre('save', function(next) {
     // Set amount if not already set
     if (!this.amount) {
         this.amount = this.entryPrice * this.quantity;
+    }
+
+    // Ensure confidenceLevel and greedLevel are at least 1
+    if (this.confidenceLevel < 1) {
+        this.confidenceLevel = 1;
+    }
+    
+    if (this.greedLevel < 1) {
+        this.greedLevel = 1;
     }
 
     next();

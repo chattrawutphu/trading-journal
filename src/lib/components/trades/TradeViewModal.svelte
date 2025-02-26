@@ -6,6 +6,19 @@
     export let show = false;
     export let trade = null;
     
+    // Compute position history, supporting backward compatibility
+    $: positionHistory = trade ? (trade.positionHistory || convertCloseHistoryToPositionHistory(trade.closeHistory)) : [];
+
+    // Convert old closeHistory format to new positionHistory format
+    function convertCloseHistoryToPositionHistory(closeHistory) {
+        if (!closeHistory || !Array.isArray(closeHistory)) return [];
+        
+        return closeHistory.map(close => ({
+            ...close,
+            action: 'DECREASE' // Assume all closeHistory entries are decreases
+        }));
+    }
+    
     function close() {
         show = false;
     }
@@ -70,6 +83,24 @@
     $: if (trade && trade.status === 'OPEN' && trade.currentPrice) {
         trade.unrealizedPnL = binanceExchange.calculateUnrealizedPnL(trade, trade.currentPrice);
     }
+
+    // Add debug log to check positionHistory data
+    $: if (trade) {
+        console.log('Trade data in modal:', trade);
+        const hasPositionHistory = !!trade.positionHistory;
+        const hasCloseHistory = !!trade.closeHistory;
+        console.log('Has position history:', hasPositionHistory, 'Has close history:', hasCloseHistory);
+        console.log('Using position history:', positionHistory);
+    }
+
+    // ฟังก์ชันสำหรับตรวจสอบว่า field มีข้อมูลหรือไม่
+    function hasContent(value) {
+        if (value === null || value === undefined) return false;
+        if (typeof value === 'string') return value.trim() !== '';
+        if (Array.isArray(value)) return value.length > 0;
+        if (typeof value === 'object') return Object.keys(value).length > 0;
+        return true;
+    }
 </script>
 
 {#if show && trade}
@@ -80,20 +111,20 @@
 >
     <div class="w-full max-w-3xl bg-light-card dark:bg-dark-card rounded-xl shadow-xl overflow-hidden">
         <!-- Header -->
-        <div class="relative px-6 py-4 border-b border-light-border dark:border-dark-border">
+        <div class="relative px-6 py-4 bg-theme-500/10 border-b border-light-border dark:border-dark-border">
             <div class="flex items-center gap-3">
                 <!-- Symbol, Type & Side -->
                 <div class="flex-1 flex items-center gap-3">
                     <!-- Trade Type Icon -->
                     {#if trade.type === 'SYNC'}
-                        <span class="text-blue-500" title="Synced trade">
+                        <span class="text-theme-500" title="Synced trade">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                         </span>
                     {:else}
-                        <span class="text-green-500" title="Manual trade">
+                        <span class="text-theme-500" title="Manual trade">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -108,7 +139,7 @@
                             </h2>
                             <!-- Status Badge -->
                             <span class="px-2 py-0.5 rounded-full text-xs font-medium
-                                {trade.status === 'OPEN' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-green-500/10 text-green-500'}">
+                                {trade.status === 'OPEN' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-theme-500/10 text-theme-500'}">
                                 {trade.status}
                             </span>
                             <!-- Side Badge -->
@@ -199,73 +230,91 @@
         <div class="p-4 max-h-[calc(100vh-12rem)] overflow-y-auto">
             <div class="grid gap-4">
                 <!-- Trade Info Section -->
-                <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-4">
-                    <h3 class="text-sm font-semibold text-light-text-muted dark:text-dark-text-muted mb-3">Trade Information</h3>
+                <div class="bg-light-panel dark:bg-dark-panel rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-theme-500 mb-3">Trade Information</h3>
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3">
+                        {#if trade.orderId}
                         <div class="flex items-center gap-2">
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Order ID</div>
                             <div class="text-sm font-mono text-light-text dark:text-dark-text">
-                                {trade.orderId || '-'}
+                                {trade.orderId}
                             </div>
                         </div>
+                        {/if}
+                        
                         <div>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Amount</div>
                             <div class="text-sm font-bold text-light-text dark:text-dark-text">
                                 {formatCurrency(trade.amount || 0)}
                             </div>
                         </div>
+                        
                         <div>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Quantity</div>
                             <div class="text-sm font-bold text-light-text dark:text-dark-text">
                                 {trade.quantity || 0}
                             </div>
                         </div>
+                        
+                        {#if trade.leverage}
                         <div>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Leverage</div>
                             <div class="text-sm font-bold text-light-text dark:text-dark-text">
-                                {trade.leverage ? `${trade.leverage}x` : '-'}
+                                {trade.leverage}x
                             </div>
                         </div>
+                        {/if}
+                        
+                        {#if trade.strategy}
                         <div>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Strategy</div>
                             <div class="text-sm font-bold text-light-text dark:text-dark-text">
-                                {trade.strategy || '-'}
+                                {trade.strategy}
                             </div>
                         </div>
+                        {/if}
                     </div>
 
                     <!-- Psychology Metrics -->
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3 mt-3">
+                        {#if trade.confidenceLevel}
                         <div>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Confidence Level</div>
                             <div class="flex items-center gap-2">
                                 <div class="flex-1 h-1.5 bg-light-hover dark:bg-dark-hover rounded-full overflow-hidden">
-                                    <div class="h-full bg-theme-500" style="width: {(trade.confidenceLevel || 0) * 10}%"></div>
+                                    <div class="h-full bg-theme-500" style="width: {(trade.confidenceLevel) * 10}%"></div>
                                 </div>
-                                <span class="text-sm font-medium text-theme-500">{trade.confidenceLevel || 0}/10</span>
+                                <span class="text-sm font-medium text-theme-500">{trade.confidenceLevel}/10</span>
                             </div>
                         </div>
+                        {/if}
+                        
+                        {#if trade.greedLevel}
                         <div>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Greed Level</div>
                             <div class="flex items-center gap-2">
                                 <div class="flex-1 h-1.5 bg-light-hover dark:bg-dark-hover rounded-full overflow-hidden">
-                                    <div class="h-full bg-theme-500" style="width: {(trade.greedLevel || 0) * 10}%"></div>
+                                    <div class="h-full bg-theme-500" style="width: {(trade.greedLevel) * 10}%"></div>
                                 </div>
-                                <span class="text-sm font-medium text-theme-500">{trade.greedLevel || 0}/10</span>
+                                <span class="text-sm font-medium text-theme-500">{trade.greedLevel}/10</span>
                             </div>
                         </div>
+                        {/if}
+                        
+                        {#if trade.emotions}
                         <div class="lg:col-span-2">
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Emotions</div>
                             <div class="text-sm text-light-text dark:text-dark-text">
-                                {trade.emotions || '-'}
+                                {trade.emotions}
                             </div>
                         </div>
+                        {/if}
                     </div>
                 </div>
 
                 <!-- Price Section -->
-                <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-4">
-                    <h3 class="text-sm font-semibold text-light-text-muted dark:text-dark-text-muted mb-3">Price Details</h3>
+                <div class="bg-light-panel dark:bg-dark-panel rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-theme-500 mb-3">Price Details</h3>
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3">
                         <div>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Entry Price</div>
@@ -273,119 +322,248 @@
                                 {formatCurrency(trade.entryPrice || 0)}
                             </div>
                         </div>
+                        
+                        {#if trade.exitPrice}
                         <div>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Exit Price</div>
                             <div class="text-sm font-bold text-light-text dark:text-dark-text">
-                                {trade.exitPrice ? formatCurrency(trade.exitPrice) : '-'}
+                                {formatCurrency(trade.exitPrice)}
                             </div>
                         </div>
+                        {/if}
+                        
+                        {#if trade.stopLoss}
                         <div>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Stop Loss</div>
                             <div class="text-sm font-bold text-red-500">
-                                {trade.stopLoss ? formatCurrency(trade.stopLoss) : '-'}
+                                {formatCurrency(trade.stopLoss)}
                             </div>
                         </div>
+                        {/if}
+                        
+                        {#if trade.takeProfit}
                         <div>
                             <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Take Profit</div>
                             <div class="text-sm font-bold text-green-500">
-                                {trade.takeProfit ? formatCurrency(trade.takeProfit) : '-'}
+                                {formatCurrency(trade.takeProfit)}
                             </div>
                         </div>
+                        {/if}
                     </div>
                 </div>
 
-                <!-- Analysis Section -->
-                <div class="grid lg:grid-cols-2 gap-4">
-                    <!-- Left Column -->
-                    <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-4">
-                        <h3 class="text-sm font-semibold text-light-text-muted dark:text-dark-text-muted mb-3">Trade Analysis</h3>
-                        <div class="space-y-3">
-                            <div>
-                                <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Entry Reason</div>
-                                <div class="text-sm text-light-text dark:text-dark-text mt-1">
-                                    {trade.entryReason || '-'}
+                <!-- Position History Section - Show only if exists -->
+                {#if positionHistory && positionHistory.length > 0}
+                <div class="bg-light-panel dark:bg-dark-panel rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-theme-500 mb-3">Position History</h3>
+                    
+                    <!-- Visual Timeline of Position Changes -->
+                    <div class="mb-4">
+                        <div class="relative h-5 flex items-center">
+                            <!-- Progress Track -->
+                            <div class="absolute inset-0 bg-light-hover dark:bg-dark-hover rounded-md overflow-hidden">
+                                {#each positionHistory as entry, i}
+                                    {@const percentage = parseFloat(entry.percentage)}
+                                    {@const isIncrease = entry.action === 'INCREASE'}
+                                    {@const isProfitable = entry.pnl >= 0}
+                                    <div 
+                                        class="absolute top-0 bottom-0 {isIncrease ? 'bg-blue-500/90' : (isProfitable ? 'bg-green-500/90' : 'bg-red-500/90')}"
+                                        style="left: calc({entry.percentage}% - {percentage}%); width: {percentage}%;"
+                                    ></div>
+                                {/each}
+                            </div>
+                            
+                            <!-- Time markers -->
+                            {#each positionHistory as entry, i}
+                                {@const date = new Date(entry.date)}
+                                {@const position = entry.percentage}
+                                <div 
+                                    class="absolute top-full mt-1 transform -translate-x-1/2 text-xs text-light-text-muted dark:text-dark-text-muted"
+                                    style="left: {position}%;"
+                                >
+                                    <div class="w-px h-2 bg-light-text-muted/50 dark:bg-dark-text-muted/50 mx-auto mb-1"></div>
+                                    <div>{i+1}</div>
+                                </div>
+                            {/each}
+                        </div>
+                    </div>
+                    
+                    <!-- Position History Cards -->
+                    <div class="space-y-2">
+                        {#each positionHistory as entry, i}
+                            {@const isIncrease = entry.action === 'INCREASE'}
+                            {@const isProfitable = entry.pnl >= 0}
+                            {@const date = new Date(entry.date)}
+                            <div class="p-3 rounded-lg {isIncrease ? 'bg-blue-500/10' : (isProfitable ? 'bg-green-500/10' : 'bg-red-500/10')} border border-light-border dark:border-dark-border">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex items-center justify-center w-5 h-5 rounded-full bg-theme-500/10 text-theme-500 text-xs font-medium">
+                                            {i+1}
+                                        </div>
+                                        <span class="text-sm font-medium text-light-text dark:text-dark-text">
+                                            {date.toLocaleDateString()} {date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        </span>
+                                        <span class="px-2 py-0.5 text-xs rounded-full {isIncrease ? 'bg-blue-500/10 text-blue-500' : 'bg-orange-500/10 text-orange-500'}">
+                                            {isIncrease ? 'INCREASE' : 'DECREASE'}
+                                        </span>
+                                    </div>
+                                    {#if !isIncrease}
+                                        <div class="text-sm font-semibold {isProfitable ? 'text-green-500' : 'text-red-500'}">
+                                            {formatCurrency(entry.pnl)}
+                                        </div>
+                                    {/if}
+                                </div>
+                                <div class="grid grid-cols-3 mt-2 text-xs">
+                                    <div>
+                                        <span class="text-light-text-muted dark:text-dark-text-muted">Quantity:</span>
+                                        <span class="ml-1 text-light-text dark:text-dark-text">{entry.quantity}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-light-text-muted dark:text-dark-text-muted">Percentage:</span>
+                                        <span class="ml-1 text-light-text dark:text-dark-text">{entry.percentage}%</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-light-text-muted dark:text-dark-text-muted">Price:</span>
+                                        <span class="ml-1 text-light-text dark:text-dark-text">{formatCurrency(entry.price)}</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Exit Reason</div>
-                                <div class="text-sm text-light-text dark:text-dark-text mt-1">
-                                    {trade.exitReason || '-'}
+                        {/each}
+                    </div>
+                    
+                    <!-- Summary Stats -->
+                    {#if positionHistory.length > 1}
+                        {@const increases = positionHistory.filter(entry => entry.action === 'INCREASE')}
+                        {@const decreases = positionHistory.filter(entry => entry.action === 'DECREASE')}
+                        {@const totalPnl = decreases.reduce((sum, entry) => sum + entry.pnl, 0)}
+                        {@const profitCloses = decreases.filter(entry => entry.pnl > 0)}
+                        {@const lossCloses = decreases.filter(entry => entry.pnl < 0)}
+                        
+                        <div class="mt-4 p-3 bg-theme-500/5 rounded-lg border border-theme-500/10">
+                            <div class="flex justify-between items-center">
+                                <h4 class="text-sm font-medium text-theme-500">Summary</h4>
+                                <div class="text-sm font-semibold {totalPnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                    {formatCurrency(totalPnl)}
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-4 gap-2 mt-2 text-xs">
+                                <div>
+                                    <div class="text-light-text-muted dark:text-dark-text-muted">Increases</div>
+                                    <div class="text-blue-500">{increases.length}</div>
+                                </div>
+                                <div>
+                                    <div class="text-light-text-muted dark:text-dark-text-muted">Decreases</div>
+                                    <div class="text-orange-500">{decreases.length}</div>
+                                </div>
+                                <div>
+                                    <div class="text-light-text-muted dark:text-dark-text-muted">Profitable</div>
+                                    <div class="text-green-500">{profitCloses.length}</div>
+                                </div>
+                                <div>
+                                    <div class="text-light-text-muted dark:text-dark-text-muted">Losing</div>
+                                    <div class="text-red-500">{lossCloses.length}</div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    {/if}
+                </div>
+                {/if}
 
-                    <!-- Right Column -->
-                    <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-4">
-                        <h3 class="text-sm font-semibold text-light-text-muted dark:text-dark-text-muted mb-3">Notes</h3>
+                <!-- Analysis Section -->
+                <div class="grid lg:grid-cols-2 gap-4">
+                    <!-- Left Column - Only show if has entry or exit reason -->
+                    {#if trade.entryReason || trade.exitReason}
+                    <div class="bg-light-panel dark:bg-dark-panel rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-theme-500 mb-3">Trade Analysis</h3>
+                        <div class="space-y-3">
+                            {#if trade.entryReason}
+                            <div>
+                                <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Entry Reason</div>
+                                <div class="text-sm text-light-text dark:text-dark-text mt-1">
+                                    {trade.entryReason}
+                                </div>
+                            </div>
+                            {/if}
+                            
+                            {#if trade.exitReason}
+                            <div>
+                                <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Exit Reason</div>
+                                <div class="text-sm text-light-text dark:text-dark-text mt-1">
+                                    {trade.exitReason}
+                                </div>
+                            </div>
+                            {/if}
+                        </div>
+                    </div>
+                    {/if}
+
+                    <!-- Right Column - Only show if has notes -->
+                    {#if trade.notes}
+                    <div class="bg-light-panel dark:bg-dark-panel rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-theme-500 mb-3">Notes</h3>
                         <div class="space-y-3">
                             <div>
                                 <div class="text-sm text-light-text-muted dark:text-dark-text-muted">Notes</div>
                                 <div class="text-sm text-light-text dark:text-dark-text mt-1 rich-text-content">
-                                    {#if trade.notes}
-                                        {@html trade.notes}
-                                    {:else}
-                                        <p>-</p>
-                                    {/if}
+                                    {@html trade.notes}
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- URL and Screenshot -->
-                {#if trade.url}
-                    <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-4">
-                        <h3 class="text-sm font-semibold text-light-text-muted dark:text-dark-text-muted mb-3">Reference</h3>
-                        <div class="space-y-3">
-                            <a 
-                                href={trade.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                class="text-sm text-theme-500 hover:underline break-all inline-flex items-center gap-1"
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                                </svg>
-                                {trade.url}
-                            </a>
-                            {#if isImageUrl(trade.url)}
-                                <div class="mt-2 rounded-lg overflow-hidden border border-light-border dark:border-dark-hover">
-                                    <a 
-                                        href={trade.url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        class="block hover:opacity-90 transition-opacity"
-                                    >
-                                        <img 
-                                            src={trade.url} 
-                                            alt="Trade Reference" 
-                                            class="w-full max-h-96 object-contain bg-light-hover dark:bg-dark-hover"
-                                            on:error={handleImageError}
-                                        />
-                                    </a>
-                                </div>
-                            {/if}
-                        </div>
-                    </div>
-                {/if}
-
-                <!-- Tags -->
-                <div class="bg-light-hover/30 dark:bg-dark-hover/30 rounded-xl p-4">
-                    <h3 class="text-sm font-semibold text-light-text-muted dark:text-dark-text-muted mb-3">Tags</h3>
-                    {#if trade.tags && trade.tags.length > 0}
-                        <div class="flex flex-wrap gap-2">
-                            {#each trade.tags as tag}
-                                {@const tagColor = getTagColor(tag)}
-                                <span class="px-2 py-0.5 rounded-full text-xs {tagColor.bg} {tagColor.text}">
-                                    {tag}
-                                </span>
-                            {/each}
-                        </div>
-                    {:else}
-                        <p class="text-sm text-light-text-muted dark:text-dark-text-muted">No tags</p>
                     {/if}
                 </div>
+
+                <!-- URL and Screenshot - Only show if has URL -->
+                {#if trade.url}
+                <div class="bg-light-panel dark:bg-dark-panel rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-theme-500 mb-3">Reference</h3>
+                    <div class="space-y-3">
+                        <a 
+                            href={trade.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            class="text-sm text-theme-500 hover:underline break-all inline-flex items-center gap-1"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            {trade.url}
+                        </a>
+                        {#if isImageUrl(trade.url)}
+                            <div class="mt-2 rounded-lg overflow-hidden border border-light-border dark:border-dark-hover">
+                                <a 
+                                    href={trade.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    class="block hover:opacity-90 transition-opacity"
+                                >
+                                    <img 
+                                        src={trade.url} 
+                                        alt="Trade Reference" 
+                                        class="w-full max-h-96 object-contain bg-light-hover dark:bg-dark-hover"
+                                        on:error={handleImageError}
+                                    />
+                                </a>
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+                {/if}
+
+                <!-- Tags - Only show if has tags -->
+                {#if trade.tags && trade.tags.length > 0}
+                <div class="bg-light-panel dark:bg-dark-panel rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-theme-500 mb-3">Tags</h3>
+                    <div class="flex flex-wrap gap-2">
+                        {#each trade.tags as tag}
+                            {@const tagColor = getTagColor(tag)}
+                            <span class="px-2 py-0.5 rounded-full text-xs {tagColor.bg} {tagColor.text}">
+                                {tag}
+                            </span>
+                        {/each}
+                    </div>
+                </div>
+                {/if}
             </div>
         </div>
     </div>

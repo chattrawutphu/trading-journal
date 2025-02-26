@@ -3,6 +3,11 @@ import Account from '../models/Account.js';
 import Trade from '../models/Trade.js';
 import Layout from '../models/Layout.js';
 import mongoose from 'mongoose';
+import DayConfig from '../models/DayConfig.js';
+import Transaction from '../models/Transaction.js';
+import TradeOption from '../models/TradeOption.js';
+import DayTag from '../models/DayTag.js';
+import DayTagHistory from '../models/DayTagHistory.js';
 
 const handleError = (res, error) => {
     console.error('Account Error:', error);
@@ -148,11 +153,29 @@ export const deleteAccount = async(req, res) => {
             });
         }
 
-        // Delete all trades associated with this account
-        await Trade.deleteMany({ account: accountId }).session(session);
-
-        // Delete all layouts associated with this account
-        await Layout.deleteMany({ account: accountId }).session(session);
+        // Delete all related data associated with this account
+        await Promise.all([
+            // Delete all trades associated with this account
+            Trade.deleteMany({ account: accountId }).session(session),
+            
+            // Delete all layouts associated with this account
+            Layout.deleteMany({ account: accountId }).session(session),
+            
+            // Delete all day configurations
+            DayConfig.deleteMany({ account: accountId }).session(session),
+            
+            // Delete day tags associated with this account
+            DayTag.deleteMany({ account: accountId }).session(session),
+            
+            // Delete day tag histories
+            DayTagHistory.deleteMany({ account: accountId }).session(session),
+            
+            // Delete trade options
+            TradeOption.deleteMany({ account: accountId }).session(session),
+            
+            // Delete transactions
+            Transaction.deleteMany({ account: accountId }).session(session)
+        ]);
 
         // Commit the transaction
         await session.commitTransaction();

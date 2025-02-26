@@ -244,19 +244,37 @@ export const updateTrade = async(req, res) => {
             imageData = null;
         }
 
+        // Debug the trade data before updating
+        console.log(`[updateTrade] Updating trade ${id} with data:`, {
+            id,
+            hasPositionHistory: !!tradeData.positionHistory,
+            positionHistoryLength: tradeData.positionHistory ? tradeData.positionHistory.length : 0,
+            positionHistory: tradeData.positionHistory
+        });
+        
+        // Attempt to update the trade
         const updatedTrade = await Trade.findByIdAndUpdate(
-            id, {
+            id, 
+            {
                 ...tradeData,
                 image: imageData
-            }, { new: true }
+            }, 
+            { new: true }
         );
-
+        
         if (!updatedTrade) {
-            res.status(404);
-            throw new Error('Trade not found');
+            console.error(`[updateTrade] Trade not found with id ${id}`);
+            return res.status(404).json({ message: 'Trade not found' });
         }
-
-        res.json(updatedTrade);
+        
+        // Debug the updated trade
+        console.log(`[updateTrade] Trade updated - result:`, {
+            updatedTradeId: updatedTrade._id,
+            hasPositionHistory: !!updatedTrade.positionHistory,
+            positionHistoryLength: updatedTrade.positionHistory ? updatedTrade.positionHistory.length : 0
+        });
+        
+        return res.status(200).json(updatedTrade);
     } catch (error) {
         if (error.name === 'CastError') {
             res.status(400);
