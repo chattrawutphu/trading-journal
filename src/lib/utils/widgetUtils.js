@@ -513,13 +513,8 @@ export const DEFAULT_LAYOUT_CONFIG = {
 // Helper function to create default widgets with unique IDs
 export function createDefaultLayout() {
     return {
-        name: DEFAULT_LAYOUT_CONFIG.name,
-        widgets: DEFAULT_LAYOUT_CONFIG.widgets.map(widget => ({
-            id: createUniqueId(widget.type),
-            config: {
-                ...getDefaultConfig(widget.type),
-                ...(widget.config || {}) // merge with custom config if exists
-            }
-        }))
+        name: 'Default',
+        icon: 'dashboard',
+        widgets: []
     };
 }

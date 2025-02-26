@@ -20,6 +20,8 @@
     import { goto } from '$app/navigation';
     import Toast from '$lib/components/common/Toast.svelte';
     import { formatTrades, filterDuplicateTrades, getLatestTradeDate, syncTrades } from '$lib/utils/importTrades';
+    import EditLayoutModal from '$lib/components/dashboard/EditLayoutModal.svelte';
+    import { page } from '$app/stores';
 
     const dispatch = createEventDispatcher();
 
@@ -61,6 +63,9 @@
     // Add state for temporary layout
     let tempLayouts = null;
 
+    // เพิ่มตัวแปรเพื่อติดตามการเปลี่ยนแปลง URL parameter
+    let mounted = false;
+
     // เพิ่ม function สำหรับตรวจสอบ limit
     function checkLayoutLimit() {
         if ($subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC && layouts.length >= 2) {
@@ -95,7 +100,21 @@
                 ]);
                 // Load layouts from localStorage
                 await loadLayouts();
+                
+                // ตรวจสอบ URL parameter และเลือก layout ตามที่ระบุ
+                const layoutParam = $page.url.searchParams.get('layout');
+                if (layoutParam !== null && layoutParam !== undefined) {
+                    const layoutIndex = parseInt(layoutParam);
+                    if (!isNaN(layoutIndex) && layoutIndex >= 0 && layoutIndex < layouts.length) {
+                        activeLayoutIndex = layoutIndex;
+                        // อัพเดต layoutStore ด้วย
+                        layoutStore.setActiveLayout(layoutIndex);
+                    }
+                }
             }
+            
+            // ตั้งค่า mounted เป็น true เมื่อโหลดเสร็จสมบูรณ์
+            mounted = true;
         } catch (err) {
             error = err.message;
         } finally {
@@ -103,21 +122,41 @@
         }
     });
 
+    // เพิ่ม reactive statement เพื่อติดตามการเปลี่ยนแปลงของ URL
+    $: if (mounted && $page) {
+        const layoutParam = $page.url.searchParams.get('layout');
+        if (layoutParam !== null && layoutParam !== undefined) {
+            const layoutIndex = parseInt(layoutParam);
+            if (!isNaN(layoutIndex) && layoutIndex >= 0 && layoutIndex < layouts.length) {
+                // อัปเดต activeLayoutIndex เมื่อ URL เปลี่ยน
+                activeLayoutIndex = layoutIndex;
+                // อัพเดต layoutStore ด้วย
+                layoutStore.setActiveLayout(layoutIndex);
+                
+                // Dispatch a custom event to notify other components
+                window.dispatchEvent(new CustomEvent('layoutchange', { 
+                    detail: { layoutIndex } 
+                }));
+                
+                console.log(`Dashboard detected layout change to ${layoutIndex}`);
+            }
+        }
+    }
+
     // Modified loadLayouts function
     async function loadLayouts() {
         try {
             const savedLayouts = await layoutStore.loadLayouts();
-            if (savedLayouts?.length > 0) {
-                layouts = savedLayouts;
-            } else {
-                // Create default layout if no layouts exist
-                layouts = [createDefaultLayout()];
-                await layoutStore.saveLayouts(layouts);
-            }
-            // Ensure active index is valid
-            if (activeLayoutIndex >= layouts.length) {
-                activeLayoutIndex = 0;
-            }
+            
+            // เปลี่ยนวิธีการเข้าถึง layouts จาก store
+            layoutStore.subscribe(state => {
+                layouts = state.layouts || [];
+                // ตั้งค่า activeLayoutIndex ถ้ายังไม่ได้กำหนด
+                if (activeLayoutIndex === undefined || activeLayoutIndex >= layouts.length) {
+                    activeLayoutIndex = 0;
+                }
+            })();
+            
         } catch (error) {
             console.error('Error loading layouts:', error);
             // Reset to default if there's an error
@@ -130,9 +169,10 @@
     async function saveLayouts() {
         try {
             await layoutStore.saveLayouts(layouts);
+            // ส่ง event เพื่อแจ้งว่า layouts มีการเปลี่ยนแปลง
+            window.dispatchEvent(new CustomEvent('layoutupdate'));
         } catch (error) {
             console.error('Error saving layouts:', error);
-            // Show error message to user
             error = 'Failed to save layouts. Please try again.';
         }
     }
@@ -144,6 +184,7 @@
         if (newLayoutName.trim()) {
             layouts = [...layouts, {
                 name: newLayoutName.trim(),
+                icon: 'dashboard',
                 widgets: []
             }];
             try {
@@ -456,6 +497,116 @@
     $: if (showNewLayoutModal) {
         newLayoutName = getNextAvailableLayoutName();
     }
+
+    // เพิ่มตัวแปร
+    let showEditLayoutModal = false;
+    let selectedLayoutForEdit = null;
+    let selectedLayoutIndex = 0;
+    let isCreateMode = false;
+
+    // เพิ่มฟังก์ชันเพื่อเปิด Modal แก้ไข Layout
+    function editLayout(index) {
+        if (index >= 0 && index < layouts.length) {
+            isCreateMode = false;
+            selectedLayoutIndex = index;
+            // สร้าง deep copy เพื่อป้องกันการแก้ไข layout โดยตรง
+            selectedLayoutForEdit = JSON.parse(JSON.stringify(layouts[index]));
+            showEditLayoutModal = true;
+        } else {
+            console.error('Invalid layout index:', index);
+        }
+    }
+
+    // ฟังก์ชันอัพเดท Layout
+    async function updateLayout(event) {
+        const { index, layout } = event.detail;
+        
+        if (index >= 0 && index < layouts.length) {
+            // อัพเดตเฉพาะ layout ที่ต้องการแก้ไข โดยไม่กระทบ layouts อื่น
+            layouts[index] = layout;
+            
+            try {
+                await saveLayouts();
+                
+                // ตั้งค่า activeLayoutIndex ให้เป็น index ที่เพิ่งแก้ไข
+                activeLayoutIndex = index;
+                
+                // อัพเดต URL parameter ให้สอดคล้องกับ layout ที่กำลังแสดง
+                const url = new URL(window.location);
+                url.searchParams.set('layout', index.toString());
+                history.pushState({}, '', url);
+            } catch (error) {
+                console.error('Error updating layout:', error);
+            }
+        }
+    }
+
+    // ฟังก์ชันสำหรับการกดเลือก layout จาก dropdown หรือจุดอื่นๆ
+    function switchLayout(index) {
+        if (index >= 0 && index < layouts.length) {
+            activeLayoutIndex = index;
+            selectedLayoutIndex = index;
+            selectedLayoutForEdit = JSON.parse(JSON.stringify(layouts[index]));
+            showLayoutDropdown = false;
+            
+            // อัพเดต URL
+            const url = new URL(window.location);
+            url.searchParams.set('layout', index.toString());
+            history.pushState({}, '', url);
+            
+            // อัพเดต layoutStore
+            layoutStore.setActiveLayout(index);
+        }
+    }
+
+    // เปลี่ยนจากการใช้ showNewLayoutModal เป็นใช้ EditLayoutModal ในโหมดสร้างใหม่
+    function showCreateLayoutModal() {
+        isCreateMode = true;
+        selectedLayoutForEdit = null;
+        selectedLayoutIndex = -1;
+        showEditLayoutModal = true;
+    }
+
+    // ฟังก์ชันสำหรับการสร้าง layout ใหม่
+    function handleCreateLayout(event) {
+        const newLayout = event.detail;
+        
+        if (checkLayoutLimit()) return;
+        
+        layouts = [...layouts, newLayout];
+        
+        try {
+            saveLayouts();
+            activeLayoutIndex = layouts.length - 1;
+        } catch (error) {
+            console.error('Error adding new layout:', error);
+        }
+    }
+
+    // 1. เพิ่ม reactive statement เพื่ออัพเดต selectedLayoutForEdit เมื่อ activeLayoutIndex เปลี่ยน
+    $: if (activeLayoutIndex >= 0 && activeLayoutIndex < layouts.length) {
+        selectedLayoutIndex = activeLayoutIndex;
+        // อัพเดตเฉพาะเมื่อ EditLayoutModal ไม่ได้เปิดอยู่ (เพื่อป้องกันการอัพเดตขณะกำลังแก้ไข)
+        if (!showEditLayoutModal) {
+            selectedLayoutForEdit = { ...layouts[activeLayoutIndex] };
+        }
+    }
+
+    // เพิ่มฟังก์ชัน getIconPath กลับเข้าไปใหม่
+    function getIconPath(iconId) {
+        const icons = {
+            'dashboard': 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+            'chart': 'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
+            'trading': 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
+            'calendar': 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+            'target': 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z',
+            'money': 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+            'stats': 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z',
+            'settings': 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'
+        };
+        
+        return icons[iconId] || icons['dashboard'];
+    }
 </script>
 
 
@@ -505,79 +656,71 @@
                         transition:fade={{ duration: 150 }}
                         on:click|stopPropagation
                     >
-                        <div class="flex flex-col gap-2">
-                            <div class="flex flex-col gap-1">
-                                <div class="text-xs font-medium text-light-text-muted dark:text-dark-text-muted px-1">
-                                    Select Layout
-                                </div>
-                                <div class="flex flex-col gap-0.5">
-                                    {#each layouts as layout, i}
+                        <ul class="space-y-0.5">
+                            {#each layouts as layout, i}
+                                <li>
+                                    <div class="flex items-center justify-between group">
                                         <button
-                                            class="flex items-center justify-between px-2 py-1.5 rounded text-sm
-                                                   {i === activeLayoutIndex 
-                                                       ? 'bg-theme-500 text-white' 
-                                                       : 'bg-light-hover/50 dark:bg-dark-hover/50 hover:bg-light-hover dark:hover:bg-dark-hover text-light-text dark:text-dark-text'}"
-                                            on:click={() => {
-                                                editMode = false;
-                                                activeLayoutIndex = i;
-                                                showLayoutDropdown = false;
-                                            }}
+                                            class="flex items-center gap-2 w-full text-left px-3 py-2 rounded-md text-sm
+                                                    {activeLayoutIndex === i 
+                                                        ? 'bg-theme-100 dark:bg-theme-900/40 text-theme-500 dark:text-theme-400' 
+                                                        : 'text-light-text dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover'}"
+                                            on:click={() => switchLayout(i)}
                                         >
-                                            <span class="text-xs">{layout.name}</span>
+                                            <svg class="w-4 h-4 flex-shrink-0 {activeLayoutIndex === i ? 'text-theme-500' : 'text-light-text-muted dark:text-dark-text-muted'}" 
+                                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                      d={getIconPath(layout.icon || 'dashboard')} />
+                                            </svg>
+                                            <span>{layout.name}</span>
+                                        </button>
+                                        
+                                        <div class="hidden group-hover:flex items-center">
+                                            <button
+                                                class="p-1.5 rounded-md text-light-text-muted dark:text-dark-text-muted 
+                                                       hover:bg-light-hover dark:hover:bg-dark-hover
+                                                       hover:text-theme-500 dark:hover:text-theme-400"
+                                                on:click|stopPropagation={() => editLayout(i)}
+                                                title="Edit layout"
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </button>
+                                            
                                             {#if layouts.length > 1}
                                                 <button
-                                                    class="p-0.5 rounded-full hover:bg-red-500/20 hover:text-red-500 dark:hover:text-red-400"
+                                                    class="p-1.5 rounded-md text-light-text-muted dark:text-dark-text-muted 
+                                                           hover:bg-light-hover dark:hover:bg-dark-hover
+                                                           hover:text-red-500 dark:hover:text-red-400"
                                                     on:click|stopPropagation={() => deleteLayout(i)}
+                                                    title="Delete layout"
                                                 >
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                     </svg>
                                                 </button>
                                             {/if}
-                                        </button>
-                                    {/each}
-                                </div>
-                            </div>
-
-                            {#if $subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC && layouts.length >= 2}
-                                <button
-                                    class="w-full px-2 py-1.5 text-xs font-medium rounded
-                                           bg-theme-500/10 text-theme-500 dark:text-theme-400
-                                           hover:bg-theme-500/20 transition-colors"
-                                    on:click={() => {
-                                        showLayoutDropdown = false;
-                                        showUpgradeModal = true;
-                                    }}
-                                >
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center gap-1.5">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                            </svg>
-                                            New Layout
                                         </div>
-                                        <span class="text-[10px] opacity-70">Pro Feature</span>
                                     </div>
-                                </button>
-                            {:else}
+                                </li>
+                            {/each}
+                            
+                            <li class="border-t border-light-border dark:border-dark-border mt-2 pt-2">
                                 <button
-                                    class="w-full px-2 py-1.5 text-xs font-medium rounded
-                                           bg-theme-500/10 text-theme-500 dark:text-theme-400
-                                           hover:bg-theme-500/20 transition-colors"
-                                    on:click={() => {
-                                        showNewLayoutModal = true;
-                                        showLayoutDropdown = false;
-                                    }}
+                                    class="flex items-center gap-2 w-full text-left px-3 py-2 rounded-md text-sm
+                                           text-theme-500 dark:text-theme-400 hover:bg-light-hover dark:hover:bg-dark-hover"
+                                    on:click={showCreateLayoutModal}
                                 >
-                                    <div class="flex items-center justify-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                        </svg>
-                                        New Layout
-                                    </div>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                    <span>Add New Layout</span>
                                 </button>
-                            {/if}
-                        </div>
+                            </li>
+                        </ul>
                     </div>
                 {/if}
             </div>
@@ -717,68 +860,6 @@
     </div>
 </div>
 
-<!-- New Layout Modal -->
-{#if showNewLayoutModal}
-    <div class="fixed modal inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-         transition:fade={{ duration: 150 }}>
-        <div class="card w-full max-w-md mx-auto relative transform ease-out max-h-[90vh] flex flex-col">
-            <!-- Header -->
-            <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
-                <h2 class="text-xl font-bold bg-gradient-purple bg-clip-text text-transparent">
-                    Create New Layout
-                </h2>
-                <button class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
-                        on:click={() => showNewLayoutModal = false}>
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Content -->
-            <div class="flex-1 overflow-y-auto p-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-light-text dark:text-dark-text">
-                            Layout Name
-                        </label>
-                        <input 
-                            type="text"
-                            bind:value={newLayoutName}
-                            class="w-full px-3 py-2 text-base rounded-lg bg-light-input dark:bg-dark-input 
-                                   border border-light-border dark:border-dark-border
-                                   focus:ring-2 focus:ring-theme-500 focus:border-transparent"
-                            placeholder="Enter layout name..."
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="px-6 py-4 border-t border-light-border dark:border-0 flex justify-end gap-3 sticky bottom-0 bg-light-card dark:bg-dark-card rounded-b-xl bg-opacity-90 dark:bg-opacity-90">
-                <Button 
-                    variant="secondary" 
-                    size="sm"
-                    on:click={() => {
-                        showNewLayoutModal = false;
-                        newLayoutName = '';
-                    }}
-                >
-                    Cancel
-                </Button>
-                <Button 
-                    variant="primary"
-                    size="sm"
-                    disabled={!newLayoutName.trim()}
-                    on:click={addNewLayout}
-                >
-                    Create Layout
-                </Button>
-            </div>
-        </div>
-    </div>
-{/if}
-
 <!-- Existing Modals remain the same -->
 <NewAccountModal
     bind:show={showAccountModal}
@@ -834,6 +915,26 @@
     type={toastType}
     duration={3000}
 />
+
+<!-- ปรับปรุง EditLayoutModal ให้รองรับทั้งการสร้างและการแก้ไข -->
+{#if showEditLayoutModal}
+<EditLayoutModal
+    bind:show={showEditLayoutModal}
+    layout={isCreateMode ? null : selectedLayoutForEdit}
+    index={isCreateMode ? -1 : selectedLayoutIndex}
+    isCreateMode={isCreateMode}
+    on:close={() => {
+        showEditLayoutModal = false;
+        isCreateMode = false;
+        // รีเซ็ตข้อมูลหลังปิด Modal
+        if (!isCreateMode) {
+            selectedLayoutForEdit = { ...layouts[activeLayoutIndex] };
+        }
+    }}
+    on:save={updateLayout}
+    on:create={handleCreateLayout}
+/>
+{/if}
 
 <style lang="postcss">
     .card {

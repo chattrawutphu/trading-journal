@@ -1,5 +1,5 @@
 <script>
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { theme } from '$lib/stores/themeStore';
     import { browser } from '$app/environment';
     import Chart from 'chart.js/auto';
@@ -16,6 +16,7 @@
     let selectedPeriod = '30d';
     let selectedMetric = 'cumulative';
     let selectedView = 'chart';
+    let containerRef = null;
 
     const periods = [
         { value: '7d', label: '7D' },
@@ -270,6 +271,8 @@
         : window.innerWidth < 768 ? 300 : 'auto';
 
     function handleResize() {
+        if (!containerRef || !document || !window) return;
+        
         if (chart) {
             chart.resize();
         }
@@ -375,7 +378,9 @@
         {#if selectedView === 'chart'}
             <div class="h-full relative" 
                  style="height: {chartHeight}px; {typeof height === 'auto' ? 'min-height: 300px;' : ''}">
-                <canvas bind:this={chartCanvas}></canvas>
+                <div bind:this={containerRef} class="chart-container">
+                    <canvas bind:this={chartCanvas}></canvas>
+                </div>
             </div>
         {:else}
             {#if closedTrades.length}

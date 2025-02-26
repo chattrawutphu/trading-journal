@@ -6,6 +6,7 @@
     import { theme } from '$lib/stores/themeStore';
     import { accountStore } from '$lib/stores/accountStore';
     import { subscriptionStore } from '$lib/stores/subscriptionStore';
+    import { layoutStore } from '$lib/stores/layoutStore'; // Import layoutStore
     import { goto } from '$app/navigation';
     import CollapsibleSidebar from '$lib/components/layout/CollapsibleSidebar.svelte';
     import Navbar from '$lib/components/layout/Navbar.svelte';
@@ -21,6 +22,10 @@
     let isLoading = true;
     let initialized = false;
     let initialSidebarSet = false;
+    
+    // Add a variable to track the active layout
+    let activeLayoutIndex = 0;
+    let layoutKey = 'layout-0'; // Key for forcing component reload
 
     function handleLogout() {
         auth.logout();
@@ -97,7 +102,30 @@
 
     onMount(() => {
         setInitialSidebarState();
+        
+        // Subscribe to layoutStore to update the key when active layout changes
+        const unsubscribe = layoutStore.subscribe(state => {
+            if (state && state.activeLayoutIndex !== undefined) {
+                activeLayoutIndex = state.activeLayoutIndex;
+                layoutKey = `layout-${activeLayoutIndex}-${Date.now()}`; // Add timestamp to ensure uniqueness
+            }
+        });
+        
+        return () => {
+            unsubscribe();
+        };
     });
+
+    // Watch for URL changes to update the layout key
+    $: if ($page.url.pathname === '/dashboard') {
+        const layoutParam = $page.url.searchParams.get('layout');
+        if (layoutParam !== null && layoutParam !== undefined) {
+            const layoutIndex = parseInt(layoutParam);
+            if (!isNaN(layoutIndex) && layoutIndex >= 0) {
+                layoutKey = `layout-${layoutIndex}-${Date.now()}`;
+            }
+        }
+    }
 
     // Watch for auth state changes
     $: if (!$auth?.isAuthenticated && !publicRoutes.includes($page.url.pathname) && !isLoading) {
@@ -153,7 +181,8 @@
         <div class="flex h-screen">
             <CollapsibleSidebar 
                 collapsed={sidebarCollapsed} 
-                on:collapse={handleSidebarCollapse} 
+                on:collapse={handleSidebarCollapse}
+                key={layoutKey}
             />
             <div class="flex-1 pb-0 md:pb-3 flex flex-col overflow-hidden">
                 <MobileMenu />
