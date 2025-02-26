@@ -291,29 +291,51 @@ export async function syncTrades(accountId, api) {
                 String(openTrade.orderId).toLowerCase()
             );
 
-            if (closedTrade && closedTrade.status === 'CLOSED') {
-                console.log(`Updating open trade ${openTrade.orderId} with closed data`);
+            if (closedTrade) {
+                console.log(`Found matching trade for ${openTrade.orderId}:`, closedTrade);
                 
-                const updatedTrade = {
-                    ...openTrade,
-                    ...closedTrade,
-                    status: 'CLOSED',
-                    confidenceLevel: openTrade.confidenceLevel,
-                    greedLevel: openTrade.greedLevel,
-                    tags: openTrade.tags,
-                    notes: openTrade.notes,
-                    exitDate: closedTrade.exitDate,
-                    exitPrice: closedTrade.exitPrice,
-                    pnl: closedTrade.pnl,
-                    commission: openTrade.commission + closedTrade.commission
-                };
+                if (closedTrade.status === 'CLOSED') {
+                    console.log(`Updating open trade ${openTrade.orderId} with closed data`);
+                    
+                    const updatedTrade = {
+                        ...openTrade,
+                        ...closedTrade,
+                        status: 'CLOSED',
+                        confidenceLevel: openTrade.confidenceLevel,
+                        greedLevel: openTrade.greedLevel,
+                        tags: openTrade.tags,
+                        notes: openTrade.notes,
+                        exitDate: closedTrade.exitDate,
+                        exitPrice: closedTrade.exitPrice,
+                        pnl: closedTrade.pnl,
+                        commission: openTrade.commission + closedTrade.commission
+                    };
 
-                await api.updateTrade(openTrade._id, updatedTrade);
-                
-                // ลบ trade ที่เพิ่งอัพเดทออกจาก formattedTrades เพื่อป้องกันการสร้างซ้ำ
-                updatedFormattedTrades = updatedFormattedTrades.filter(t => 
-                    t.orderId !== closedTrade.orderId
-                );
+                    await api.updateTrade(openTrade._id, updatedTrade);
+                    
+                    // ลบ trade ที่เพิ่งอัพเดทออกจาก formattedTrades เพื่อป้องกันการสร้างซ้ำ
+                    updatedFormattedTrades = updatedFormattedTrades.filter(t => 
+                        t.orderId !== closedTrade.orderId
+                    );
+                } else if (closedTrade.status === 'OPEN' && closedTrade.quantity !== openTrade.quantity) {
+                    // อัพเดท size position ถ้ามีการเปลี่ยนแปลง
+                    console.log(`Updating position size for ${openTrade.orderId} from ${openTrade.quantity} to ${closedTrade.quantity}`);
+                    
+                    const updatedTrade = {
+                        ...openTrade,
+                        quantity: closedTrade.quantity,
+                        amount: Math.abs(closedTrade.entryPrice * closedTrade.quantity),
+                        entryPrice: closedTrade.entryPrice,
+                        commission: closedTrade.commission
+                    };
+
+                    await api.updateTrade(openTrade._id, updatedTrade);
+                    
+                    // ลบ trade ที่เพิ่งอัพเดทออกจาก formattedTrades
+                    updatedFormattedTrades = updatedFormattedTrades.filter(t => 
+                        t.orderId !== closedTrade.orderId
+                    );
+                }
             }
         }
 

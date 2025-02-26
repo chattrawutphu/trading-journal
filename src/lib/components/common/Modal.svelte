@@ -4,8 +4,6 @@
 
     const dispatch = createEventDispatcher();
     export let show = false;
-    export let title = '';
-    export let showDefaultHeader = true;
     export let width = '';
 </script>
 
@@ -20,21 +18,19 @@
                    rounded-xl shadow-xl"
             on:click|stopPropagation
         >
-            <!-- Default Header - แสดงเฉพาะเมื่อ showDefaultHeader เป็น true -->
-            {#if showDefaultHeader}
-                <div class="px-4 py-3 border-b border-light-border dark:border-0 flex justify-between items-center">
-                    <h2 class="text-lg font-semibold text-light-text dark:text-dark-text">{title}</h2>
-                    <button 
-                        class="p-1 rounded-lg text-light-text-muted dark:text-dark-text-muted 
-                               hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
-                        on:click={() => dispatch('close')}
-                    >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-            {/if}
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-light-border dark:border-dark-border flex justify-between items-start">
+                <slot name="title"></slot>
+                <button 
+                    class="p-1 rounded-lg text-light-text-muted dark:text-dark-text-muted 
+                           hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
+                    on:click={() => dispatch('close')}
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
 
             <!-- Content -->
             <div class="relative">

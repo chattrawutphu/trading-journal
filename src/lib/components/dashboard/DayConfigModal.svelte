@@ -269,11 +269,31 @@
 {#if show}
     <Modal 
         {show} 
-        title="Day Configuration" 
         on:close={handleClose}
-        let:closeModal
         width="w-full max-w-2xl"
     >
+        <svelte:fragment slot="title">
+            <div class="flex items-center gap-3">
+                <div class="p-2 rounded-lg bg-theme-500/10">
+                    <svg class="w-5 h-5 text-theme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold text-light-text dark:text-dark-text">
+                        Day Configuration
+                    </h2>
+                    <p class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                        {new Date(date).toLocaleDateString('en-US', { 
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        })}
+                    </p>
+                </div>
+            </div>
+        </svelte:fragment>
         <form 
             class="p-4 space-y-4" 
             on:submit|preventDefault={handleSubmit}

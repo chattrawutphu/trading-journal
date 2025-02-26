@@ -612,21 +612,31 @@
                     </div>
                     <div class="flex justify-between items-end gap-4">
                 <!-- Replace the existing note and tags section with this new layout -->
-                <div class="flex justify-between items-start gap-4 px-8 py-4">
+                <div class="flex justify-between items-start gap-8 mt-4">
                     <!-- Notes Section - Left side -->
-                    {#if dayConfig?.note}
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-2">
-                                <svg class="w-4 h-4 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                </svg>
-                                <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Notes</h3>
-                            </div>
-                            <div class="prose prose-sm max-w-none text-light-text dark:text-dark-text rich-text-content">
-                                {@html dayConfig.note}
-                            </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-4 h-4 text-light-text-muted dark:text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Notes</h3>
                         </div>
-                    {/if}
+                        {#if dayConfig?.note?.replace(/<[^>]*>/g, '').trim()}
+                        <div class="prose prose-sm max-w-none text-light-text dark:text-dark-text rich-text-content">
+                            {@html dayConfig.note}
+                        </div>
+                        {:else}
+                        <div class="flex items-center gap-2 text-sm text-light-text-muted dark:text-dark-text-muted">
+                            <span>No notes yet.</span>
+                            <button 
+                                class="text-theme-500 hover:text-theme-600 dark:hover:text-theme-400 underline"
+                                on:click={handleConfigEdit}
+                            >
+                                Add notes
+                            </button>
+                        </div>
+                        {/if}
+                    </div>
 
                     <!-- Tags Section - Right side -->
                     {#if dayConfig?.tags?.length > 0}
