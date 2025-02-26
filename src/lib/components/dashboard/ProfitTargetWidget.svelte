@@ -109,7 +109,7 @@
             return sum;
         }, 0);
 
-        progress = Math.min(currentPnL / target, 1);
+        progress = currentPnL <= 0 ? 0 : Math.min(currentPnL / target, 1);
     }
 
     function formatCompactNumber(value) {
@@ -180,7 +180,7 @@
         </div>
         <div class="text-right">
             <p class="text-xl font-bold text-theme-500">
-                {Math.round(progress * 100)}%
+                {currentPnL >= 0 ? Math.round(progress * 100) : 0}%
             </p>
         </div>
     </div>
@@ -230,7 +230,10 @@
             </div>
             <div class="text-right">
                 <p class="text-2xl font-bold text-theme-500">
-                    {Math.round(progress * 100)}%
+                    {currentPnL >= 0 ? Math.round(progress * 100) : 0}%
+                    {#if currentPnL < 0}
+                    <span class="text-sm">(-{Math.abs(Math.round(currentPnL / target * 100))}%)</span>
+                    {/if}
                 </p>
             </div>
         </div>
@@ -261,12 +264,12 @@
 
 <style>
     /* Add smooth transitions */
-    .bg-theme-500 {
+    .bg-theme-500, .bg-red-500 {
         transition: width 0.3s ease-in-out;
     }
 
     /* Add hover effect for progress bar */
-    .bg-theme-500:hover {
+    .bg-theme-500:hover, .bg-red-500:hover {
         filter: brightness(1.1);
     }
 </style>

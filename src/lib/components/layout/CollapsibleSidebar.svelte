@@ -201,7 +201,7 @@
 
 <aside class="h-screen hidden md:block p-3 pe-0 z-10">
     <div
-        class="rounded-xl h-full bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border shadow-lg transition-all duration-300 ease-in-out flex flex-col { $isCollapsed
+        class="rounded-xl h-full bg-light-card dark:bg-dark-card shadow-lg flex flex-col { $isCollapsed
             ? 'w-20'
             : 'w-64'}"
     >

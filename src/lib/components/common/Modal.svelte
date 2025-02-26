@@ -15,7 +15,7 @@
         on:click|self={() => dispatch('close')}
     >
         <div 
-            class="w-full {width} bg-light-card dark:bg-dark-card border border-light-border dark:border-0 
+            class="w-full {width || 'max-w-xl'} bg-light-card dark:bg-dark-card border border-light-border dark:border-0 
                    rounded-xl shadow-xl"
             on:click|stopPropagation
         >
