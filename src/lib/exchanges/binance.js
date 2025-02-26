@@ -184,28 +184,40 @@ function processOrdersToPositions(orders) {
                     pos.commission += parseFloat(order.commission);
                 }
             } else if (order.side === 'SELL' && order.reduceOnly) {
-                // Close LONG position
+                // Close or partially close LONG position
                 if (openPositions.has(key)) {
                     const pos = openPositions.get(key);
                     const exitPrice = parseFloat(order.avgPrice);
+                    const closeQty = parseFloat(order.executedQty);
                     
                     if (exitPrice > 0) {
-                        const pnl = (exitPrice - pos.entryPrice) * pos.quantity;
+                        // Check if this is a partial close or full close
+                        const isPartialClose = closeQty < pos.quantity;
+                        const pnl = (exitPrice - pos.entryPrice) * closeQty;
 
-                        positions.push({
-                            ...pos,
-                            exitDate: order.updateTime,
-                            exitPrice,
-                            price: exitPrice,
-                            lastPriceUpdate: new Date(order.updateTime),
-                            pnl,
-                            commission: pos.commission + parseFloat(order.commission),
-                            commissionAsset: order.commissionAsset,
-                            type: 'SYNC',
-                            status: 'CLOSED'
-                        });
+                        if (isPartialClose) {
+                            // For partial close, reduce the position quantity but keep it open
+                            pos.quantity -= closeQty;
+                            pos.pnl += pnl;
+                            pos.commission += parseFloat(order.commission);
+                            pos.orders.push(order);
+                        } else {
+                            // For full close, mark as closed and remove from open positions
+                            positions.push({
+                                ...pos,
+                                exitDate: order.updateTime,
+                                exitPrice,
+                                price: exitPrice,
+                                lastPriceUpdate: new Date(order.updateTime),
+                                pnl: pos.pnl + pnl,
+                                commission: pos.commission + parseFloat(order.commission),
+                                commissionAsset: order.commissionAsset,
+                                type: 'SYNC',
+                                status: 'CLOSED'
+                            });
 
-                        openPositions.delete(key);
+                            openPositions.delete(key);
+                        }
                     }
                 }
             }
@@ -243,24 +255,36 @@ function processOrdersToPositions(orders) {
                 if (openPositions.has(key)) {
                     const pos = openPositions.get(key);
                     const exitPrice = parseFloat(order.avgPrice);
+                    const closeQty = parseFloat(order.executedQty);
                     
                     if (exitPrice > 0) {
-                        const pnl = (pos.entryPrice - exitPrice) * pos.quantity;
+                        // Check if this is a partial close or full close
+                        const isPartialClose = closeQty < pos.quantity;
+                        const pnl = (pos.entryPrice - exitPrice) * closeQty;
 
-                        positions.push({
-                            ...pos,
-                            exitDate: order.updateTime,
-                            exitPrice,
-                            price: exitPrice,
-                            lastPriceUpdate: new Date(order.updateTime),
-                            pnl,
-                            commission: pos.commission + parseFloat(order.commission),
-                            commissionAsset: order.commissionAsset,
-                            type: 'SYNC',
-                            status: 'CLOSED'
-                        });
+                        if (isPartialClose) {
+                            // For partial close, reduce the position quantity but keep it open
+                            pos.quantity -= closeQty;
+                            pos.pnl += pnl;
+                            pos.commission += parseFloat(order.commission);
+                            pos.orders.push(order);
+                        } else {
+                            // For full close, mark as closed and remove from open positions
+                            positions.push({
+                                ...pos,
+                                exitDate: order.updateTime,
+                                exitPrice,
+                                price: exitPrice,
+                                lastPriceUpdate: new Date(order.updateTime),
+                                pnl: pos.pnl + pnl,
+                                commission: pos.commission + parseFloat(order.commission),
+                                commissionAsset: order.commissionAsset,
+                                type: 'SYNC',
+                                status: 'CLOSED'
+                            });
 
-                        openPositions.delete(key);
+                            openPositions.delete(key);
+                        }
                     }
                 }
             }

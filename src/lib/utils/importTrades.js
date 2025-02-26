@@ -294,6 +294,7 @@ export async function syncTrades(accountId, api) {
             if (closedTrade) {
                 console.log(`Found matching trade for ${openTrade.orderId}:`, closedTrade);
                 
+                // Check if this is a partial close or full close
                 if (closedTrade.status === 'CLOSED') {
                     console.log(`Updating open trade ${openTrade.orderId} with closed data`);
                     
@@ -317,24 +318,30 @@ export async function syncTrades(accountId, api) {
                     updatedFormattedTrades = updatedFormattedTrades.filter(t => 
                         t.orderId !== closedTrade.orderId
                     );
-                } else if (closedTrade.status === 'OPEN' && closedTrade.quantity !== openTrade.quantity) {
-                    // อัพเดท size position ถ้ามีการเปลี่ยนแปลง
-                    console.log(`Updating position size for ${openTrade.orderId} from ${openTrade.quantity} to ${closedTrade.quantity}`);
-                    
-                    const updatedTrade = {
-                        ...openTrade,
-                        quantity: closedTrade.quantity,
-                        amount: Math.abs(closedTrade.entryPrice * closedTrade.quantity),
-                        entryPrice: closedTrade.entryPrice,
-                        commission: closedTrade.commission
-                    };
+                } else if (closedTrade.status === 'OPEN') {
+                    // Check if quantity has changed (partial close)
+                    if (closedTrade.quantity !== openTrade.quantity) {
+                        // If there was a change in quantity, it means a partial close happened
+                        console.log(`Updating partially closed position ${openTrade.orderId} from ${openTrade.quantity} to ${closedTrade.quantity}`);
+                        
+                        // The position is still open, just with a different quantity
+                        const updatedTrade = {
+                            ...openTrade,
+                            quantity: closedTrade.quantity,
+                            amount: Math.abs(closedTrade.entryPrice * closedTrade.quantity),
+                            entryPrice: closedTrade.entryPrice,
+                            commission: closedTrade.commission,
+                            // Update PnL from partial closes that may have occurred
+                            pnl: closedTrade.pnl || openTrade.pnl || 0
+                        };
 
-                    await api.updateTrade(openTrade._id, updatedTrade);
-                    
-                    // ลบ trade ที่เพิ่งอัพเดทออกจาก formattedTrades
-                    updatedFormattedTrades = updatedFormattedTrades.filter(t => 
-                        t.orderId !== closedTrade.orderId
-                    );
+                        await api.updateTrade(openTrade._id, updatedTrade);
+                        
+                        // ลบ trade ที่เพิ่งอัพเดทออกจาก formattedTrades
+                        updatedFormattedTrades = updatedFormattedTrades.filter(t => 
+                            t.orderId !== closedTrade.orderId
+                        );
+                    }
                 }
             }
         }

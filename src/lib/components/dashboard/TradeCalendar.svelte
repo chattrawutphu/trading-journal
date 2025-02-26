@@ -81,17 +81,22 @@
     onMount(async () => {
         await loadData();
         
-        // Add event listener for trade updates
+        // Add event listeners for trade updates
         const handleTradeUpdate = async () => {
             console.log('TradeCalendar: Received trade update event');
             await loadData();
         };
         
+        // เพิ่ม event listeners ทั้งหมดที่เกี่ยวข้อง
         window.addEventListener('tradeupdate', handleTradeUpdate);
+        window.addEventListener('tradeupdated', handleTradeUpdate);
+        window.addEventListener('tradesynced', handleTradeUpdate);
         
-        // Cleanup listener on component destroy
+        // Cleanup listeners on component destroy
         return () => {
             window.removeEventListener('tradeupdate', handleTradeUpdate);
+            window.removeEventListener('tradeupdated', handleTradeUpdate);
+            window.removeEventListener('tradesynced', handleTradeUpdate);
         };
     });
 

@@ -82,7 +82,45 @@
 
     // Cleanup on component destroy
     onMount(() => {
+        if (isPreview) return;
+
+        // Add event listeners for updates
+        const handleUpdate = async () => {
+            console.log('StatsCard: Received update event');
+            if (!$accountStore.currentAccount) return;
+            
+            try {
+                trades = await api.getTrades($accountStore.currentAccount._id);
+                
+                // Recalculate stats
+                if (trades) {
+                    openTrades = trades.filter(t => t.status === 'OPEN');
+                    closedTrades = trades.filter(t => t.status === 'CLOSED');
+                    totalPnL = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+                    winRate = calculateWinRate(closedTrades);
+                }
+
+                // Setup WebSocket for price updates if needed
+                if (openTrades.length > 0 && ['BINANCE_FUTURES', 'BROKER'].includes($accountStore.currentAccount?.type)) {
+                    setupBinanceWebSocket();
+                }
+            } catch (err) {
+                console.error('Error updating stats:', err);
+            }
+        };
+
+        // Subscribe to all relevant events
+        window.addEventListener('tradeupdated', handleUpdate);
+        window.addEventListener('tradesynced', handleUpdate);
+        window.addEventListener('balanceupdated', handleUpdate);
+
+        // Cleanup on destroy
         return () => {
+            window.removeEventListener('tradeupdated', handleUpdate);
+            window.removeEventListener('tradesynced', handleUpdate);
+            window.removeEventListener('balanceupdated', handleUpdate);
+            
+            // Close WebSocket if exists
             if (binanceWs) {
                 binanceWs.close();
             }
@@ -201,6 +239,13 @@
         largestLoss = losses.length > 0 
             ? Math.abs(Math.min(...losses.map(t => t.pnl)))
             : 0;
+    }
+
+    // เพิ่มฟังก์ชัน helper สำหรับคำนวณ win rate
+    function calculateWinRate(trades) {
+        if (!trades || trades.length === 0) return 0;
+        const wins = trades.filter(t => t.pnl > 0).length;
+        return Math.round((wins / trades.length) * 100);
     }
 </script>
 
