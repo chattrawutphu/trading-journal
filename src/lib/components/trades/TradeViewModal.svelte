@@ -2,6 +2,7 @@
     import { fade } from 'svelte/transition';
     import { formatCurrency, formatPercentage } from '$lib/utils/formatters';
     import { binanceExchange } from '$lib/exchanges';
+    import { onMount } from 'svelte';
     
     export let show = false;
     export let trade = null;
@@ -9,6 +10,23 @@
     // Compute position history, supporting backward compatibility
     $: positionHistory = trade ? (trade.positionHistory || convertCloseHistoryToPositionHistory(trade.closeHistory)) : [];
 
+    // Chart data and state
+    let chartData = [];
+    let chartLoading = false;
+    let chartError = null;
+    let chartContainer;
+    let chart;
+    
+    // Chart interaction state
+    let hoveredCandle = null;
+    let hoveredMarker = null;
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let chartOffset = { x: 0, y: 0 };
+    let chartScale = 1;
+    let minScale = 0.5;
+    let maxScale = 5;
+    
     // Convert old closeHistory format to new positionHistory format
     function convertCloseHistoryToPositionHistory(closeHistory) {
         if (!closeHistory || !Array.isArray(closeHistory)) return [];
@@ -101,6 +119,1039 @@
         if (typeof value === 'object') return Object.keys(value).length > 0;
         return true;
     }
+
+    // Function to determine the appropriate decimal precision for a symbol
+    function getDecimalPrecision(symbol, price) {
+        // First check if we can determine precision from the price itself
+        if (price !== undefined && price !== null) {
+            const priceStr = price.toString();
+            const decimalPart = priceStr.includes('.') ? priceStr.split('.')[1] : '';
+            
+            // If price has decimals, find the last non-zero digit
+            if (decimalPart) {
+                // Find last non-zero digit position
+                let lastNonZero = decimalPart.length;
+                for (let i = decimalPart.length - 1; i >= 0; i--) {
+                    if (decimalPart[i] !== '0') {
+                        lastNonZero = i + 1;
+                        break;
+                    }
+                }
+                return Math.max(lastNonZero, 2); // At least 2 decimal places
+            }
+        }
+        
+        // Symbol-based precision as fallback
+        if (symbol) {
+            // Common precision patterns for different assets
+            if (symbol.includes('BTC')) return 2;
+            if (symbol.includes('ETH')) return 2;
+            if (symbol.includes('BNB')) return 2;
+            if (symbol.includes('USDT') || symbol.includes('BUSD') || symbol.includes('USDC')) return 3;
+            if (symbol.includes('XRP') || symbol.includes('ADA') || symbol.includes('DOT')) return 4;
+            if (symbol.includes('DOGE') || symbol.includes('SHIB')) return 8;
+            
+            // For pairs with USD or stablecoins as quote currency
+            if (/USD[A-Z]?$/.test(symbol)) {
+                // Check if price is very small (like < 0.1)
+                if (price && price < 0.1) return 6;
+                if (price && price < 1) return 5;
+                if (price && price < 10) return 4;
+                if (price && price < 100) return 3;
+                if (price && price < 1000) return 2;
+                return 2; // Default for USD pairs
+            }
+        }
+        
+        return 4; // Default precision
+    }
+    
+    // Get the precision for the current trade
+    $: pricePrecision = trade ? getDecimalPrecision(trade.symbol, trade.entryPrice) : 2;
+    
+    // Format price with appropriate precision
+    function formatPrice(price) {
+        if (price === undefined || price === null) return '';
+        return price.toFixed(pricePrecision);
+    }
+
+    // Function to fetch historical price data for the chart
+    async function fetchHistoricalData() {
+        if (!trade || !trade.symbol) return;
+        
+        chartLoading = true;
+        chartError = null;
+        
+        try {
+            // Sort position history chronologically if it exists
+            if (positionHistory && positionHistory.length > 0) {
+                // Create a copy to avoid modifying the original array directly
+                const sortedHistory = [...positionHistory].sort((a, b) => {
+                    return new Date(a.date).getTime() - new Date(b.date).getTime();
+                });
+                
+                // Calculate time range from earliest to latest position history entry
+                const startTime = Math.min(new Date(sortedHistory[0].date).getTime(), new Date(trade.entryDate).getTime());
+                const endTime = trade.exitDate 
+                    ? Math.max(new Date(sortedHistory[sortedHistory.length - 1].date).getTime(), new Date(trade.exitDate).getTime())
+                    : Math.max(new Date(sortedHistory[sortedHistory.length - 1].date).getTime(), Date.now());
+                
+                // Determine optimal interval based on trade duration
+                const timeRange = endTime - startTime;
+                const interval = getOptimalInterval(timeRange);
+                
+                // Calculate padding to ensure we have context around the entries
+                const intervalMs = getIntervalInMs(interval);
+                const paddingBefore = intervalMs * 30; // 30 candles before first entry
+                const paddingAfter = intervalMs * 30;  // 30 candles after last entry
+                
+                const paddedStart = startTime - paddingBefore;
+                const paddedEnd = endTime + paddingAfter;
+                
+                // Fetch candle data with appropriate limit to ensure all markers are visible
+                const response = await fetch(
+                    `https://fapi.binance.com/fapi/v1/klines?symbol=${trade.symbol}&interval=${interval}&startTime=${Math.floor(paddedStart)}&endTime=${Math.floor(paddedEnd)}&limit=500`
+                );
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch chart data');
+                }
+                
+                const data = await response.json();
+                console.log(`Fetched ${data.length} candles for chart with interval ${interval}`);
+                
+                // If we got too many candles, try a larger interval
+                if (data.length > 180) {
+                    const largerInterval = getNextLargerInterval(interval);
+                    console.log(`Too many candles (${data.length}), trying larger interval: ${largerInterval}`);
+                    
+                    const response2 = await fetch(
+                        `https://fapi.binance.com/fapi/v1/klines?symbol=${trade.symbol}&interval=${largerInterval}&startTime=${Math.floor(paddedStart)}&endTime=${Math.floor(paddedEnd)}&limit=180`
+                    );
+                    
+                    if (!response2.ok) {
+                        throw new Error('Failed to fetch chart data with larger interval');
+                    }
+                    
+                    const data2 = await response2.json();
+                    console.log(`Fetched ${data2.length} candles with larger interval ${largerInterval}`);
+                    
+                    // Transform data for our chart
+                    chartData = data2.map(candle => ({
+                        time: candle[0], // Open time
+                        open: parseFloat(candle[1]),
+                        high: parseFloat(candle[2]),
+                        low: parseFloat(candle[3]),
+                        close: parseFloat(candle[4]),
+                        volume: parseFloat(candle[5])
+                    }));
+                    
+                    // Store the interval for display
+                    currentInterval = largerInterval;
+                } else {
+                    // Transform data for our chart
+                    chartData = data.map(candle => ({
+                        time: candle[0], // Open time
+                        open: parseFloat(candle[1]),
+                        high: parseFloat(candle[2]),
+                        low: parseFloat(candle[3]),
+                        close: parseFloat(candle[4]),
+                        volume: parseFloat(candle[5])
+                    }));
+                    
+                    // Store the interval for display
+                    currentInterval = interval;
+                }
+            } else {
+                // Original logic for trades without position history
+                // Calculate time range (entry date to exit date or current date)
+                const startTime = new Date(trade.entryDate).getTime();
+                const endTime = trade.exitDate 
+                    ? new Date(trade.exitDate).getTime() 
+                    : Date.now();
+                
+                // Determine optimal interval based on trade duration
+                const timeRange = endTime - startTime;
+                const interval = getOptimalInterval(timeRange);
+                
+                // Calculate how much time to add before and after
+                const intervalMs = getIntervalInMs(interval);
+                const paddingBefore = intervalMs * 30; // 30 candles before entry
+                const paddingAfter = intervalMs * 30;  // 30 candles after exit
+                
+                const paddedStart = startTime - paddingBefore;
+                const paddedEnd = endTime + paddingAfter;
+                
+                // Fetch candle data from Binance public API
+                const response = await fetch(
+                    `https://fapi.binance.com/fapi/v1/klines?symbol=${trade.symbol}&interval=${interval}&startTime=${Math.floor(paddedStart)}&endTime=${Math.floor(paddedEnd)}&limit=180`
+                );
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch chart data');
+                }
+                
+                const data = await response.json();
+                console.log(`Fetched ${data.length} candles for chart`);
+                
+                // Transform data for our chart
+                chartData = data.map(candle => ({
+                    time: candle[0], // Open time
+                    open: parseFloat(candle[1]),
+                    high: parseFloat(candle[2]),
+                    low: parseFloat(candle[3]),
+                    close: parseFloat(candle[4]),
+                    volume: parseFloat(candle[5])
+                }));
+                
+                // Store the interval for display
+                currentInterval = interval;
+            }
+            
+            // Initialize chart after data is loaded
+            if (chartData.length > 0) {
+                initializeChart();
+            }
+        } catch (error) {
+            console.error('Error fetching chart data:', error);
+            chartError = error.message;
+        } finally {
+            chartLoading = false;
+        }
+    }
+    
+    // Helper function to get the next larger interval
+    function getNextLargerInterval(interval) {
+        const intervals = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d'];
+        const currentIndex = intervals.indexOf(interval);
+        
+        if (currentIndex === -1 || currentIndex === intervals.length - 1) {
+            return '1h'; // Default to 1h if current interval not found or already at largest
+        }
+        
+        return intervals[currentIndex + 1];
+    }
+    
+    // Determine optimal interval based on trade duration
+    function getOptimalInterval(timeRange) {
+        const hours = timeRange / (1000 * 60 * 60);
+        
+        if (hours <= 3) return '1m';
+        if (hours <= 6) return '3m';
+        if (hours <= 12) return '5m';
+        if (hours <= 24) return '15m';
+        if (hours <= 48) return '30m';
+        if (hours <= 96) return '1h';
+        if (hours <= 192) return '2h';
+        if (hours <= 384) return '4h';
+        if (hours <= 768) return '6h';
+        if (hours <= 1152) return '8h';
+        if (hours <= 1920) return '12h';
+        return '1d';
+    }
+    
+    // Helper function to convert interval string to milliseconds
+    function getIntervalInMs(interval) {
+        const value = parseInt(interval.slice(0, -1));
+        const unit = interval.slice(-1);
+        
+        switch (unit) {
+            case 'm': return value * 60 * 1000;
+            case 'h': return value * 60 * 60 * 1000;
+            case 'd': return value * 24 * 60 * 60 * 1000;
+            case 'w': return value * 7 * 24 * 60 * 60 * 1000;
+            default: return 60 * 1000; // default to 1m
+        }
+    }
+    
+    // Initialize and render the chart
+    function initializeChart() {
+        if (!chartContainer || chartData.length === 0) return;
+        
+        // Clear previous chart if exists
+        if (chart) {
+            chartContainer.innerHTML = '';
+        }
+        
+        // Create canvas element with higher resolution for sharper rendering
+        const canvas = document.createElement('canvas');
+        const pixelRatio = window.devicePixelRatio || 1;
+        canvas.width = chartContainer.clientWidth * pixelRatio;
+        canvas.height = 300 * pixelRatio;
+        canvas.style.width = `${chartContainer.clientWidth}px`;
+        canvas.style.height = '300px';
+        chartContainer.appendChild(canvas);
+        
+        const ctx = canvas.getContext('2d');
+        ctx.scale(pixelRatio, pixelRatio); // Scale for high DPI displays
+        
+        // Set up chart dimensions
+        const chartWidth = chartContainer.clientWidth;
+        const chartHeight = 300;
+        const padding = { top: 30, right: 60, bottom: 40, left: 60 };
+        const plotWidth = chartWidth - padding.left - padding.right;
+        const plotHeight = chartHeight - padding.top - padding.bottom;
+        
+        // Find min/max values for scaling with more padding for better visibility
+        const prices = chartData.flatMap(d => [d.high, d.low]);
+        if (trade.entryPrice) prices.push(trade.entryPrice);
+        if (trade.exitPrice) prices.push(trade.exitPrice);
+        if (trade.stopLoss) prices.push(trade.stopLoss);
+        if (trade.takeProfit) prices.push(trade.takeProfit);
+        
+        const minPrice = Math.min(...prices) * 0.995; // More padding at bottom
+        const maxPrice = Math.max(...prices) * 1.005; // More padding at top
+        const priceRange = maxPrice - minPrice;
+        
+        // Scale functions
+        const timeToX = (time) => {
+            const minTime = chartData[0].time;
+            const maxTime = chartData[chartData.length - 1].time;
+            const timeRange = maxTime - minTime;
+            
+            // คำนวณตำแหน่ง X โดยคำนึงถึง scale และ offset
+            const normalX = ((time - minTime) / timeRange) * plotWidth;
+            return padding.left + normalX * chartScale + chartOffset.x;
+        };
+        
+        const priceToY = (price) => {
+            // คำนวณตำแหน่ง Y โดยคำนึงถึง scale และ offset
+            const normalY = ((price - minPrice) / priceRange) * plotHeight;
+            return padding.top + (plotHeight - normalY) * chartScale + chartOffset.y;
+        };
+        
+        // Draw background
+        const isDarkMode = document.documentElement.classList.contains('dark');
+        ctx.fillStyle = isDarkMode ? '#121224' : '#f8fafc'; // Darker background in dark mode
+        ctx.fillRect(0, 0, chartWidth, chartHeight);
+        
+        // Draw grid with more visible lines
+        ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)';
+        ctx.lineWidth = 0.75; // Slightly thicker grid lines
+        
+        // Horizontal grid lines (price levels)
+        const priceStep = priceRange / 5;
+        for (let i = 0; i <= 5; i++) {
+            const price = minPrice + (i * priceStep);
+            const y = priceToY(price);
+            
+            ctx.beginPath();
+            ctx.moveTo(padding.left, y);
+            ctx.lineTo(chartWidth - padding.right, y);
+            ctx.stroke();
+            
+            // Price labels with proper precision and better visibility
+            ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(formatPrice(price), chartWidth - padding.right + 5, y + 4);
+        }
+        
+        // Draw volume bars at the bottom with better visibility
+        const volumeHeight = plotHeight * 0.15;
+        const volumeBottom = padding.top + plotHeight;
+        const maxVolume = Math.max(...chartData.map(d => d.volume));
+        
+        chartData.forEach((d, i) => {
+            const x = timeToX(d.time);
+            const candleWidth = Math.max(plotWidth / chartData.length - 1, 1) * chartScale;
+            
+            // Skip if outside visible area
+            if (x < padding.left - candleWidth || x > chartWidth - padding.right + candleWidth) return;
+            
+            // Volume bar with higher opacity
+            const volumeHeight = (d.volume / maxVolume) * (plotHeight * 0.15);
+            const isGreen = d.close >= d.open;
+            
+            ctx.fillStyle = isGreen ? 'rgba(0, 200, 0, 0.5)' : 'rgba(255, 0, 0, 0.5)';
+            ctx.fillRect(
+                x - candleWidth/2, 
+                padding.top + plotHeight - volumeHeight, 
+                candleWidth, 
+                volumeHeight
+            );
+        });
+        
+        // Draw candles with more vibrant colors and thicker wicks
+        chartData.forEach((d, i) => {
+            const x = timeToX(d.time);
+            const candleWidth = Math.max(plotWidth / chartData.length - 1, 1) * chartScale;
+            
+            // Skip if outside visible area
+            if (x < padding.left - candleWidth || x > chartWidth - padding.right + candleWidth) return;
+            
+            // Body
+            const openY = priceToY(d.open);
+            const closeY = priceToY(d.close);
+            const isGreen = d.close >= d.open;
+            
+            // Highlight hovered candle with more visible highlight
+            if (hoveredCandle === i) {
+                // ใช้สีที่เหมาะสมกับ theme แทนสีน้ำตาล
+                ctx.fillStyle = isDarkMode ? 'rgba(100, 116, 139, 0.2)' : 'rgba(226, 232, 240, 0.6)';
+                
+                // วาดเฉพาะแท่งเทียนที่ hover แทนการวาดทั้งแนวนอน
+                ctx.fillRect(
+                    x - candleWidth - 2, 
+                    Math.min(priceToY(d.high), priceToY(d.low)) - 5, 
+                    candleWidth * 2 + 4, 
+                    Math.abs(priceToY(d.high) - priceToY(d.low)) + 10
+                );
+                
+                // แสดงเฉพาะราคาปัจจุบันแทนกล่อง OHLC
+                const closeY = priceToY(d.close);
+                
+                // วาดเส้นราคาปัจจุบัน
+                ctx.strokeStyle = isGreen ? 'rgba(0, 220, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([2, 2]);
+                ctx.beginPath();
+                ctx.moveTo(padding.left, closeY);
+                ctx.lineTo(chartWidth - padding.right, closeY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // แสดงราคาปัจจุบันที่ด้านขวา
+                ctx.fillStyle = isGreen ? 'rgba(0, 220, 0, 1.0)' : 'rgba(255, 0, 0, 1.0)';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${formatPrice(d.close)}`, chartWidth - padding.right - 5, closeY - 5);
+                
+                // แสดงวันที่ด้านบน
+                const date = new Date(d.time);
+                ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), x, padding.top - 5);
+            }
+            
+            // Draw candle body with more vibrant colors
+            ctx.fillStyle = isGreen ? 'rgba(0, 220, 0, 1.0)' : 'rgba(255, 0, 0, 1.0)';
+            ctx.fillRect(x - candleWidth/2, Math.min(openY, closeY), candleWidth, Math.abs(closeY - openY) || 1);
+            
+            // Wicks with thicker lines
+            ctx.strokeStyle = isGreen ? 'rgba(0, 220, 0, 1.0)' : 'rgba(255, 0, 0, 1.0)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(x, priceToY(d.high));
+            ctx.lineTo(x, Math.min(openY, closeY));
+            ctx.moveTo(x, Math.max(openY, closeY));
+            ctx.lineTo(x, priceToY(d.low));
+            ctx.stroke();
+            
+            // Time labels (show only a few) with better visibility
+            if (i % Math.ceil(chartData.length / 5) === 0) {
+                const date = new Date(d.time);
+                ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(date.toLocaleDateString(), x, chartHeight - padding.bottom + 15);
+            }
+        });
+        
+        // Draw stop loss and take profit lines with more visibility
+        if (trade.stopLoss) {
+            const slY = priceToY(trade.stopLoss);
+            
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)'; // More visible red
+            ctx.lineWidth = 1.5; // Thicker line
+            ctx.setLineDash([5, 3]);
+            ctx.beginPath();
+            ctx.moveTo(padding.left, slY);
+            ctx.lineTo(chartWidth - padding.right, slY);
+            ctx.stroke();
+            
+            // SL label with better visibility
+            ctx.fillStyle = 'rgba(255, 0, 0, 1.0)';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(`SL: ${formatPrice(trade.stopLoss)}`, padding.left + 5, slY - 5);
+        }
+        
+        if (trade.takeProfit) {
+            const tpY = priceToY(trade.takeProfit);
+            
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)'; // More visible green
+            ctx.lineWidth = 1.5; // Thicker line
+            ctx.setLineDash([5, 3]);
+            ctx.beginPath();
+            ctx.moveTo(padding.left, tpY);
+            ctx.lineTo(chartWidth - padding.right, tpY);
+            ctx.stroke();
+            
+            // TP label with better visibility
+            ctx.fillStyle = 'rgba(0, 255, 0, 1.0)';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(`TP: ${formatPrice(trade.takeProfit)}`, padding.left + 5, tpY - 5);
+        }
+        
+        // Draw position history markers with more visibility
+        if (positionHistory && positionHistory.length > 0) {
+            // Remove connecting lines between markers - we're not drawing them anymore
+            
+            // Sort position history by date for consistent ordering
+            const sortedPositionHistory = [...positionHistory].sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            // First pass: identify markers that are too close to each other
+            const markerPositions = [];
+            sortedPositionHistory.forEach((entry, index) => {
+                const entryTime = new Date(entry.date).getTime();
+                
+                // Find closest candle to marker time
+                const closestCandleIdx = chartData.findIndex(d => d.time >= entryTime);
+                if (closestCandleIdx === -1) return;
+                
+                const x = timeToX(chartData[closestCandleIdx].time);
+                const y = priceToY(entry.price);
+                
+                markerPositions.push({ x, y, index, entry });
+            });
+            
+            // Group markers that are close to each other horizontally
+            const markerGroups = [];
+            const proximityThreshold = 30; // pixels
+            
+            markerPositions.forEach(marker => {
+                // Find an existing group that this marker is close to
+                const existingGroup = markerGroups.find(group => {
+                    return Math.abs(group[0].x - marker.x) < proximityThreshold;
+                });
+                
+                if (existingGroup) {
+                    existingGroup.push(marker);
+                } else {
+                    markerGroups.push([marker]);
+                }
+            });
+            
+            // Second pass: draw markers with vertical offset for overlapping ones
+            markerGroups.forEach(group => {
+                // Sort group by date (oldest first)
+                group.sort((a, b) => new Date(a.entry.date) - new Date(b.entry.date));
+                
+                // First draw all markers
+                group.forEach((marker, groupIndex) => {
+                    const { x, y, index, entry } = marker;
+                    
+                    // Skip drawing this marker if it's the hovered one - we'll draw it last
+                    if (hoveredMarker === index) return;
+                    
+                    // Apply vertical offset for stacked markers (move up)
+                    const verticalOffset = groupIndex * -30; // 30px offset per marker in group
+                    const adjustedY = y + verticalOffset;
+                    
+                    const isIncrease = entry.action === 'INCREASE';
+                    // Add fallback for undefined pnl values
+                    const isProfitable = isIncrease ? true : (entry.pnl !== undefined ? entry.pnl >= 0 : false);
+                    
+                    // Draw marker with larger size and higher z-index
+                    // First draw a shadow/glow effect
+                    ctx.beginPath();
+                    ctx.fillStyle = isIncrease 
+                        ? 'rgba(52, 152, 219, 0.3)' 
+                        : (isProfitable ? 'rgba(46, 204, 113, 0.3)' : 'rgba(231, 76, 60, 0.3)');
+                    ctx.arc(x, adjustedY, 14, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw marker background
+                    ctx.beginPath();
+                    ctx.fillStyle = isIncrease 
+                        ? 'rgba(52, 152, 219, 0.9)' 
+                        : (isProfitable ? 'rgba(46, 204, 113, 0.9)' : 'rgba(231, 76, 60, 0.9)');
+                    ctx.arc(x, adjustedY, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw marker border
+                    ctx.beginPath();
+                    ctx.strokeStyle = isIncrease 
+                        ? 'rgb(52, 152, 219)' 
+                        : (isProfitable ? 'rgb(46, 204, 113)' : 'rgb(231, 76, 60)');
+                    ctx.lineWidth = 2;
+                    ctx.arc(x, adjustedY, 12, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Draw marker number
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(index + 1, x, adjustedY);
+                    
+                    // If this is not the first marker in a group, draw a dotted line to the price level
+                    if (groupIndex > 0) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = isIncrease 
+                            ? 'rgba(52, 152, 219, 0.5)' 
+                            : (isProfitable ? 'rgba(46, 204, 113, 0.5)' : 'rgba(231, 76, 60, 0.5)');
+                        ctx.setLineDash([2, 2]);
+                        ctx.moveTo(x, adjustedY);
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                });
+                
+                // Draw the hovered marker and its tooltip last (on top of everything)
+                group.forEach((marker, groupIndex) => {
+                    const { x, y, index, entry } = marker;
+                    
+                    // Only process the hovered marker
+                    if (hoveredMarker !== index) return;
+                    
+                    // Apply vertical offset for stacked markers (move up)
+                    const verticalOffset = groupIndex * -30; // 30px offset per marker in group
+                    const adjustedY = y + verticalOffset;
+                    
+                    const isIncrease = entry.action === 'INCREASE';
+                    const isProfitable = isIncrease ? true : (entry.pnl !== undefined ? entry.pnl >= 0 : false);
+                    
+                    // Draw hovered marker with larger size and glow effect
+                    // First draw a larger glow effect
+                    ctx.beginPath();
+                    ctx.fillStyle = isIncrease 
+                        ? 'rgba(52, 152, 219, 0.4)' 
+                        : (isProfitable ? 'rgba(46, 204, 113, 0.4)' : 'rgba(231, 76, 60, 0.4)');
+                    ctx.arc(x, adjustedY, 16, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw marker background
+                    ctx.beginPath();
+                    ctx.fillStyle = isIncrease 
+                        ? 'rgba(52, 152, 219, 1.0)' 
+                        : (isProfitable ? 'rgba(46, 204, 113, 1.0)' : 'rgba(231, 76, 60, 1.0)');
+                    ctx.arc(x, adjustedY, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw marker border
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.arc(x, adjustedY, 12, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Draw marker number
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(index + 1, x, adjustedY);
+                    
+                    // If this is not the first marker in a group, draw a dotted line to the price level
+                    if (groupIndex > 0) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = isIncrease 
+                            ? 'rgba(52, 152, 219, 0.7)' 
+                            : (isProfitable ? 'rgba(46, 204, 113, 0.7)' : 'rgba(231, 76, 60, 0.7)');
+                        ctx.setLineDash([2, 2]);
+                        ctx.moveTo(x, adjustedY);
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                    
+                    // Draw tooltip for hovered marker
+                    const tooltipWidth = 150;
+                    const tooltipHeight = entry.pnl !== undefined ? 90 : 70;
+                    
+                    // คำนวณตำแหน่งของ tooltip ให้อยู่ด้านล่างซ้ายของ marker
+                    let tooltipX = x - 10;
+                    let tooltipY = adjustedY + 15;
+                    
+                    // ตรวจสอบว่า tooltip จะล้นออกนอกกราฟหรือไม่
+                    // ถ้าล้นทางขวา ให้ย้ายไปทางซ้ายของ marker แทน
+                    if (tooltipX + tooltipWidth > chartWidth - padding.right) {
+                        tooltipX = x - tooltipWidth + 10;
+                    }
+                    
+                    // ถ้าล้นทางล่าง ให้ย้ายไปด้านบนของ marker แทน
+                    if (tooltipY + tooltipHeight > chartHeight - padding.bottom) {
+                        tooltipY = adjustedY - tooltipHeight - 15;
+                    }
+                    
+                    // ตรวจสอบว่าไม่ล้นออกนอกกราฟทางซ้ายหรือด้านบน
+                    tooltipX = Math.max(tooltipX, padding.left);
+                    tooltipY = Math.max(tooltipY, padding.top);
+                    
+                    // วาดพื้นหลังของ tooltip ด้วยสีดำโปร่งใส
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = 1;
+                    
+                    // วาดกรอบโค้งมนพร้อมเงา
+                    ctx.beginPath();
+                    ctx.roundRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, 5);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // วาดเส้นเชื่อมจาก marker มาที่ tooltip
+                    ctx.beginPath();
+                    ctx.moveTo(x, adjustedY);
+                    ctx.lineTo(tooltipX + 10, tooltipY);
+                    ctx.stroke();
+                    
+                    // เพิ่มหัวข้อ tooltip
+                    ctx.fillStyle = isIncrease ? '#3498db' : (isProfitable ? '#2ecc71' : '#e74c3c');
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(`${entry.action}`, tooltipX + 8, tooltipY + 8);
+                    
+                    // เพิ่มเส้นคั่นหัวข้อ
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.beginPath();
+                    ctx.moveTo(tooltipX + 8, tooltipY + 25);
+                    ctx.lineTo(tooltipX + tooltipWidth - 8, tooltipY + 25);
+                    ctx.stroke();
+                    
+                    // เพิ่มเนื้อหา tooltip
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '10px sans-serif';
+                    
+                    const date = new Date(entry.date);
+                    ctx.fillText(date.toLocaleString(), tooltipX + 8, tooltipY + 30);
+                    ctx.fillText(`Price: ${formatPrice(entry.price)}`, tooltipX + 8, tooltipY + 45);
+                    ctx.fillText(`Qty: ${entry.quantity.toFixed(4)}`, tooltipX + 8, tooltipY + 60);
+                    
+                    if (entry.pnl !== undefined) {
+                        const pnlColor = entry.pnl >= 0 ? '#2ecc71' : '#e74c3c';
+                        ctx.fillStyle = pnlColor;
+                        ctx.fillText(`PnL: ${formatCurrency(entry.pnl)}`, tooltipX + 8, tooltipY + 75);
+                    }
+                });
+            });
+        }
+        
+        // Remove entry and exit lines - we're not drawing them anymore
+        
+        // Draw chart info and controls with better visibility
+        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 1.0)' : 'rgba(0, 0, 0, 1.0)';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        
+        // Display symbol and timeframe
+        const timeframeText = formatTimeframe(currentInterval);
+        ctx.fillText(`${trade.symbol} - ${timeframeText}`, padding.left, 5);
+        
+        // Instructions
+        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('Hover for details', chartWidth - padding.right, 5);
+        
+        // Store chart reference
+        chart = { 
+            canvas, 
+            ctx,
+            padding,
+            plotWidth,
+            plotHeight,
+            timeToX,
+            priceToY,
+            minTime: chartData[0].time,
+            maxTime: chartData[chartData.length - 1].time,
+            minPrice,
+            maxPrice
+        };
+        
+        // Add event listeners for interactivity
+        canvas.addEventListener('mousemove', handleChartMouseMove);
+        canvas.addEventListener('mouseleave', handleChartMouseLeave);
+        
+        // เพิ่ม event listeners หลังจากสร้างกราฟ
+        setupChartEventListeners();
+    }
+    
+    // Format timeframe for display
+    function formatTimeframe(interval) {
+        const value = interval.slice(0, -1);
+        const unit = interval.slice(-1);
+        
+        switch (unit) {
+            case 'm': return value === '1' ? '1 Minute' : `${value} Minutes`;
+            case 'h': return value === '1' ? '1 Hour' : `${value} Hours`;
+            case 'd': return value === '1' ? '1 Day' : `${value} Days`;
+            case 'w': return value === '1' ? '1 Week' : `${value} Weeks`;
+            default: return interval;
+        }
+    }
+    
+    // Handle mouse movement over chart
+    function handleChartMouseMove(e) {
+        if (!chart || !chartData.length) return;
+        
+        const rect = e.target.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Check if mouse is over a candle
+        const { padding, plotWidth } = chart;
+        
+        if (x >= padding.left && x <= chart.canvas.width - padding.right &&
+            y >= padding.top && y <= chart.canvas.height - padding.bottom) {
+            
+            // Find closest candle to cursor position
+            let closestCandle = null;
+            let minDistance = Infinity;
+            
+            for (let i = 0; i < chartData.length; i++) {
+                const candleX = chart.timeToX(chartData[i].time);
+                const distance = Math.abs(x - candleX);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestCandle = i;
+                }
+            }
+            
+            // Only highlight if cursor is reasonably close to a candle (within 20px)
+            if (minDistance <= 20) {
+                hoveredCandle = closestCandle;
+            } else {
+                hoveredCandle = null;
+            }
+            
+            // Check if mouse is over a marker
+            hoveredMarker = null;
+            
+            if (positionHistory && positionHistory.length > 0) {
+                // Sort position history by date for consistent ordering
+                const sortedPositionHistory = [...positionHistory].sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                // Calculate marker positions
+                const markerPositions = [];
+                sortedPositionHistory.forEach((entry, index) => {
+                    const entryTime = new Date(entry.date).getTime();
+                    
+                    // Find closest candle to marker time
+                    const closestCandleIdx = chartData.findIndex(d => d.time >= entryTime);
+                    if (closestCandleIdx === -1) return;
+                    
+                    const markerX = chart.timeToX(chartData[closestCandleIdx].time);
+                    const markerY = chart.priceToY(entry.price);
+                    
+                    markerPositions.push({ x: markerX, y: markerY, index, entry });
+                });
+                
+                // Group markers that are close to each other horizontally
+                const markerGroups = [];
+                const proximityThreshold = 30; // pixels
+                
+                markerPositions.forEach(marker => {
+                    // Find an existing group that this marker is close to
+                    const existingGroup = markerGroups.find(group => {
+                        return Math.abs(group[0].x - marker.x) < proximityThreshold;
+                    });
+                    
+                    if (existingGroup) {
+                        existingGroup.push(marker);
+                    } else {
+                        markerGroups.push([marker]);
+                    }
+                });
+                
+                // Check if mouse is over any marker
+                markerGroups.forEach(group => {
+                    // Sort group by date (oldest first)
+                    group.sort((a, b) => new Date(a.entry.date) - new Date(b.entry.date));
+                    
+                    // Check each marker in the group
+                    group.forEach((marker, groupIndex) => {
+                        const { x: markerX, y: markerY, index } = marker;
+                        
+                        // Apply vertical offset for stacked markers
+                        const verticalOffset = groupIndex * -30; // 30px offset per marker in group
+                        const adjustedY = markerY + verticalOffset;
+                        
+                        // Calculate distance from cursor to marker center
+                        const distance = Math.sqrt(Math.pow(x - markerX, 2) + Math.pow(y - adjustedY, 2));
+                        
+                        // If cursor is within marker radius (12px), set as hovered
+                        if (distance <= 12) {
+                            hoveredMarker = index;
+                        }
+                    });
+                });
+            }
+            
+            // Redraw chart with hover effects
+            initializeChart();
+        }
+    }
+    
+    // Handle mouse leaving chart
+    function handleChartMouseLeave() {
+        hoveredCandle = null;
+        hoveredMarker = null;
+        initializeChart();
+    }
+    
+    // เพิ่มฟังก์ชันสำหรับจัดการการซูม
+    function handleWheel(e) {
+        e.preventDefault();
+        
+        // กำหนดจุดศูนย์กลางของการซูม (ตำแหน่งของเมาส์)
+        const rect = e.target.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // คำนวณ scale ใหม่
+        const oldScale = chartScale;
+        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1; // ซูมเข้าหรือออก
+        const newScale = Math.max(minScale, Math.min(maxScale, chartScale * zoomFactor));
+        
+        // ปรับ offset เพื่อให้การซูมมีจุดศูนย์กลางที่ตำแหน่งของเมาส์
+        if (newScale !== oldScale) {
+            const scaleRatio = newScale / oldScale;
+            
+            // ปรับ offset ตามการเปลี่ยนแปลงของ scale
+            chartOffset.x = mouseX - (mouseX - chartOffset.x) * scaleRatio;
+            chartOffset.y = mouseY - (mouseY - chartOffset.y) * scaleRatio;
+            
+            // อัปเดต scale
+            chartScale = newScale;
+            
+            // วาดกราฟใหม่
+            initializeChart();
+        }
+    }
+    
+    // เพิ่มฟังก์ชันสำหรับการลากเพื่อเลื่อนกราฟ
+    function handleMouseDown(e) {
+        isDragging = true;
+        dragStart = { x: e.clientX, y: e.clientY };
+    }
+    
+    function handleMouseMove(e) {
+        if (isDragging) {
+            const dx = e.clientX - dragStart.x;
+            const dy = e.clientY - dragStart.y;
+            
+            chartOffset.x += dx;
+            chartOffset.y += dy;
+            
+            dragStart = { x: e.clientX, y: e.clientY };
+            
+            // วาดกราฟใหม่
+            initializeChart();
+        } else {
+            // ... existing hover detection code ...
+        }
+    }
+    
+    function handleMouseUp() {
+        isDragging = false;
+    }
+    
+    function handleMouseLeave() {
+        isDragging = false;
+        hoveredCandle = null;
+        hoveredMarker = null;
+        
+        // วาดกราฟใหม่
+        initializeChart();
+    }
+    
+    // ฟังก์ชันสำหรับปุ่มควบคุมการซูม
+    function zoomIn() {
+        const oldScale = chartScale;
+        const newScale = Math.min(maxScale, chartScale * 1.2);
+        
+        if (newScale !== oldScale) {
+            // ซูมโดยมีจุดศูนย์กลางที่กลางกราฟ
+            const centerX = chartContainer.clientWidth / 2;
+            const centerY = chartContainer.clientHeight / 2;
+            
+            const scaleRatio = newScale / oldScale;
+            chartOffset.x = centerX - (centerX - chartOffset.x) * scaleRatio;
+            chartOffset.y = centerY - (centerY - chartOffset.y) * scaleRatio;
+            
+            chartScale = newScale;
+            initializeChart();
+        }
+    }
+    
+    function zoomOut() {
+        const oldScale = chartScale;
+        const newScale = Math.max(minScale, chartScale / 1.2);
+        
+        if (newScale !== oldScale) {
+            // ซูมโดยมีจุดศูนย์กลางที่กลางกราฟ
+            const centerX = chartContainer.clientWidth / 2;
+            const centerY = chartContainer.clientHeight / 2;
+            
+            const scaleRatio = newScale / oldScale;
+            chartOffset.x = centerX - (centerX - chartOffset.x) * scaleRatio;
+            chartOffset.y = centerY - (centerY - chartOffset.y) * scaleRatio;
+            
+            chartScale = newScale;
+            initializeChart();
+        }
+    }
+    
+    function resetZoom() {
+        chartScale = 1;
+        chartOffset = { x: 0, y: 0 };
+        initializeChart();
+    }
+    
+    // เพิ่ม event listeners เมื่อ component ถูกโหลด
+    onMount(() => {
+        if (show && trade) {
+            fetchHistoricalData();
+        }
+        
+        return () => {
+            // ลบ event listeners เมื่อ component ถูกทำลาย
+            const canvas = chartContainer?.querySelector('canvas');
+            if (canvas) {
+                canvas.removeEventListener('wheel', handleWheel);
+                canvas.removeEventListener('mousedown', handleMouseDown);
+                canvas.removeEventListener('mousemove', handleMouseMove);
+                canvas.removeEventListener('mouseup', handleMouseUp);
+                canvas.removeEventListener('mouseleave', handleMouseLeave);
+            }
+        };
+    });
+    
+    // เพิ่ม event listeners เมื่อกราฟถูกสร้าง
+    function setupChartEventListeners() {
+        const canvas = chartContainer?.querySelector('canvas');
+        if (canvas) {
+            canvas.addEventListener('wheel', handleWheel, { passive: false });
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('mouseleave', handleMouseLeave);
+        }
+    }
+    
+    // Watch for trade changes to update chart
+    $: if (show && trade) {
+        // Wait for DOM to be ready
+        setTimeout(() => {
+            fetchHistoricalData();
+        }, 100);
+    }
+    
+    // Handle window resize
+    function handleResize() {
+        if (chartContainer && chart) {
+            chart.canvas.width = chartContainer.clientWidth;
+            initializeChart();
+        }
+    }
+
+    onMount(() => {
+        window.addEventListener('resize', handleResize);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    });
+
+    // Add variable to store current interval
+    let currentInterval = '1m';
 </script>
 
 {#if show && trade}
@@ -355,6 +1406,124 @@
                 <!-- Position History Section - Show only if exists -->
                 {#if positionHistory && positionHistory.length > 0}
                 <div class="bg-light-panel dark:bg-dark-panel rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-theme-500 mb-3">Trade Chart</h3>
+                    
+                    <!-- Chart Container -->
+                    <div 
+                        class="w-full h-[300px] mb-4 rounded-lg overflow-hidden border border-light-border dark:border-dark-border relative chart-container"
+                        bind:this={chartContainer}
+                    >
+                        {#if chartLoading}
+                            <div class="w-full h-full flex items-center justify-center bg-light-hover dark:bg-dark-hover">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-theme-500"></div>
+                            </div>
+                        {:else if chartError}
+                            <div class="w-full h-full flex items-center justify-center bg-light-hover dark:bg-dark-hover text-light-text-muted dark:text-dark-text-muted">
+                                <div class="text-center p-4">
+                                    <svg class="w-10 h-10 mx-auto mb-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    <p>Failed to load chart data</p>
+                                    <button 
+                                        class="mt-2 px-3 py-1 text-xs bg-theme-500/10 text-theme-500 rounded-md hover:bg-theme-500/20"
+                                        on:click={fetchHistoricalData}
+                                    >
+                                        Retry
+                                    </button>
+                                </div>
+                            </div>
+                        {:else if chartData.length > 0}
+                            <!-- Chart Legend -->
+                            <div class="absolute top-2 right-2 bg-black/80 rounded-md p-3 text-xs text-white z-30 flex flex-col gap-2 shadow-lg chart-legend">
+                                <div class="text-center font-bold border-b border-white/20 pb-1 mb-1">
+                                    {trade.symbol} {trade.side} - {formatTimeframe(currentInterval)}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-4 h-4 rounded-full bg-blue-500 shadow-glow-blue"></span>
+                                    <span>Entry: {formatPrice(trade.entryPrice)}</span>
+                                </div>
+                                {#if trade.status === 'CLOSED'}
+                                <div class="flex items-center gap-2">
+                                    <span class="w-4 h-4 rounded-full {trade.pnl >= 0 ? 'bg-green-500 shadow-glow-green' : 'bg-red-500 shadow-glow-red'}"></span>
+                                    <span>Exit: {formatPrice(trade.exitPrice)}</span>
+                                </div>
+                                {/if}
+                                {#if trade.stopLoss}
+                                <div class="flex items-center gap-2">
+                                    <span class="w-4 h-4 rounded-full bg-red-500 shadow-glow-red"></span>
+                                    <span>Stop Loss: {formatPrice(trade.stopLoss)}</span>
+                                </div>
+                                {/if}
+                                {#if trade.takeProfit}
+                                <div class="flex items-center gap-2">
+                                    <span class="w-4 h-4 rounded-full bg-green-500 shadow-glow-green"></span>
+                                    <span>Take Profit: {formatPrice(trade.takeProfit)}</span>
+                                </div>
+                                {/if}
+                                {#if positionHistory.some(p => p.action === 'INCREASE')}
+                                <div class="flex items-center gap-2">
+                                    <span class="w-4 h-4 rounded-full bg-blue-500 shadow-glow-blue"></span>
+                                    <span>Increase Position</span>
+                                </div>
+                                {/if}
+                                {#if positionHistory.some(p => p.action === 'DECREASE' && p.pnl >= 0)}
+                                <div class="flex items-center gap-2">
+                                    <span class="w-4 h-4 rounded-full bg-green-500 shadow-glow-green"></span>
+                                    <span>Profit Take</span>
+                                </div>
+                                {/if}
+                                {#if positionHistory.some(p => p.action === 'DECREASE' && p.pnl < 0)}
+                                <div class="flex items-center gap-2">
+                                    <span class="w-4 h-4 rounded-full bg-red-500 shadow-glow-red"></span>
+                                    <span>Loss Cut</span>
+                                </div>
+                                {/if}
+                            </div>
+                            
+                            <!-- Zoom Controls -->
+                            <div class="absolute bottom-2 right-2 flex gap-1 z-30 zoom-controls">
+                                <button 
+                                    class="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
+                                    on:click={zoomIn}
+                                    title="Zoom In"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                </button>
+                                <button 
+                                    class="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
+                                    on:click={zoomOut}
+                                    title="Zoom Out"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6"></path>
+                                    </svg>
+                                </button>
+                                <button 
+                                    class="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
+                                    on:click={resetZoom}
+                                    title="Reset Zoom"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <!-- Zoom Level Indicator -->
+                            <div class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded z-30">
+                                Zoom: {(chartScale * 100).toFixed(0)}%
+                            </div>
+                            
+                            <!-- Layer for tooltips -->
+                            <div id="chart-tooltips" class="absolute inset-0 pointer-events-none z-50"></div>
+                            
+                            <!-- Layer for markers (will be drawn on canvas but conceptually separate) -->
+                            <div class="marker-layer"></div>
+                        {/if}
+                    </div>
+
                     <h3 class="text-sm font-semibold text-theme-500 mb-3">Position History</h3>
                     
                     <!-- Visual Timeline of Position Changes -->
@@ -362,35 +1531,53 @@
                         <div class="relative h-5 flex items-center">
                             <!-- Progress Track -->
                             <div class="absolute inset-0 bg-light-hover dark:bg-dark-hover rounded-md overflow-hidden">
-                                {#each positionHistory as entry, i}
-                                    {@const percentage = parseFloat(entry.percentage)}
-                                    {@const isIncrease = entry.action === 'INCREASE'}
-                                    {@const isProfitable = entry.pnl >= 0}
-                                    <div 
-                                        class="absolute top-0 bottom-0 {isIncrease ? 'bg-blue-500/90' : (isProfitable ? 'bg-green-500/90' : 'bg-red-500/90')}"
-                                        style="left: calc({entry.percentage}% - {percentage}%); width: {percentage}%;"
-                                    ></div>
-                                {/each}
+                                {#if positionHistory.length > 0}
+                                    {@const sortedPositionHistory = [...positionHistory].sort((a, b) => new Date(a.date) - new Date(b.date))}
+                                    {@const totalPercentage = sortedPositionHistory.reduce((sum, entry) => sum + parseFloat(entry.percentage || 0), 0)}
+                                    {@const scaleFactor = totalPercentage > 0 ? 100 / totalPercentage : 1}
+                                    
+                                    {#each sortedPositionHistory as entry, i}
+                                        {@const rawPercentage = parseFloat(entry.percentage || 0)}
+                                        {@const normalizedPercentage = rawPercentage * scaleFactor}
+                                        {@const isIncrease = entry.action === 'INCREASE'}
+                                        {@const isProfitable = entry.pnl >= 0}
+                                        {@const startPosition = i === 0 ? 0 : sortedPositionHistory.slice(0, i).reduce((sum, prev) => sum + parseFloat(prev.percentage || 0) * scaleFactor, 0)}
+                                        
+                                        <div 
+                                            class="absolute top-0 bottom-0 {isIncrease ? 'bg-blue-500/90' : (isProfitable ? 'bg-green-500/90' : 'bg-red-500/90')}"
+                                            style="left: {startPosition}%; width: {normalizedPercentage}%;"
+                                        ></div>
+                                    {/each}
+                                {/if}
                             </div>
                             
                             <!-- Time markers -->
-                            {#each positionHistory as entry, i}
-                                {@const date = new Date(entry.date)}
-                                {@const position = entry.percentage}
-                                <div 
-                                    class="absolute top-full mt-1 transform -translate-x-1/2 text-xs text-light-text-muted dark:text-dark-text-muted"
-                                    style="left: {position}%;"
-                                >
-                                    <div class="w-px h-2 bg-light-text-muted/50 dark:bg-dark-text-muted/50 mx-auto mb-1"></div>
-                                    <div>{i+1}</div>
-                                </div>
-                            {/each}
+                            {#if positionHistory.length > 0}
+                                {@const sortedPositionHistory = [...positionHistory].sort((a, b) => new Date(a.date) - new Date(b.date))}
+                                {@const totalPercentage = sortedPositionHistory.reduce((sum, entry) => sum + parseFloat(entry.percentage || 0), 0)}
+                                {@const scaleFactor = totalPercentage > 0 ? 100 / totalPercentage : 1}
+                                
+                                {#each sortedPositionHistory as entry, i}
+                                    {@const rawPercentage = parseFloat(entry.percentage || 0)}
+                                    {@const normalizedPercentage = rawPercentage * scaleFactor}
+                                    {@const startPosition = i === 0 ? 0 : sortedPositionHistory.slice(0, i).reduce((sum, prev) => sum + parseFloat(prev.percentage || 0) * scaleFactor, 0)}
+                                    {@const markerPosition = startPosition + (normalizedPercentage / 2)}
+                                    
+                                    <div 
+                                        class="absolute top-full mt-1 transform -translate-x-1/2 text-xs text-light-text-muted dark:text-dark-text-muted"
+                                        style="left: {markerPosition}%;"
+                                    >
+                                        <div class="w-px h-2 bg-light-text-muted/50 dark:bg-dark-text-muted/50 mx-auto mb-1"></div>
+                                        <div>{i+1}</div>
+                                    </div>
+                                {/each}
+                            {/if}
                         </div>
                     </div>
                     
                     <!-- Position History Cards -->
                     <div class="space-y-2">
-                        {#each positionHistory as entry, i}
+                        {#each positionHistory.sort((a, b) => new Date(a.date) - new Date(b.date)) as entry, i}
                             {@const isIncrease = entry.action === 'INCREASE'}
                             {@const isProfitable = entry.pnl >= 0}
                             {@const date = new Date(entry.date)}
@@ -525,7 +1712,7 @@
                             class="text-sm text-theme-500 hover:underline break-all inline-flex items-center gap-1"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                             </svg>
                             {trade.url}
                         </a>
@@ -645,5 +1832,132 @@
     
     :global(.rich-text-content .text-right) {
         text-align: right;
+    }
+
+    /* Add smooth animation for chart hover effects */
+    canvas {
+        transition: transform 0.2s ease;
+    }
+    
+    /* Add glow effect for chart markers */
+    @keyframes markerGlow {
+        0%, 100% { filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.7)); }
+        50% { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 1.0)); }
+    }
+    
+    .marker-glow {
+        animation: markerGlow 2s infinite;
+    }
+
+    /* Add glow effects for chart elements */
+    .shadow-glow-blue {
+        box-shadow: 0 0 8px 2px rgba(52, 152, 219, 0.6);
+    }
+    
+    .shadow-glow-green {
+        box-shadow: 0 0 8px 2px rgba(46, 204, 113, 0.6);
+    }
+    
+    .shadow-glow-red {
+        box-shadow: 0 0 8px 2px rgba(231, 76, 60, 0.6);
+    }
+
+    /* Tooltip styles */
+    #chart-tooltip {
+        transition: opacity 0.2s ease;
+        animation: fadeIn 0.2s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    /* เพิ่ม z-index สูงๆ ให้กับ tooltip */
+    #chart-tooltips {
+        z-index: 50;
+    }
+
+    /* Add cursor styles for chart interactions */
+    canvas {
+        cursor: grab;
+    }
+    
+    canvas:active {
+        cursor: grabbing;
+    }
+    
+    /* Zoom controls hover effect */
+    button:hover svg {
+        transform: scale(1.1);
+        transition: transform 0.2s ease;
+    }
+    
+    /* ... existing styles ... */
+    
+    /* Ensure proper layering of chart elements */
+    .chart-container {
+        position: relative;
+    }
+    
+    /* Make canvas stay at the back */
+    canvas {
+        position: relative;
+        z-index: 1;
+        transition: transform 0.2s ease;
+        cursor: grab;
+    }
+    
+    canvas:active {
+        cursor: grabbing;
+    }
+    
+    /* Ensure markers are above candles */
+    .marker-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 20;
+    }
+    
+    /* Ensure tooltips are at the very top */
+    #chart-tooltips {
+        z-index: 50;
+    }
+    
+    /* Ensure legend is above everything */
+    .chart-legend {
+        z-index: 30;
+    }
+    
+    /* Ensure zoom controls are above everything */
+    .zoom-controls {
+        z-index: 30;
+    }
+    
+    /* Improve marker glow animation for better visibility */
+    @keyframes markerGlow {
+        0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.7)); }
+        50% { filter: drop-shadow(0 0 12px rgba(255, 255, 255, 1.0)); }
+    }
+    
+    .marker-glow {
+        animation: markerGlow 2s infinite;
+    }
+    
+    /* Enhanced glow effects for chart elements */
+    .shadow-glow-blue {
+        box-shadow: 0 0 12px 4px rgba(52, 152, 219, 0.7);
+    }
+    
+    .shadow-glow-green {
+        box-shadow: 0 0 12px 4px rgba(46, 204, 113, 0.7);
+    }
+    
+    .shadow-glow-red {
+        box-shadow: 0 0 12px 4px rgba(231, 76, 60, 0.7);
     }
 </style>

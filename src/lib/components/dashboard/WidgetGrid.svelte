@@ -93,7 +93,7 @@
     }}
     on:consider={onDndConsider}
     on:finalize={onDndFinalize}
-    class="grid grid-cols-12 gap-2 lg:gap-4 relative"
+    class="grid grid-cols-12 gap-2 lg:gap-3 relative"
 >
     {#each widgets as widget (widget.id)}
         <div 

@@ -242,14 +242,14 @@
         {#if selectedPeriod && stats[selectedPeriod]}
             <!-- Main Card -->
             <div 
-                class="card p-5 relative cursor-pointer transition-all duration-300 hover:scale-[1.01]" 
+                class="card p-4 relative cursor-pointer transition-all duration-300 hover:scale-[1.01]" 
                 on:click={toggleOtherPeriods}
             >
                 <!-- Period Label & Icon -->
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-full {currentPeriodData.pnl >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-center justify-center shadow-sm">
-                            <svg class="w-6 h-6 {currentPeriodData.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-10 h-10 rounded-full {currentPeriodData.pnl >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-center justify-center shadow-sm">
+                            <svg class="w-5 h-5 {currentPeriodData.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[selectedPeriod].icon}/>
                             </svg>
                         </div>
@@ -297,15 +297,15 @@
                     {#each $tradingStatsConfig.selectedPeriods as period}
                         {#if stats[period]}
                             <button
-                                class="w-full flex items-center justify-between p-4 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200 {period === selectedPeriod ? 'bg-theme-500/10 border-l-4 border-theme-500' : 'border-l-4 border-transparent'}"
+                                class="w-full flex items-center justify-between py-2 px-4 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200 {period === selectedPeriod ? 'bg-theme-500/10 border-l-4 border-theme-500' : 'border-l-4 border-transparent'}"
                                 on:click={() => {
                                     selectedPeriod = period;
                                     showOtherPeriods = false;
                                 }}
                             >
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full {stats[period]?.pnl >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-center justify-center">
-                                        <svg class="w-5 h-5 {stats[period]?.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-full {stats[period]?.pnl >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-center justify-center">
+                                        <svg class="w-4 h-4 {stats[period]?.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[period].icon}/>
                                         </svg>
                                     </div>
@@ -334,9 +334,9 @@
                 </div>
             {/if}
         {:else}
-            <div class="card p-5 text-center">
-                <div class="animate-pulse flex flex-col items-center gap-4">
-                    <div class="w-12 h-12 bg-light-hover dark:bg-dark-hover rounded-full"></div>
+            <div class="card p-4 text-center">
+                <div class="animate-pulse flex flex-col items-center gap-3">
+                    <div class="w-10 h-10 bg-light-hover dark:bg-dark-hover rounded-full"></div>
                     <div class="h-4 w-24 bg-light-hover dark:bg-dark-hover rounded"></div>
                     <div class="h-6 w-32 bg-light-hover dark:bg-dark-hover rounded"></div>
                 </div>
@@ -345,23 +345,23 @@
     </div>
 
     <!-- Desktop Layout -->
-    <div class="hidden md:grid gap-4 lg:gap-6" 
+    <div class="hidden md:grid gap-3 lg:gap-4" 
         style="grid-template-columns: repeat({$tradingStatsConfig.selectedPeriods.length}, minmax(0, 1fr));">
         {#if selectedPeriod && stats[selectedPeriod]}
             {#each $tradingStatsConfig.selectedPeriods as period}
                 {@const data = stats[period] || { pnl: 0, trades: 0, balanceChange: 0 }}
                 <div class="stat-card" class:positive={data.pnl >= 0} class:negative={data.pnl < 0}>
-                    <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center justify-between mb-2">
                         <h3 class="text-sm font-semibold text-light-text dark:text-dark-text capitalize">
                             {PERIOD_OPTIONS[period].label}
                         </h3>
-                        <div class="w-9 h-9 rounded-full {data.pnl >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-center justify-center shadow-sm">
-                            <svg class="w-5 h-5 {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-8 h-8 rounded-full {data.pnl >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-center justify-center shadow-sm">
+                            <svg class="w-4 h-4 {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[period].icon}/>
                             </svg>
                         </div>
                     </div>
-                    <div class="space-y-3">
+                    <div class="space-y-2">
                         <div class="flex flex-wrap items-baseline justify-between">
                             <p class="text-xl font-bold tracking-tight {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
                                 {formatCurrency(data.pnl)}
@@ -387,15 +387,15 @@
             <!-- Skeleton Loading for Desktop -->
             {#each Array($tradingStatsConfig.selectedPeriods.length) as _, i}
                 <div class="stat-card shadow-md">
-                    <div class="animate-pulse space-y-4">
+                    <div class="animate-pulse space-y-3">
                         <!-- Header -->
                         <div class="flex items-center justify-between">
                             <div class="h-4 w-20 bg-light-hover dark:bg-dark-hover rounded"></div>
-                            <div class="w-9 h-9 rounded-full bg-light-hover dark:bg-dark-hover"></div>
+                            <div class="w-8 h-8 rounded-full bg-light-hover dark:bg-dark-hover"></div>
                         </div>
                         
                         <!-- PnL and Stats -->
-                        <div class="space-y-3">
+                        <div class="space-y-2">
                             <div class="h-6 w-32 bg-light-hover dark:bg-dark-hover rounded"></div>
                             <div class="flex items-center gap-2">
                                 <div class="h-4 w-4 bg-light-hover dark:bg-dark-hover rounded-full"></div>
@@ -416,7 +416,7 @@
     }
 
     .stat-card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-5 backdrop-blur-sm transform transition-all duration-300;
+        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-3 backdrop-blur-sm transform transition-all duration-300;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
 

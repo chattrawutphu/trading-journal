@@ -50,6 +50,7 @@
         "express-rate-limit": "^7.5.0",
         "express-session": "^1.17.3",
         "jsonwebtoken": "^9.0.0",
+        "lightweight-charts": "^5.0.3",
         "mongodb": "^6.3.0",
         "mongoose": "^7.6.3",
         "node-cron": "^3.0.3",
