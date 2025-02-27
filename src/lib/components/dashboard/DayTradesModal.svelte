@@ -819,6 +819,7 @@
         bind:show={showViewModal}
         trade={selectedTrade}
         on:close={closeViewModal}
+        on:edit={handleTradeEdit}
     />
 {/if}
 

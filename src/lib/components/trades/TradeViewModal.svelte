@@ -3,6 +3,9 @@
     import { formatCurrency, formatPercentage } from '$lib/utils/formatters';
     import { binanceExchange } from '$lib/exchanges';
     import { onMount } from 'svelte';
+    import { createEventDispatcher } from 'svelte';
+    
+    const dispatch = createEventDispatcher();
     
     export let show = false;
     export let trade = null;
@@ -1265,15 +1268,33 @@
                     {/if}
                 </div>
 
-                <!-- Close Button -->
-                <button 
-                    class="ml-4 p-2 rounded-lg text-light-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
-                    on:click={close}
-                >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2">
+                        <button 
+                            class="p-2 rounded-lg text-light-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
+                            on:click={() => {
+                                dispatch('edit', trade);
+                                close();
+                            }}
+                            title="Edit trade"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </button>
+                    
+                    <!-- Close Button -->
+                    <button 
+                        class="p-2 rounded-lg text-light-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
+                        on:click={close}
+                        title="Close"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -1528,7 +1549,7 @@
                     
                     <!-- Visual Timeline of Position Changes -->
                     <div class="mb-4">
-                        <div class="relative h-5 flex items-center">
+                        <div class="relative h-3 mb-[2rem] flex items-center">
                             <!-- Progress Track -->
                             <div class="absolute inset-0 bg-light-hover dark:bg-dark-hover rounded-md overflow-hidden">
                                 {#if positionHistory.length > 0}
