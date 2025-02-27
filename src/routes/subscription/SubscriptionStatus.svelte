@@ -10,7 +10,7 @@
     export let loading;
 
     function handleCancel() {
-        console.log('Cancel button clicked'); // เพิ่ม log เพื่อ debug
+        // console.log('Cancel button clicked'); // เพิ่ม log เพื่อ debug
         dispatch('cancelClick');
     }
 

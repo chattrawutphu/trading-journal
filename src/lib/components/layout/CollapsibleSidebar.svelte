@@ -47,14 +47,14 @@
     
     // Add reactive statement to update when key changes
     $: if (key) {
-        console.log(`CollapsibleSidebar reloaded with key: ${key}`);
+        // console.log(`CollapsibleSidebar reloaded with key: ${key}`);
         
         // Force re-evaluation of active layout
         const urlLayoutParam = $page.url.searchParams.get('layout');
         if (urlLayoutParam !== null) {
             const layoutIndex = parseInt(urlLayoutParam);
             if (!isNaN(layoutIndex) && layoutIndex >= 0) {
-                console.log(`Setting active layout to ${layoutIndex} from URL param`);
+                // console.log(`Setting active layout to ${layoutIndex} from URL param`);
                 // Update the layoutStore
                 layoutStore.setActiveLayout(layoutIndex);
             }
@@ -84,7 +84,7 @@
 
         // Add event listener for layout changes
         const handleLayoutChange = (event) => {
-            console.log('Layout change event received:', event.detail);
+            // console.log('Layout change event received:', event.detail);
             if (event.detail && event.detail.layoutIndex !== undefined) {
                 // Force re-render of the component
                 showDashboardSubmenu = true; // Ensure submenu is visible
@@ -114,7 +114,7 @@
         if (urlLayoutParam !== null) {
             const isActive = urlLayoutParam === layoutIndex.toString();
             if (isActive) {
-                console.log(`Layout ${layoutIndex} is active from URL param: ${urlLayoutParam}`);
+                // console.log(`Layout ${layoutIndex} is active from URL param: ${urlLayoutParam}`);
             }
             return isActive;
         }
@@ -123,7 +123,7 @@
         if (layoutStoreData && layoutStoreData.activeLayoutIndex !== undefined) {
             const isActive = layoutIndex === layoutStoreData.activeLayoutIndex;
             if (isActive) {
-                console.log(`Layout ${layoutIndex} is active from layoutStore: ${layoutStoreData.activeLayoutIndex}`);
+                // console.log(`Layout ${layoutIndex} is active from layoutStore: ${layoutStoreData.activeLayoutIndex}`);
             }
             return isActive;
         }
@@ -131,7 +131,7 @@
         // ค่าเริ่มต้น: ถ้าเป็นหน้า Dashboard และเป็น layout แรก
         const isDefault = isDashboard && layoutIndex === 0 && !urlLayoutParam;
         if (isDefault) {
-            console.log(`Layout ${layoutIndex} is active by default`);
+            // console.log(`Layout ${layoutIndex} is active by default`);
         }
         return isDefault;
     };
@@ -175,7 +175,7 @@
     function toggleSubmenu() {
         if (!$isCollapsed) {
             showDashboardSubmenu = !showDashboardSubmenu;
-            console.log('Toggled submenu:', showDashboardSubmenu);
+            // console.log('Toggled submenu:', showDashboardSubmenu);
         }
     }
 
@@ -307,7 +307,7 @@
                                     goto('/dashboard');
                                 } else {
                                     toggleSubmenu();
-                                    console.log('Dashboard menu clicked, submenu state:', showDashboardSubmenu);
+                                    // console.log('Dashboard menu clicked, submenu state:', showDashboardSubmenu);
                                 }
                             }}
                         >

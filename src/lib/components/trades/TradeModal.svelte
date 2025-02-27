@@ -275,9 +275,9 @@
                     account: accountId,
                     type: 'MANUAL'
                 };
-                console.log('Submitting trade payload:', payload);
+                // console.log('Submitting trade payload:', payload);
                 const result = await api.createTrade(payload);
-                console.log('API response:', result);
+                // console.log('API response:', result);
             }
             dispatch('tradeUpdated');
             

@@ -50,11 +50,11 @@ router.post('/binance-history', async(req, res) => {
         const startTime = endTime - (days * 24 * 60 * 60 * 1000);
 
         // Log วันที่และเวลาที่ใช้ในการเรียกข้อมูล
-        console.log('Fetching Binance history:', {
+        /* console.log('Fetching Binance history:', {
             startTime: new Date(startTime).toLocaleString(),
             endTime: new Date(endTime).toLocaleString(),
             days: days
-        });
+        });*/
 
         // ดึงข้อมูล order history
         const orders = await binanceExchange.getFuturesOrderHistory(apiKey, secretKey, startTime, endTime);

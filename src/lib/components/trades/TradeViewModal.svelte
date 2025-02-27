@@ -107,11 +107,11 @@
 
     // Add debug log to check positionHistory data
     $: if (trade) {
-        console.log('Trade data in modal:', trade);
+        // console.log('Trade data in modal:', trade);
         const hasPositionHistory = !!trade.positionHistory;
         const hasCloseHistory = !!trade.closeHistory;
-        console.log('Has position history:', hasPositionHistory, 'Has close history:', hasCloseHistory);
-        console.log('Using position history:', positionHistory);
+        // console.log('Has position history:', hasPositionHistory, 'Has close history:', hasCloseHistory);
+        // console.log('Using position history:', positionHistory);
     }
 
     // ฟังก์ชันสำหรับตรวจสอบว่า field มีข้อมูลหรือไม่
@@ -221,12 +221,12 @@
                 }
                 
                 const data = await response.json();
-                console.log(`Fetched ${data.length} candles for chart with interval ${interval}`);
+                // console.log(`Fetched ${data.length} candles for chart with interval ${interval}`);
                 
                 // If we got too many candles, try a larger interval
                 if (data.length > 180) {
                     const largerInterval = getNextLargerInterval(interval);
-                    console.log(`Too many candles (${data.length}), trying larger interval: ${largerInterval}`);
+                    // console.log(`Too many candles (${data.length}), trying larger interval: ${largerInterval}`);
                     
                     const response2 = await fetch(
                         `https://fapi.binance.com/fapi/v1/klines?symbol=${trade.symbol}&interval=${largerInterval}&startTime=${Math.floor(paddedStart)}&endTime=${Math.floor(paddedEnd)}&limit=180`
@@ -237,7 +237,7 @@
                     }
                     
                     const data2 = await response2.json();
-                    console.log(`Fetched ${data2.length} candles with larger interval ${largerInterval}`);
+                    // console.log(`Fetched ${data2.length} candles with larger interval ${largerInterval}`);
                     
                     // Transform data for our chart
                     chartData = data2.map(candle => ({
@@ -295,7 +295,7 @@
                 }
                 
                 const data = await response.json();
-                console.log(`Fetched ${data.length} candles for chart`);
+                // console.log(`Fetched ${data.length} candles for chart`);
                 
                 // Transform data for our chart
                 chartData = data.map(candle => ({

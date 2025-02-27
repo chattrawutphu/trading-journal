@@ -253,7 +253,7 @@
 
         // Subscribe to trade and transaction updates
         const handleUpdate = async () => {
-            console.log('ShortCalendar: Received update event');
+            // console.log('ShortCalendar: Received update event');
             await loadTrades();
         };
         

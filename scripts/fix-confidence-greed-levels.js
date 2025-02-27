@@ -21,7 +21,7 @@ async function fixConfidenceGreedLevels() {
     }
     
     await mongoose.connect(mongoUri);
-    console.log('Connected to MongoDB');
+    // console.log('Connected to MongoDB');
     
     // Find all trades with invalid confidence or greed levels
     const trades = await Trade.find({
@@ -31,7 +31,7 @@ async function fixConfidenceGreedLevels() {
       ]
     });
     
-    console.log(`Found ${trades.length} trades with invalid confidence/greed levels`);
+    // console.log(`Found ${trades.length} trades with invalid confidence/greed levels`);
     
     let updatedCount = 0;
     let errorCount = 0;
@@ -44,7 +44,7 @@ async function fixConfidenceGreedLevels() {
         if (trade.confidenceLevel < 1) updates.confidenceLevel = 1;
         if (trade.greedLevel < 1) updates.greedLevel = 1;
         
-        console.log(`Updating trade ${trade._id}:`, updates);
+        // console.log(`Updating trade ${trade._id}:`, updates);
         
         // Only update if needed
         if (Object.keys(updates).length > 0) {
@@ -57,13 +57,13 @@ async function fixConfidenceGreedLevels() {
       }
     }
     
-    console.log(`\nMigration complete:`);
-    console.log(`- Total trades found: ${trades.length}`);
-    console.log(`- Successfully updated: ${updatedCount}`);
-    console.log(`- Errors: ${errorCount}`);
+    // console.log(`\nMigration complete:`);
+    // console.log(`- Total trades found: ${trades.length}`);
+    // console.log(`- Successfully updated: ${updatedCount}`);
+    // console.log(`- Errors: ${errorCount}`);
     
     await mongoose.disconnect();
-    console.log('Disconnected from MongoDB');
+    // console.log('Disconnected from MongoDB');
     
   } catch (error) {
     console.error('Error in migration script:', error);

@@ -25,5 +25,5 @@ app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/tag-history', dayTagHistoryRoutes);
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  // console.log(`Server running on port ${PORT}`);
 });

@@ -86,7 +86,7 @@
 
         // Add event listeners for updates
         const handleUpdate = async () => {
-            console.log('StatsCard: Received update event');
+            // console.log('StatsCard: Received update event');
             if (!$accountStore.currentAccount) return;
             
             try {
@@ -134,8 +134,8 @@
     let dailyPnL = {};
 
     // Add logging
-    $: console.log('StatsCard trades:', trades);
-    $: console.log('StatsCard dailyPnL:', dailyPnL);
+    // $: console.log('StatsCard trades:', trades);
+    // $: console.log('StatsCard dailyPnL:', dailyPnL);
 
     // Helper function to normalize date
     function normalizeDate(date) {
@@ -178,7 +178,7 @@
                 }
             });
         }
-        console.log('Updated dailyPnL:', dailyPnL);
+        // console.log('Updated dailyPnL:', dailyPnL);
     }
 
     function getDayClass(day) {
@@ -191,7 +191,7 @@
         }
         
         const pnl = dailyPnL[day] || 0;
-        console.log(`Day ${day} PnL:`, pnl);
+        // console.log(`Day ${day} PnL:`, pnl);
         
         if (pnl > 0) {
             return `${baseClasses} bg-green-500/50 dark:bg-green-500/40`;

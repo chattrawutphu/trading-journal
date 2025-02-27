@@ -33,7 +33,7 @@
 
         // Subscribe to trade and transaction updates
         const handleUpdate = async () => {
-            console.log('ProfitTarget: Received update event');
+            // console.log('ProfitTarget: Received update event');
             await loadTrades();
         };
         

@@ -223,8 +223,8 @@
 
     // ปรับปรุงฟังก์ชัน handleSubmit
     async function handleSubmit() {
-        console.log('1. Starting handleSubmit...');
-        console.log('Current accountType:', accountType);
+        // console.log('1. Starting handleSubmit...');
+        // console.log('Current accountType:', accountType);
 
         // ตรวจสอบ subscription
         if ($subscriptionStore.type === SUBSCRIPTION_TYPES.BASIC && 
@@ -235,13 +235,13 @@
 
         // ตรวจสอบ required fields และ initial balance
         if (!accountName) {
-            console.log('Error: Missing account name');
+            // console.log('Error: Missing account name');
             error = 'Please enter account name';
             return;
         }
 
         if (initialBalance < 0) {
-            console.log('Error: Invalid initial balance');
+            // console.log('Error: Invalid initial balance');
             error = 'Initial balance cannot be negative';
             return;
         }
@@ -256,18 +256,18 @@
 
         try {
             if (accountType === 'BINANCE_FUTURES') {
-                console.log('2. Testing Binance connection...');
+                // console.log('2. Testing Binance connection...');
                 
                 // แสดง toast กำลังทดสอบการเชื่อมต่อ
                 toastType = 'info';
                 toastMessage = 'Testing Binance connection...';
                 showToast = true;
 
-                console.log('3. Sending test connection request with:', {
+                /* console.log('3. Sending test connection request with:', {
                     type: 'BINANCE_FUTURES',
                     apiKey,
                     secretKey: '***' // ไม่แสดง secret key จริง
-                });
+                });*/
 
                 // ทดสอบการเชื่อมต่อ
                 await api.testConnection({
@@ -276,7 +276,7 @@
                     secretKey
                 });
 
-                console.log('4. Connection test successful');
+                // console.log('4. Connection test successful');
 
                 // แสดง toast เชื่อมต่อสำเร็จ
                 toastType = 'success';
@@ -284,22 +284,22 @@
                 showToast = true;
 
                 // Fetch trade history
-                console.log('5. Fetching trade history...');
+                // console.log('5. Fetching trade history...');
                 const historyResponse = await api.fetchBinanceTradeHistory(apiKey, secretKey);
-                console.log('6. Trade history response:', historyResponse);
+                // console.log('6. Trade history response:', historyResponse);
                 
                 if (historyResponse && historyResponse.data) {
                     tradeHistory = historyResponse.data;
                     showTradeHistory = true;
                     show = false; // ปิด New Trading Account Modal
-                    console.log('7. Showing trade history modal');
+                    // console.log('7. Showing trade history modal');
                 } else {
                     console.error('Invalid trade history response:', historyResponse);
                     throw new Error('Failed to fetch trade history');
                 }
                 
             } else {
-                console.log('2. Creating manual account...');
+                // console.log('2. Creating manual account...');
                 loading = true;
 
                 // 1. สร้าง account
@@ -313,10 +313,10 @@
                 };
 
                 await accountStore.createAccount(accountData);
-                console.log('3. Account created');
+                // console.log('3. Account created');
 
                 // 2. รอให้ reload layout เสร็จก่อน
-                console.log('4. Reloading layout...');
+                // console.log('4. Reloading layout...');
                 await accountStore.loadAccounts();
                 dispatch('refreshLayout');
 
@@ -324,7 +324,7 @@
                 toastType = 'success';
                 toastMessage = 'Account created successfully!';
                 showToast = true;
-                console.log('5. Showing success toast');
+                // console.log('5. Showing success toast');
 
                 // 4. รีเซ็ตฟอร์มและปิด modal
                 accountName = '';
@@ -349,7 +349,7 @@
             showToast = true;
         } finally {
             loading = false;
-            console.log('8. handleSubmit complete');
+            // console.log('8. handleSubmit complete');
         }
     }
 
@@ -400,7 +400,7 @@
         try {
             importLoading = true;
             const tradeData = event.detail;
-            console.log('Importing trades with options:', tradeData);
+            // console.log('Importing trades with options:', tradeData);
 
             // Format trades with excludeZeroPnL option
             const formattedTrades = formatTrades(
@@ -466,7 +466,7 @@
     async function handleTradeHistoryImport(event) {
         try {
             const tradeData = event.detail;
-            console.log('Importing trades with options:', tradeData);
+            // console.log('Importing trades with options:', tradeData);
 
             // สร้าง account พร้อมกับ excludeZeroPnL
             const accountData = {
@@ -506,7 +506,7 @@
     on:close={() => {
         showTradeHistory = false;
         show = false; // ปิด NewAccountModal ด้วย
-        console.log('Trade history modal closed');
+        // console.log('Trade history modal closed');
     }}
     on:import={handleTradeImport}
 />

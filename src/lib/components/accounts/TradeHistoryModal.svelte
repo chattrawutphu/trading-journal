@@ -29,17 +29,17 @@
 
     $: theme = exchangeThemes[accountType];
 
-    $: console.log('TradeHistoryModal show:', show);
-    $: console.log('TradeHistoryModal tradeHistory:', tradeHistory);
+    // $: console.log('TradeHistoryModal show:', show);
+    // $: console.log('TradeHistoryModal tradeHistory:', tradeHistory);
 
     function handleClose() {
-        console.log('TradeHistoryModal handleClose called');
+        // console.log('TradeHistoryModal handleClose called');
         show = false;
         dispatch('close');
     }
 
     async function handleImport() {
-        console.log('TradeHistoryModal handleImport called');
+        // console.log('TradeHistoryModal handleImport called');
         loading = true;
         try {
             const result = await dispatch('import', {

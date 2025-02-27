@@ -30,7 +30,7 @@ async function getBinanceServerTime() {
             throw new Error('Failed to fetch Binance server time');
         }
         const data = await response.json();
-        console.log('Binance server time:', new Date(data.serverTime).toLocaleString());
+        // console.log('Binance server time:', new Date(data.serverTime).toLocaleString());
         return data.serverTime;
     } catch (error) {
         console.error('Error fetching Binance server time:', error);

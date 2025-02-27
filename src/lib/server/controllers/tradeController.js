@@ -245,12 +245,12 @@ export const updateTrade = async(req, res) => {
         }
 
         // Debug the trade data before updating
-        console.log(`[updateTrade] Updating trade ${id} with data:`, {
+        /* console.log(`[updateTrade] Updating trade ${id} with data:`, {
             id,
             hasPositionHistory: !!tradeData.positionHistory,
             positionHistoryLength: tradeData.positionHistory ? tradeData.positionHistory.length : 0,
             positionHistory: tradeData.positionHistory
-        });
+        });*/
         
         // Attempt to update the trade
         const updatedTrade = await Trade.findByIdAndUpdate(
@@ -268,11 +268,11 @@ export const updateTrade = async(req, res) => {
         }
         
         // Debug the updated trade
-        console.log(`[updateTrade] Trade updated - result:`, {
+        /* console.log(`[updateTrade] Trade updated - result:`, {
             updatedTradeId: updatedTrade._id,
             hasPositionHistory: !!updatedTrade.positionHistory,
             positionHistoryLength: updatedTrade.positionHistory ? updatedTrade.positionHistory.length : 0
-        });
+        });*/
         
         return res.status(200).json(updatedTrade);
     } catch (error) {

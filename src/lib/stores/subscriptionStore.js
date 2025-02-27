@@ -67,7 +67,7 @@ function createSubscriptionStore() {
     // Keep only the Depay payment processing method
     initiateDepayPayment: async (data) => {
       try {
-        console.log('Initiating payment with data:', data); // Debug log
+        // console.log('Initiating payment with data:', data); // Debug log
         update(state => ({ ...state, loading: true, paymentStatus: 'Redirecting to Depay...' }));
         
         const response = await api.createDepayTransaction(data);
@@ -77,7 +77,7 @@ function createSubscriptionStore() {
             throw new Error('Failed to initiate Depay transaction.');
         }
 
-        console.log('Got Depay link:', depayLink); // Debug log
+        // console.log('Got Depay link:', depayLink); // Debug log
         window.location.href = depayLink;
       } catch (error) {
         console.error('Depay payment initiation failed:', error);
@@ -174,7 +174,7 @@ function getPriceForPlan(planType) {
   const prices = {
     [SUBSCRIPTION_TYPES.BASIC]: 0,
     [SUBSCRIPTION_TYPES.PRO]: 0.01,      // เปลี่ยนราคาตามต้องการ
-    [SUBSCRIPTION_TYPES.PRO_PLUS]: 0.02  // เปลี่ยนราคาตามต้อ��การ
+    [SUBSCRIPTION_TYPES.PRO_PLUS]: 0.02  // เปลี่ยนราคาตามต้อการ
   };
   return prices[planType];
 }

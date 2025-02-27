@@ -298,12 +298,12 @@
     }
 
     async function handleTradeUpdated() {
-        console.log('DayTradesModal: Trade updated, reloading trades...');
+        // console.log('DayTradesModal: Trade updated, reloading trades...');
         await loadTrades();
         calculateDailyBalance();
         showEditModal = false;
         selectedTrade = null;
-        console.log('DayTradesModal: Dispatching refresh event');
+        // console.log('DayTradesModal: Dispatching refresh event');
         dispatch('refresh');
     }
 

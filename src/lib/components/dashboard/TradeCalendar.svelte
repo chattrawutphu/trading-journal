@@ -83,7 +83,7 @@
         
         // Add event listeners for trade updates
         const handleTradeUpdate = async () => {
-            console.log('TradeCalendar: Received trade update event');
+            // console.log('TradeCalendar: Received trade update event');
             await loadData();
         };
         
@@ -488,7 +488,7 @@
         selectedDayTransactions = stats?.transactions || [];
         selectedDayBalance = dailyBalances[formattedDate];
         
-        console.log('TradeCalendar: Opening day modal with date:', formattedDate);
+        // console.log('TradeCalendar: Opening day modal with date:', formattedDate);
         showDayTradesModal = true;
     }
 
@@ -497,25 +497,25 @@
     }
 
     function handleEdit(event) {
-        console.log('TradeCalendar: Handling edit event');
+        // console.log('TradeCalendar: Handling edit event');
         dispatch('edit', event.detail);
         loadData();
     }
 
     function handleDelete(event) {
-        console.log('TradeCalendar: Handling delete event');
+        // console.log('TradeCalendar: Handling delete event');
         dispatch('delete', event.detail);
         loadData();
     }
 
     function handleDeleteTransaction(event) {
-        console.log('TradeCalendar: Handling delete transaction event');
+        // console.log('TradeCalendar: Handling delete transaction event');
         dispatch('deleteTransaction', event.detail);
         loadData();
     }
 
     function handleNewTrade(event) {
-        console.log('TradeCalendar: Handling new trade event');
+        // console.log('TradeCalendar: Handling new trade event');
         dispatch('newTrade');
         loadData();
     }
@@ -1099,11 +1099,11 @@
     on:deleteTransaction={handleDeleteTransaction}
     on:newTrade={handleNewTrade}
     on:refresh={() => {
-        console.log('TradeCalendar: Received refresh event from modal');
+        // console.log('TradeCalendar: Received refresh event from modal');
         loadData();
     }}
     on:close={() => {
-        console.log('TradeCalendar: Modal closed');
+        // console.log('TradeCalendar: Modal closed');
         showDayTradesModal = false;
         selectedDayTrades = [];
         selectedDayTransactions = [];

@@ -301,8 +301,8 @@ export const processPayment = async (req, res) => {
 };
 
 export const confirmPayment = async (req, res) => {
-    console.log('DePay Callback Headers:', req.headers);
-    console.log('DePay Callback Body:', req.body);
+    // console.log('DePay Callback Headers:', req.headers);
+    // console.log('DePay Callback Body:', req.body);
 
     const {
         status,
@@ -345,14 +345,14 @@ export const confirmPayment = async (req, res) => {
         });
 
         // Log สำหรับ debug
-        console.log('Payment confirmed for:', {
+        /* console.log('Payment confirmed for:', {
             userUUID,
             planType,
             userId: user._id,
             transactionHash: transaction_hash
-        });
+        });*/
 
-        console.log('Updated subscription:', subscription);
+        // console.log('Updated subscription:', subscription);
 
         res.status(200).json({
             success: true,
@@ -397,7 +397,7 @@ async function updateSubscription({ userId, planType, billingPeriod, paymentId, 
     });
 
     if (existingSubscription) {
-        console.log('Transaction already processed:', transactionHash);
+        // console.log('Transaction already processed:', transactionHash);
         return existingSubscription;
     }
 
@@ -445,8 +445,8 @@ async function updateSubscription({ userId, planType, billingPeriod, paymentId, 
         $push: { invoices: { id: invoiceId, date: new Date(), amount: price, status: 'paid', transactionHash } }
     }, { new: true });
 
-    console.log('Updated subscription with new invoice:', subscription);
-    console.log('User updated:', userUpdateResult);
+    // console.log('Updated subscription with new invoice:', subscription);
+    // console.log('User updated:', userUpdateResult);
 
     return subscription;
 }
@@ -538,7 +538,7 @@ export const handleDepayWebhook = async (req, res) => {
 export const createDepayTransaction = async (req, res) => {
     const { planType, billingPeriod } = req.body;
 
-    console.log('Received create-depay-transaction request:', { planType, billingPeriod }); // Debug log
+    // console.log('Received create-depay-transaction request:', { planType, billingPeriod }); // Debug log
 
     if (!planType || !billingPeriod || !Object.values(SUBSCRIPTION_TYPES).includes(planType)) {
         console.error('Invalid input:', { planType, billingPeriod }); // Debug log
@@ -564,12 +564,12 @@ export const createDepayTransaction = async (req, res) => {
         const depayLink = `${DEPAY_LINK}?secret_id=${userUUID}&plan=${planType}&billing=${billingPeriod}`;
 
         // Log เพื่อดูค่า
-        console.log('Created DePay link:', {
+        /* console.log('Created DePay link:', {
             depayLink,
             userUUID,
             planType,
             billingPeriod
-        });
+        });*/
 
         res.status(200).json({ depayLink });
     } catch (error) {

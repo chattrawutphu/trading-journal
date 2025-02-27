@@ -27,7 +27,7 @@
 
     // Add reactive statement to watch viewMode changes
     $: {
-        console.log('View mode changed to:', viewMode);
+        // console.log('View mode changed to:', viewMode);
         
         if (viewMode === 'month') {
             const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();

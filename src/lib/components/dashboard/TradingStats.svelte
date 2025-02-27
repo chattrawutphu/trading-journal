@@ -139,7 +139,7 @@
 
         // Subscribe to trade and transaction updates
         const handleUpdate = () => {
-            console.log('TradingStats: Received update event');
+            // console.log('TradingStats: Received update event');
             loadStats();
         };
         

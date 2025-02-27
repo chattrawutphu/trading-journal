@@ -5,7 +5,7 @@ import { login, register, logout, getProfile } from '$lib/server/controllers/aut
 export async function POST({ request, params, cookies }) {
     try {
         const path = params.path;
-        console.log('Auth POST request:', path);
+        // console.log('Auth POST request:', path);
 
         if (!path) {
             return json({ error: 'Invalid endpoint' }, { status: 404 });
@@ -66,7 +66,7 @@ export async function POST({ request, params, cookies }) {
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ request, params, locals }) {
     const path = params.path;
-    console.log('Auth GET request:', path);
+    // console.log('Auth GET request:', path);
 
     if (path === 'profile') {
         try {

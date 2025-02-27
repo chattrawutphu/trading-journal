@@ -35,7 +35,7 @@
         loadTrades();
 
         const handleUpdate = async () => {
-            console.log('TopTrades: Received update event');
+            // console.log('TopTrades: Received update event');
             await loadTrades();
         };
         

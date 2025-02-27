@@ -138,7 +138,7 @@
                     detail: { layoutIndex } 
                 }));
                 
-                console.log(`Dashboard detected layout change to ${layoutIndex}`);
+                // console.log(`Dashboard detected layout change to ${layoutIndex}`);
             }
         }
     }
@@ -218,7 +218,7 @@
     function handleEditModeChange(e) {
         editMode = e.detail;
         if (editMode) {
-            console.log('🔄 Storing current layouts state');
+            // console.log('🔄 Storing current layouts state');
             // Store current layouts state when entering edit mode
             tempLayouts = JSON.parse(JSON.stringify(layouts));
         }
@@ -236,10 +236,10 @@
     // Add new function to handle layout save
     async function handleSaveLayout(widgets) {
         try {
-            console.log('💾 Saving layout from dashboard', {
+            /* console.log('💾 Saving layout from dashboard', {
                 layoutIndex: activeLayoutIndex,
                 layoutName: layouts[activeLayoutIndex]?.name
-            });
+            });*/
             
             if (layouts[activeLayoutIndex]) {
                 layouts[activeLayoutIndex].widgets = widgets;

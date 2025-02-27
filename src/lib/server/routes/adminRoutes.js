@@ -30,7 +30,7 @@ export default function adminRoutes(app) {
   // Add migration route for closeHistory to positionHistory
   app.post('/api/admin/migrate-position-history', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-      console.log('Starting migration of closeHistory to positionHistory');
+      // console.log('Starting migration of closeHistory to positionHistory');
       
       // Find all trades with closeHistory but no positionHistory
       const trades = await Trade.find({
@@ -38,7 +38,7 @@ export default function adminRoutes(app) {
         positionHistory: { $exists: false }
       });
       
-      console.log(`Found ${trades.length} trades to migrate`);
+      // console.log(`Found ${trades.length} trades to migrate`);
       
       let migratedCount = 0;
       let errorCount = 0;
@@ -84,7 +84,7 @@ export default function adminRoutes(app) {
   // Add migration route to fix confidence and greed levels
   app.post('/api/admin/fix-confidence-greed-levels', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-      console.log('Starting migration to fix confidence and greed levels');
+      // console.log('Starting migration to fix confidence and greed levels');
       
       // Find all trades with invalid confidence or greed levels
       const trades = await Trade.find({
@@ -94,7 +94,7 @@ export default function adminRoutes(app) {
         ]
       });
       
-      console.log(`Found ${trades.length} trades with invalid confidence/greed levels`);
+      // console.log(`Found ${trades.length} trades with invalid confidence/greed levels`);
       
       let updatedCount = 0;
       let errorCount = 0;

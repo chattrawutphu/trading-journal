@@ -147,7 +147,7 @@
             const position = openPositions.find(p => p._id === id);
             if (!position) return;
 
-            console.log('Updating trade:', id, { favorite: !position.favorite });
+            // console.log('Updating trade:', id, { favorite: !position.favorite });
 
             const updatedTrade = await api.updateTrade(id, { 
                 favorite: !position.favorite,
@@ -158,7 +158,7 @@
                 status: position.status
             });
 
-            console.log('Updated trade:', updatedTrade);
+            // console.log('Updated trade:', updatedTrade);
 
             // อัพเดท local state
             openPositions = openPositions.map(p => 
@@ -242,7 +242,7 @@
 
         // Subscribe to trade updates
         const handleUpdate = async () => {
-            console.log('OpenPositions: Received update event');
+            // console.log('OpenPositions: Received update event');
             await loadTrades();
         };
         

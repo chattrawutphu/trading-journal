@@ -187,7 +187,7 @@ const startServer = async() => {
         await connectToDatabase();
         const PORT = process.env.PORT || 5001; // Change to a different port
         app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
+            // console.log(`Server is running on port ${PORT}`);
         });
     } catch (error) {
         console.error('Failed to start server:', error);

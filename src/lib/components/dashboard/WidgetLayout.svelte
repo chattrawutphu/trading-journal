@@ -213,19 +213,19 @@
     // Layout management functions
     function toggleEditMode() {
         if (!editMode) {
-            console.log('🔄 Entering edit mode, storing layout state');
+            // console.log('🔄 Entering edit mode, storing layout state');
             // Deep clone current layout state
             tempLayout = JSON.parse(JSON.stringify({
                 widgets: widgets
             }));
-            console.log('Stored layout:', tempLayout);
+            // console.log('Stored layout:', tempLayout);
         }
         editMode = !editMode;
         dispatch('editModeChange', editMode);
     }
 
     function saveLayout() {
-        console.log('💾 Saving layout from WidgetLayout');
+        // console.log('💾 Saving layout from WidgetLayout');
         onSaveLayout(widgets);
         tempLayout = null;
         editMode = false;
@@ -233,7 +233,7 @@
     }
 
     async function cancelEdit() {
-        console.log('↩️ Cancelling edit, reloading layout...');
+        // console.log('↩️ Cancelling edit, reloading layout...');
         try {
             // Show loading state
             dispatch('setLoading', true);
@@ -244,7 +244,7 @@
             if (savedLayouts && savedLayouts.length > 0) {
                 // Reset widgets to saved state
                 dispatch('updateWidgets', savedLayouts[activeLayoutIndex]?.widgets || []);
-                console.log('✅ Layout reloaded successfully');
+                // console.log('✅ Layout reloaded successfully');
             }
         } catch (error) {
             console.error('❌ Error reloading layout:', error);
@@ -460,7 +460,7 @@
         if (widgets) {
             widgets.forEach(widget => {
                 if (widget.id.startsWith('StatsCards')) {
-                    console.log('StatsCard props:', widget.props);
+                    // console.log('StatsCard props:', widget.props);
                 }
             });
         }

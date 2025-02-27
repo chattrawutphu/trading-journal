@@ -13,7 +13,7 @@ import { layoutStore } from '$lib/stores/layoutStore';
  * @returns {Array} Array of formatted trade objects
  */
 export function formatTrades(trades, isFromExchange = true, existingOrderIds = [], checkDuplicates = true, excludeZeroPnL = false) {
-    console.log('Format trades options:', { isFromExchange, checkDuplicates, excludeZeroPnL });
+    // console.log('Format trades options:', { isFromExchange, checkDuplicates, excludeZeroPnL });
 
     const existingOrderIdsSet = new Set(
         Array.isArray(existingOrderIds) ?
@@ -45,7 +45,7 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
             if (checkDuplicates) {
                 if (existingOrderIdsSet.has(orderId) || processedOrderIds.has(orderId)) {
                     duplicates.add(orderId);
-                    console.log(`Duplicate found: ${orderId}`);
+                    // console.log(`Duplicate found: ${orderId}`);
                     return null;
                 }
             }
@@ -86,16 +86,16 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
 
             // Log before checking PnL
             if (excludeZeroPnL) {
-                console.log(`Checking PnL for trade ${orderId}:`, {
-                    pnl: trade.pnl,
-                    amount: amount,
-                    isZero: isEffectivelyZeroPnL(trade.pnl, amount)
-                });
+                // console.log(`Checking PnL for trade ${orderId}:`, {
+                //     pnl: trade.pnl,
+                //     amount: amount,
+                //     isZero: isEffectivelyZeroPnL(trade.pnl, amount)
+                // });
             }
 
             // Skip trades with zero/negligible PnL
             if (excludeZeroPnL && isEffectivelyZeroPnL(trade.pnl, amount)) {
-                console.log(`Skipping trade ${orderId} due to zero/negligible PnL`);
+                // console.log(`Skipping trade ${orderId} due to zero/negligible PnL`);
                 return null;
             }
 
@@ -132,7 +132,7 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
             };
 
             // Log the trade details for debugging
-            console.log('Formatted trade:', formattedTrade);
+            // console.log('Formatted trade:', formattedTrade);
 
             return formattedTrade;
         } catch (error) {
@@ -142,7 +142,7 @@ export function formatTrades(trades, isFromExchange = true, existingOrderIds = [
     }).filter(trade => trade !== null);
 
     if (duplicates.size > 0) {
-        console.log(`Found ${duplicates.size} duplicate trades`);
+        // console.log(`Found ${duplicates.size} duplicate trades`);
     }
 
     return formattedTrades;
@@ -250,11 +250,11 @@ export async function syncTrades(accountId, api) {
         }
 
         // Log วันที่และเวลาที่ใช้ในการเรียกข้อมูล
-        console.log('Fetching trades from:', {
-            startDate: new Date(response.data.startDate).toLocaleString(),
-            endDate: new Date(response.data.endDate).toLocaleString(),
-            days: Math.round((new Date(response.data.endDate) - new Date(response.data.startDate)) / (1000 * 60 * 60 * 24))
-        });
+        // console.log('Fetching trades from:', {
+        //     startDate: new Date(response.data.startDate).toLocaleString(),
+        //     endDate: new Date(response.data.endDate).toLocaleString(),
+        //     days: Math.round((new Date(response.data.endDate) - new Date(response.data.startDate)) / (1000 * 60 * 60 * 24))
+        // });
 
         // 4. Filter out already imported trades
         const newTrades = response.data.trades.filter(trade => {
@@ -263,10 +263,10 @@ export async function syncTrades(accountId, api) {
             
             if (existingTrade) {
                 if (existingTrade.status === 'OPEN' && trade.status === 'CLOSED') {
-                    console.log(`Found open trade ${orderId} that needs to be closed`);
+                    // console.log(`Found open trade ${orderId} that needs to be closed`);
                     return true; // ให้ผ่านเพื่ออัพเดทเป็น closed
                 }
-                console.log(`Duplicate trade found: ${orderId}`);
+                // console.log(`Duplicate trade found: ${orderId}`);
                 return false;
             }
             return true;
@@ -292,13 +292,13 @@ export async function syncTrades(accountId, api) {
             );
 
             if (closedTrade) {
-                console.log(`Found matching trade for ${openTrade.orderId}:`, closedTrade);
+                // console.log(`Found matching trade for ${openTrade.orderId}:`, closedTrade);
                 
                 // Check if this is a partial close or full close
                 if (closedTrade.status === 'CLOSED') {
-                    console.log(`Updating open trade ${openTrade.orderId} with closed data`);
+                    // console.log(`Updating open trade ${openTrade.orderId} with closed data`);
                     // Debug closeHistory data
-                    console.log('positionHistory from Binance:', closedTrade.positionHistory);
+                    // console.log('positionHistory from Binance:', closedTrade.positionHistory);
                     
                     const updatedTrade = {
                         ...openTrade,
@@ -316,7 +316,7 @@ export async function syncTrades(accountId, api) {
                     };
 
                     // Debug updated trade object
-                    console.log('Updated trade with positionHistory:', updatedTrade.positionHistory);
+                    // console.log('Updated trade with positionHistory:', updatedTrade.positionHistory);
 
                     await api.updateTrade(openTrade._id, updatedTrade);
                     
@@ -328,7 +328,7 @@ export async function syncTrades(accountId, api) {
                     // Check if quantity has changed (partial close)
                     if (closedTrade.quantity !== openTrade.quantity) {
                         // If there was a change in quantity, it means a partial close happened
-                        console.log(`Updating partially closed position ${openTrade.orderId} from ${openTrade.quantity} to ${closedTrade.quantity}`);
+                        // console.log(`Updating partially closed position ${openTrade.orderId} from ${openTrade.quantity} to ${closedTrade.quantity}`);
                         
                         // The position is still open, just with a different quantity
                         const updatedTrade = {
@@ -385,7 +385,7 @@ export async function syncTrades(accountId, api) {
 
         // Reload layout หลังจาก sync เสร็จสิ้น
         try {
-            console.log('Reloading layout after sync...');
+            // console.log('Reloading layout after sync...');
             await layoutStore.loadLayouts();
         } catch (error) {
             console.error('Error reloading layout:', error);
@@ -429,7 +429,7 @@ function isEffectivelyZeroPnL(pnl, amount) {
 
     // Calculate PnL percentage
     const pnlPercentage = Math.abs(pnl / amount) * 100;
-    console.log(`PnL: ${pnl}, Amount: ${amount}, Percentage: ${pnlPercentage}%`);
+    // console.log(`PnL: ${pnl}, Amount: ${amount}, Percentage: ${pnlPercentage}%`);
 
     // Return true if PnL is less than 0.01%
     return pnlPercentage < 0.01;

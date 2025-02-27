@@ -51,7 +51,7 @@ export const createTag = async(req, res) => {
         const { value } = req.body;
 
         // เพิ่ม logging เพื่อดูค่าที่ส่งมา
-        console.log('Received create tag request:', { body: req.body, value });
+        // console.log('Received create tag request:', { body: req.body, value });
 
         if (!value || typeof value !== 'string') {
             res.status(400);

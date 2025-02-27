@@ -239,7 +239,7 @@
                 currency: 'USD'
             };
 
-            console.log('Sending payment data:', paymentData); // Debug log
+            // console.log('Sending payment data:', paymentData); // Debug log
             await subscriptionStore.initiateDepayPayment(paymentData);
         } catch (error) {
             console.error('Depay payment initiation failed:', error);
@@ -301,7 +301,7 @@
 
     // Add function to handle cancel click
     function handleCancelClick() {
-        console.log('Cancel clicked'); // เพิ่ม log เพื่อ debug
+        // console.log('Cancel clicked'); // เพิ่ม log เพื่อ debug
         showCancelModal = true;
     }
 </script>
