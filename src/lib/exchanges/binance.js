@@ -141,262 +141,250 @@ async function getFuturesOrderHistory(apiKey, secretKey, startTime, endTime) {
 function processOrdersToPositions(orders) {
     const positions = [];
     const openPositions = new Map();
+    const processedOrderIds = new Set(); // Track processed order IDs
 
-    // Sort orders by time
-    orders.sort((a, b) => a.time - b.time);
+    // Ensure all timestamps are properly converted to numbers
+    orders.forEach(order => {
+        // Convert string timestamps to numbers if needed
+        order.time = typeof order.time === 'string' ? parseInt(order.time) : Number(order.time);
+        order.updateTime = typeof order.updateTime === 'string' ? parseInt(order.updateTime) : Number(order.updateTime);
+        
+        // Validate timestamps
+        if (isNaN(order.time) || order.time <= 0) {
+            console.error(`Invalid time for order ${order.orderId}: ${order.time}`);
+            order.time = Date.now(); // Fallback to current time
+        }
+        
+        if (isNaN(order.updateTime) || order.updateTime <= 0) {
+            console.error(`Invalid updateTime for order ${order.orderId}: ${order.updateTime}`);
+            order.updateTime = order.time; // Fallback to order time
+        }
+    });
 
-    for (const order of orders) {
-        // Only process filled orders
-        if (!['FILLED'].includes(order.status)) continue;
-
-        const key = `${order.symbol}_${order.positionSide}`;
-
-        // Handle both LONG and SHORT positions
-        if (order.positionSide === 'LONG') {
-            if (order.side === 'BUY') {
-                // Open LONG position
-                if (!openPositions.has(key)) {
-                    openPositions.set(key, {
-                        symbol: order.symbol,
-                        side: 'LONG',
-                        entryDate: order.time,
-                        entryPrice: parseFloat(order.avgPrice),
+    // กรองเฉพาะ orders ที่มีสถานะ FILLED
+    const filledOrders = orders.filter(order => order.status === 'FILLED');
+    
+    // เรียงลำดับตาม updateTime (เวลาที่ order ถูก filled)
+    filledOrders.sort((a, b) => a.updateTime - b.updateTime);
+    
+    // ดำเนินการกับแต่ละ order ตามลำดับเวลา
+    for (const order of filledOrders) {
+        // ข้าม orders ที่ประมวลผลไปแล้ว
+        if (processedOrderIds.has(order.orderId)) {
+            continue;
+        }
+        
+        // เพิ่ม order นี้ลงในรายการที่ประมวลผลแล้ว
+        processedOrderIds.add(order.orderId);
+        
+        const symbol = order.symbol;
+        const positionSide = order.positionSide; // LONG หรือ SHORT
+        const key = `${symbol}_${positionSide}`;
+        const side = positionSide === 'LONG' ? 'LONG' : 'SHORT';
+        
+        // กรณีเป็นคำสั่ง OPEN POSITION (BUY สำหรับ LONG, SELL สำหรับ SHORT)
+        if ((side === 'LONG' && order.side === 'BUY' && !order.reduceOnly) || 
+            (side === 'SHORT' && order.side === 'SELL' && !order.reduceOnly)) {
+            
+            // ถ้ายังไม่มี position เปิดอยู่สำหรับ symbol และ side นี้
+            if (!openPositions.has(key)) {
+                // สร้าง position ใหม่
+                openPositions.set(key, {
+                    symbol: symbol,
+                    side: side,
+                    entryDate: order.time,
+                    entryPrice: parseFloat(order.avgPrice),
+                    quantity: parseFloat(order.executedQty),
+                    orders: [order],
+                    commission: parseFloat(order.commission || 0),
+                    commissionAsset: order.commissionAsset,
+                    status: 'OPEN',
+                    pnl: 0,
+                    price: parseFloat(order.avgPrice),
+                    lastPriceUpdate: new Date(order.updateTime),
+                    type: 'SYNC',
+                    confidenceLevel: 1,
+                    greedLevel: 1,
+                    amount: parseFloat(order.avgPrice) * parseFloat(order.executedQty),
+                    positionHistory: [{
+                        date: new Date(order.updateTime).toISOString(),
                         quantity: parseFloat(order.executedQty),
-                        orders: [order],
-                        commission: parseFloat(order.commission),
-                        commissionAsset: order.commissionAsset,
-                        status: 'OPEN',
-                        pnl: 0,
-                        price: parseFloat(order.price || order.avgPrice),
-                        lastPriceUpdate: new Date(order.time),
-                        type: 'SYNC',
-                        confidenceLevel: 1,
-                        greedLevel: 1,
-                        amount: parseFloat(order.avgPrice) * parseFloat(order.executedQty),
-                        positionHistory: [{
-                            date: new Date(order.updateTime || order.time).toISOString(),
-                            quantity: parseFloat(order.executedQty),
-                            percentage: 100,
-                            price: parseFloat(order.avgPrice),
-                            pnl: 0,
-                            orderId: order.orderId,
-                            action: 'INCREASE'
-                        }]
-                    });
-                } else {
-                    // Add to LONG position
-                    const pos = openPositions.get(key);
-                    const newQty = parseFloat(order.executedQty);
-                    const totalQty = pos.quantity + newQty;
-                    const newPrice = parseFloat(order.avgPrice);
-                    
-                    // Calculate weighted average entry price
-                    pos.entryPrice = ((pos.entryPrice * pos.quantity) + 
-                        (newPrice * newQty)) / totalQty;
-                    
-                    // Add this increase to positionHistory
-                    pos.positionHistory.push({
-                        date: new Date(order.updateTime || order.time).toISOString(),
-                        quantity: newQty,
-                        percentage: (newQty / pos.quantity * 100).toFixed(2),
-                        price: newPrice,
+                        percentage: 100,
+                        price: parseFloat(order.avgPrice),
                         pnl: 0,
                         orderId: order.orderId,
-                        action: 'INCREASE'
-                    });
-                    
-                    pos.quantity = totalQty;
-                    pos.orders.push(order);
-                    pos.commission += parseFloat(order.commission);
-                }
-            } else if (order.side === 'SELL' && order.reduceOnly) {
-                // Close or partially close LONG position
-                if (openPositions.has(key)) {
-                    const pos = openPositions.get(key);
-                    const exitPrice = parseFloat(order.avgPrice);
-                    const closeQty = parseFloat(order.executedQty);
-                    
-                    if (exitPrice > 0) {
-                        // Check if this is a partial close or full close
-                        const isPartialClose = closeQty < pos.quantity;
-                        const pnl = (exitPrice - pos.entryPrice) * closeQty;
-
-                        if (isPartialClose) {
-                            // For partial close, reduce the position quantity but keep it open
-                            const initialQty = pos.quantity;
-                            const closePercentage = (closeQty / initialQty) * 100;
-                            
-                            // Track this partial close in history
-                            pos.positionHistory.push({
-                                date: new Date(order.updateTime).toISOString(),
-                                quantity: closeQty,
-                                percentage: closePercentage.toFixed(2),
-                                price: exitPrice,
-                                pnl: pnl,
-                                orderId: order.orderId,
-                                action: 'DECREASE'
-                            });
-                            
-                            pos.quantity -= closeQty;
-                            pos.amount = pos.entryPrice * pos.quantity; // Update amount
-                            pos.pnl += pnl;
-                            pos.commission += parseFloat(order.commission);
-                            pos.orders.push(order);
-                        } else {
-                            // For full close, mark as closed and remove from open positions
-                            // Track the final close in history
-                            pos.positionHistory.push({
-                                date: new Date(order.updateTime).toISOString(),
-                                quantity: closeQty,
-                                percentage: 100,
-                                price: exitPrice,
-                                pnl: pnl,
-                                orderId: order.orderId,
-                                action: 'DECREASE'
-                            });
-                            
-                            positions.push({
-                                ...pos,
-                                exitDate: order.updateTime,
-                                exitPrice,
-                                price: exitPrice,
-                                lastPriceUpdate: new Date(order.updateTime),
-                                pnl: pos.pnl + pnl,
-                                commission: pos.commission + parseFloat(order.commission),
-                                commissionAsset: order.commissionAsset,
-                                type: 'SYNC',
-                                status: 'CLOSED',
-                                positionHistory: pos.positionHistory
-                            });
-
-                            openPositions.delete(key);
-                        }
-                    }
-                }
+                        action: 'INCREASE',
+                        timestamp: order.updateTime
+                    }],
+                    lastDecreaseOrder: null
+                });
+            } else {
+                // เพิ่มเข้าไปในตำแหน่งที่มีอยู่แล้ว
+                const pos = openPositions.get(key);
+                const newQty = parseFloat(order.executedQty);
+                const totalQty = pos.quantity + newQty;
+                const newPrice = parseFloat(order.avgPrice);
+                
+                // คำนวณราคาเฉลี่ยถ่วงน้ำหนัก
+                pos.entryPrice = ((pos.entryPrice * pos.quantity) + (newPrice * newQty)) / totalQty;
+                
+                // เพิ่มในประวัติ position
+                pos.positionHistory.push({
+                    date: new Date(order.updateTime).toISOString(),
+                    quantity: newQty,
+                    percentage: (newQty / pos.quantity * 100).toFixed(2),
+                    price: newPrice,
+                    pnl: 0,
+                    orderId: order.orderId,
+                    action: 'INCREASE',
+                    timestamp: order.updateTime
+                });
+                
+                pos.quantity = totalQty;
+                pos.amount = pos.entryPrice * totalQty;
+                pos.orders.push(order);
+                pos.commission += parseFloat(order.commission || 0);
             }
-        } else if (order.positionSide === 'SHORT') {
-            // Similar logic for SHORT positions
-            if (order.side === 'SELL') {
-                if (!openPositions.has(key)) {
-                    openPositions.set(key, {
-                        symbol: order.symbol,
-                        side: 'SHORT',
-                        entryDate: order.time,
-                        entryPrice: parseFloat(order.avgPrice),
-                        quantity: parseFloat(order.executedQty),
-                        orders: [order],
-                        commission: parseFloat(order.commission),
-                        commissionAsset: order.commissionAsset,
-                        status: 'OPEN',
-                        pnl: 0,
-                        price: parseFloat(order.price || order.avgPrice),
-                        lastPriceUpdate: new Date(order.time),
-                        type: 'SYNC',
-                        confidenceLevel: 1,
-                        greedLevel: 1,
-                        amount: parseFloat(order.avgPrice) * parseFloat(order.executedQty),
-                        positionHistory: [{
-                            date: new Date(order.updateTime || order.time).toISOString(),
-                            quantity: parseFloat(order.executedQty),
-                            percentage: 100,
-                            price: parseFloat(order.avgPrice),
-                            pnl: 0,
+        }
+        // กรณีเป็นคำสั่ง CLOSE POSITION (SELL สำหรับ LONG, BUY สำหรับ SHORT)
+        else if ((side === 'LONG' && order.side === 'SELL' && order.reduceOnly) || 
+                (side === 'SHORT' && order.side === 'BUY' && order.reduceOnly)) {
+            
+            if (openPositions.has(key)) {
+                // มี position เปิดอยู่ ดำเนินการปิด position
+                const pos = openPositions.get(key);
+                const exitPrice = parseFloat(order.avgPrice);
+                const closeQty = parseFloat(order.executedQty);
+                
+                if (exitPrice > 0) {
+                    // คำนวณกำไร/ขาดทุน
+                    let pnl;
+                    if (side === 'LONG') {
+                        pnl = (exitPrice - pos.entryPrice) * closeQty;
+                    } else {
+                        pnl = (pos.entryPrice - exitPrice) * closeQty;
+                    }
+                    
+                    // ตรวจสอบว่าเป็นการปิดบางส่วนหรือทั้งหมด
+                    const isPartialClose = closeQty < pos.quantity;
+                    
+                    if (isPartialClose) {
+                        // ปิดบางส่วน
+                        const initialQty = pos.quantity;
+                        const closePercentage = (closeQty / initialQty) * 100;
+                        
+                        // บันทึกประวัติการปิดบางส่วน
+                        pos.positionHistory.push({
+                            date: new Date(order.updateTime).toISOString(),
+                            quantity: closeQty,
+                            percentage: closePercentage.toFixed(2),
+                            price: exitPrice,
+                            pnl: pnl,
                             orderId: order.orderId,
-                            action: 'INCREASE'
-                        }]
-                    });
-                } else {
-                    const pos = openPositions.get(key);
-                    const newQty = parseFloat(order.executedQty);
-                    const totalQty = pos.quantity + newQty;
-                    const newPrice = parseFloat(order.avgPrice);
-                    
-                    // Add this increase to positionHistory
-                    pos.positionHistory.push({
-                        date: new Date(order.updateTime || order.time).toISOString(),
-                        quantity: newQty,
-                        percentage: (newQty / pos.quantity * 100).toFixed(2),
-                        price: newPrice,
-                        pnl: 0,
-                        orderId: order.orderId,
-                        action: 'INCREASE'
-                    });
-                    
-                    pos.entryPrice = ((pos.entryPrice * pos.quantity) + 
-                        (parseFloat(order.avgPrice) * parseFloat(order.executedQty))) / totalQty;
-                    pos.quantity = totalQty;
-                    pos.orders.push(order);
-                    pos.commission += parseFloat(order.commission);
-                }
-            } else if (order.side === 'BUY' && order.reduceOnly) {
-                if (openPositions.has(key)) {
-                    const pos = openPositions.get(key);
-                    const exitPrice = parseFloat(order.avgPrice);
-                    const closeQty = parseFloat(order.executedQty);
-                    
-                    if (exitPrice > 0) {
-                        // Check if this is a partial close or full close
-                        const isPartialClose = closeQty < pos.quantity;
-                        const pnl = (pos.entryPrice - exitPrice) * closeQty;
-
-                        if (isPartialClose) {
-                            // For partial close, reduce the position quantity but keep it open
-                            const initialQty = pos.quantity;
-                            const closePercentage = (closeQty / initialQty) * 100;
-                            
-                            // Track this partial close in history
-                            pos.positionHistory.push({
-                                date: new Date(order.updateTime).toISOString(),
-                                quantity: closeQty,
-                                percentage: closePercentage.toFixed(2),
-                                price: exitPrice,
-                                pnl: pnl,
-                                orderId: order.orderId,
-                                action: 'DECREASE'
-                            });
-                            
-                            pos.quantity -= closeQty;
-                            pos.amount = pos.entryPrice * pos.quantity; // Update amount
-                            pos.pnl += pnl;
-                            pos.commission += parseFloat(order.commission);
-                            pos.orders.push(order);
-                        } else {
-                            // For full close, mark as closed and remove from open positions
-                            // Track the final close in history
-                            pos.positionHistory.push({
-                                date: new Date(order.updateTime).toISOString(),
-                                quantity: closeQty,
-                                percentage: 100,
-                                price: exitPrice,
-                                pnl: pnl,
-                                orderId: order.orderId,
-                                action: 'DECREASE'
-                            });
-                            
-                            positions.push({
-                                ...pos,
-                                exitDate: order.updateTime,
-                                exitPrice,
-                                price: exitPrice,
-                                lastPriceUpdate: new Date(order.updateTime),
-                                pnl: pos.pnl + pnl,
-                                commission: pos.commission + parseFloat(order.commission),
-                                commissionAsset: order.commissionAsset,
-                                type: 'SYNC',
-                                status: 'CLOSED',
-                                positionHistory: pos.positionHistory
-                            });
-
-                            openPositions.delete(key);
-                        }
+                            action: 'DECREASE',
+                            timestamp: order.updateTime
+                        });
+                        
+                        pos.quantity -= closeQty;
+                        pos.amount = pos.entryPrice * pos.quantity;
+                        pos.pnl += pnl;
+                        pos.commission += parseFloat(order.commission || 0);
+                        pos.orders.push(order);
+                    } else {
+                        // ปิดทั้งหมด
+                        pos.positionHistory.push({
+                            date: new Date(order.updateTime).toISOString(),
+                            quantity: closeQty,
+                            percentage: 100,
+                            price: exitPrice,
+                            pnl: pnl,
+                            orderId: order.orderId,
+                            action: 'DECREASE',
+                            timestamp: order.updateTime
+                        });
+                        
+                        // เรียงลำดับประวัติตามเวลา
+                        pos.positionHistory.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                        
+                        // เพิ่ม position ที่ปิดแล้วลงในผลลัพธ์
+                        positions.push({
+                            ...pos,
+                            exitDate: order.updateTime,
+                            exitPrice: exitPrice,
+                            price: exitPrice,
+                            lastPriceUpdate: new Date(order.updateTime),
+                            pnl: pos.pnl + pnl,
+                            commission: pos.commission + parseFloat(order.commission || 0),
+                            commissionAsset: order.commissionAsset || pos.commissionAsset,
+                            status: 'CLOSED',
+                            type: 'SYNC'
+                        });
+                        
+                        // ลบ position ที่ปิดแล้วออกจากรายการ open positions
+                        openPositions.delete(key);
                     }
                 }
+            } else {
+                // ไม่พบ position ที่จะปิด - อาจเป็น order ที่สร้างก่อนแต่ถูก filled หลัง
+                // สร้าง open position ใหม่และปิดทันที (เพื่อบันทึกประวัติ)
+                const avgPrice = parseFloat(order.avgPrice);
+                const qty = parseFloat(order.executedQty);
+                
+                // สร้าง position เปิดเทียม (จากคำสั่งปิด)
+                const fakePosition = {
+                    symbol: symbol,
+                    side: side,
+                    entryDate: order.time, // ใช้เวลาเดียวกับการปิด
+                    entryPrice: avgPrice, // ใช้ราคาเดียวกับการปิด (ไม่มีกำไร/ขาดทุน)
+                    quantity: qty,
+                    orders: [order],
+                    commission: parseFloat(order.commission || 0),
+                    commissionAsset: order.commissionAsset,
+                    status: 'CLOSED',
+                    pnl: 0,
+                    exitDate: order.updateTime,
+                    exitPrice: avgPrice,
+                    price: avgPrice,
+                    lastPriceUpdate: new Date(order.updateTime),
+                    type: 'SYNC',
+                    confidenceLevel: 1,
+                    greedLevel: 1,
+                    amount: avgPrice * qty,
+                    positionHistory: [
+                        {
+                            date: new Date(order.time).toISOString(),
+                            quantity: qty,
+                            percentage: 100,
+                            price: avgPrice,
+                            pnl: 0,
+                            orderId: order.orderId,
+                            action: 'INCREASE',
+                            timestamp: order.time
+                        },
+                        {
+                            date: new Date(order.updateTime).toISOString(),
+                            quantity: qty,
+                            percentage: 100,
+                            price: avgPrice,
+                            pnl: 0,
+                            orderId: order.orderId,
+                            action: 'DECREASE',
+                            timestamp: order.updateTime
+                        }
+                    ]
+                };
+                
+                positions.push(fakePosition);
+                // console.log(`Created and closed synthetic position for ${symbol} ${side} from close order ${order.orderId}`);
             }
         }
     }
-
-    // Add remaining open positions
+    
+    // เพิ่ม position ที่ยังเปิดอยู่ลงในผลลัพธ์
     for (const [key, pos] of openPositions) {
+        // เรียงลำดับประวัติตามเวลา
+        pos.positionHistory.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        
         positions.push({
             ...pos,
             status: 'OPEN',
@@ -405,7 +393,21 @@ function processOrdersToPositions(orders) {
             price: null
         });
     }
-
+    
+    // ตรวจสอบวันที่ปิดล่าสุดสำหรับ position ที่ปิดแล้ว
+    positions.forEach(position => {
+        if (position.status === 'CLOSED' && position.positionHistory && position.positionHistory.length > 0) {
+            const decreaseActions = position.positionHistory.filter(entry => entry.action === 'DECREASE');
+            if (decreaseActions.length > 0) {
+                decreaseActions.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                const latestDecrease = decreaseActions[0];
+                if (latestDecrease && latestDecrease.timestamp) {
+                    position.exitDate = latestDecrease.timestamp;
+                }
+            }
+        }
+    });
+    
     return positions;
 }
 

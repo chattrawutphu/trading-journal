@@ -72,30 +72,61 @@ router.post('/binance-history', async(req, res) => {
             });
         }
 
+        // Log order count and time range
+        // console.log(`Processing ${orders.length} orders from ${new Date(startTime).toLocaleString()} to ${new Date(endTime).toLocaleString()}`);
+        
+        // Ensure all timestamps are properly converted to numbers
+        orders.forEach(order => {
+            order.time = Number(order.time);
+            order.updateTime = Number(order.updateTime);
+        });
+
         // Process orders into positions
         const positions = binanceExchange.processOrdersToPositions(orders);
 
         // สร้าง Map เพื่อเก็บ trade ID และ status ล่าสุด
         const tradeStatusMap = new Map();
         for (const order of orders) {
-            const tradeId = `${order.symbol}_${order.positionSide}_${order.time}`;
-            tradeStatusMap.set(tradeId, {
-                status: order.status,
-                updateTime: order.updateTime
-            });
+            // Ensure we're using the correct timestamp format
+            const orderTime = Number(order.time);
+            const tradeId = `${order.symbol}_${order.positionSide}_${orderTime}`;
+            
+            // Only update if this is a newer update than what we have
+            const existing = tradeStatusMap.get(tradeId);
+            if (!existing || Number(order.updateTime) > Number(existing.updateTime)) {
+                tradeStatusMap.set(tradeId, {
+                    status: order.status,
+                    updateTime: Number(order.updateTime),
+                    orderId: order.orderId
+                });
+            }
         }
+
+        // Log trade status map for debugging
+        /*console.log('Trade status map sample:', 
+            Array.from(tradeStatusMap.entries()).slice(0, 3).map(([key, value]) => ({
+                tradeId: key,
+                status: value.status,
+                updateTime: new Date(value.updateTime).toISOString(),
+                orderId: value.orderId
+            }))
+        );*/
 
         // อัพเดท positions ด้วยข้อมูล status ล่าสุด
         const updatedPositions = positions.map(pos => {
             if (pos.orders && pos.orders.length > 0) {
                 const firstOrder = pos.orders[0];
-                const tradeId = `${firstOrder.symbol}_${firstOrder.positionSide}_${firstOrder.time}`;
+                const tradeId = `${firstOrder.symbol}_${firstOrder.positionSide}_${Number(firstOrder.time)}`;
                 const latestStatus = tradeStatusMap.get(tradeId);
                 
                 if (latestStatus) {
+                    // If position is already CLOSED, don't change it back to OPEN
+                    const finalStatus = pos.status === 'CLOSED' ? 'CLOSED' : 
+                                       (latestStatus.status === 'FILLED' ? pos.status : 'OPEN');
+                    
                     return {
                         ...pos,
-                        status: latestStatus.status === 'FILLED' ? pos.status : 'OPEN',
+                        status: finalStatus,
                         lastUpdate: new Date(latestStatus.updateTime)
                     };
                 }
@@ -103,9 +134,31 @@ router.post('/binance-history', async(req, res) => {
             return pos;
         });
 
+        // Log position status counts
+        const openCount = updatedPositions.filter(p => p.status === 'OPEN').length;
+        const closedCount = updatedPositions.filter(p => p.status === 'CLOSED').length;
+        // console.log(`Position status counts: ${openCount} open, ${closedCount} closed`);
+
         const symbols = [...new Set(updatedPositions.map(pos => pos.symbol))];
-        const startDate = new Date(Math.min(...updatedPositions.map(pos => pos.entryDate))).toISOString();
-        const endDate = new Date(Math.max(...updatedPositions.map(pos => pos.exitDate || Date.now()))).toISOString();
+        
+        // Calculate start and end dates safely
+        let startDate = new Date(startTime).toISOString();
+        let endDate = new Date(endTime).toISOString();
+        
+        if (updatedPositions.length > 0) {
+            // Use safe methods to find min/max dates
+            const entryDates = updatedPositions.map(pos => Number(pos.entryDate)).filter(d => !isNaN(d));
+            const exitDates = updatedPositions.map(pos => pos.exitDate ? Number(pos.exitDate) : null).filter(d => d !== null && !isNaN(d));
+            
+            if (entryDates.length > 0) {
+                startDate = new Date(Math.min(...entryDates)).toISOString();
+            }
+            
+            if (exitDates.length > 0) {
+                const maxExitDate = Math.max(...exitDates);
+                endDate = new Date(Math.max(maxExitDate, Date.now())).toISOString();
+            }
+        }
 
         res.json({
             success: true,
