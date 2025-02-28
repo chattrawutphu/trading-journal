@@ -48,11 +48,20 @@ const tradeSchema = new mongoose.Schema({
         comment: 'Amount in USD'
     },
     pnl: Number,
-    entryReason: String,
-    exitReason: String,
+    entryReason: {
+        type: String,
+        maxlength: [200, 'Entry reason cannot exceed 200 characters']
+    },
+    exitReason: {
+        type: String,
+        maxlength: [200, 'Exit reason cannot exceed 200 characters']
+    },
     strategy: String,
     emotions: String,
-    notes: String,
+    notes: {
+        type: String,
+        maxlength: [1000, 'Note cannot exceed 1000 characters']
+    },
     url: {
         type: String,
         trim: true,

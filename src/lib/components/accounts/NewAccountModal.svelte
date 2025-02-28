@@ -538,8 +538,8 @@
     duration={3000}
 />
 
-<Modal bind:show on:close={handleClose} showDefaultHeader={false}>
-    <div class="w-full max-w-4xl mx-auto max-h-[85vh] flex flex-col bg-gradient-to-br from-light-card/95 to-light-card dark:from-dark-card/95 dark:to-dark-card backdrop-blur-xl rounded-2xl overflow-hidden border border-light-border/10 dark:border-dark-border/10 shadow-2xl">
+<Modal bind:show on:close={handleClose} showDefaultHeader={false} width="max-w-4xl" hideHeader>
+    <div class="w-full max-h-[85vh] flex flex-col bg-gradient-to-br from-light-card/95 to-light-card dark:from-dark-card/95 dark:to-dark-card backdrop-blur-xl rounded-2xl overflow-hidden border border-light-border/10 dark:border-dark-border/10 shadow-2xl">
         <!-- Header -->
         <div class="px-8 py-6 border-b border-light-border/10 dark:border-dark-border/10 bg-light-card/50 dark:bg-dark-card/50 backdrop-blur-xl sticky top-0 z-20">
             <div class="flex justify-between items-center">
@@ -1205,7 +1205,6 @@
     :global(.modal-content) {
         @apply bg-transparent border-0 shadow-none;
         width: 100%;
-        max-width: min(95vw, 64rem);
         margin: 2rem auto;
     }
 

@@ -66,7 +66,7 @@
                     })
                 ],
                 content: formState.note || '',
-                editable: !(subscriptionType === SUBSCRIPTION_TYPES.BASIC),
+                editable: true,
                 onUpdate: ({ editor }) => {
                     formState.note = editor.getHTML();
                 }
@@ -194,7 +194,7 @@
         const tagValue = event.detail.value;
         if (!tagValue || typeof tagValue !== 'string') return;
         
-        const maxTags = subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 3 : 7;
+        const maxTags = 7;
         
         if (formState.tags.length < maxTags && !formState.tags.includes(tagValue)) {
             try {
@@ -235,7 +235,7 @@
     $: subscriptionType = $subscriptionStore.type || SUBSCRIPTION_TYPES.BASIC;
 
     function handleNoteInput(event) {
-        const maxLength = subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 200 : 500;
+        const maxLength = 1000;
         if (event.target.value.length > maxLength) {
             formState.note = event.target.value.slice(0, maxLength);
         }
@@ -306,17 +306,16 @@
                         Notes
                     </label>
                     <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                        {formState.note.length}/{subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 200 : 500}
+                        {formState.note.length}/1000
                     </span>
                 </div>
-                <div class="editor-container {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'opacity-50 pointer-events-none' : ''}">
+                <div class="editor-container">
                     <div class="editor-menu border border-light-border dark:border-dark-hover rounded-t-md bg-light-bg dark:bg-dark-hover p-1 flex flex-wrap gap-1">
                         <!-- Text Style -->
                         <button 
                             type="button"
                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('bold') ? 'bg-theme-500/10' : ''}" 
                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleBold().run()}
-                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h8a4 4 0 100-8H6v8zm0 0h8a4 4 0 110 8H6v-8z"/>
@@ -326,7 +325,6 @@
                             type="button"
                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('italic') ? 'bg-theme-500/10' : ''}" 
                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleItalic().run()}
-                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4h-8"/>
@@ -336,7 +334,6 @@
                             type="button"
                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('underline') ? 'bg-theme-500/10' : ''}" 
                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleUnderline().run()}
-                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 16h14M8 4v4m4-4v4m4-4v4"/>
@@ -346,7 +343,6 @@
                             type="button"
                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('highlight') ? 'bg-theme-500/10' : ''}" 
                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleHighlight().run()}
-                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
@@ -361,7 +357,6 @@
                             type="button"
                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive({ textAlign: 'left' }) ? 'bg-theme-500/10' : ''}" 
                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().setTextAlign('left').run()}
-                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"/>
@@ -371,7 +366,6 @@
                             type="button"
                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive({ textAlign: 'center' }) ? 'bg-theme-500/10' : ''}" 
                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().setTextAlign('center').run()}
-                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M4 18h16"/>
@@ -381,7 +375,6 @@
                             type="button"
                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive({ textAlign: 'right' }) ? 'bg-theme-500/10' : ''}" 
                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().setTextAlign('right').run()}
-                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M10 12h10M4 18h16"/>
@@ -396,7 +389,6 @@
                             type="button"
                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('bulletList') ? 'bg-theme-500/10' : ''}" 
                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleBulletList().run()}
-                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
@@ -406,7 +398,6 @@
                             type="button"
                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('orderedList') ? 'bg-theme-500/10' : ''}" 
                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleOrderedList().run()}
-                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h10M7 16h10M3 8h.01M3 12h.01M3 16h.01"/>
@@ -425,7 +416,6 @@
                                     editor?.chain().focus().unsetLink().run();
                                 }
                             }}
-                            disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
@@ -438,13 +428,11 @@
                                 type="color" 
                                 class="absolute opacity-0 w-full h-full cursor-pointer" 
                                 on:input|preventDefault|stopPropagation={(e) => editor?.chain().focus().setColor(e.target.value).run()}
-                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC}
                             />
                             <button 
                                 type="button"
                                 class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover"
                                 on:click|preventDefault|stopPropagation={() => editor?.chain().focus().setColor(getTagColor(formState.tags[0]).text).run()}
-                                disabled={subscriptionType === SUBSCRIPTION_TYPES.BASIC || formState.tags.length === 0}
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
@@ -478,11 +466,8 @@
             <div class="space-y-2">
                 <div class="flex justify-between items-center">
                     <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
-                        Tags ({formState.tags.length}/{subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 3 : 7})
+                        Tags ({formState.tags.length}/7)
                     </label>
-                    <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                        {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'Basic plan: 3 tags max' : 'Pro plan: 7 tags max'}
-                    </span>
                 </div>
                 <div class="space-y-2">
                     <DayTagSelect

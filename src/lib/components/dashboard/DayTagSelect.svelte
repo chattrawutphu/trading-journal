@@ -164,6 +164,7 @@
             on:keydown={handleKeydown}
             {placeholder}
             {disabled}
+            maxlength="50"
             class="input w-full pr-8 px-2.5 py-1.5 h-8 text-sm bg-light-bg dark:bg-dark-bg border border-light-border dark:border-0 rounded-md
                 {disabled ? 'cursor-not-allowed' : ''}"
         />
@@ -276,22 +277,25 @@
             {/if}
 
             <!-- Add New Tag Button -->
-            <div class="p-2 bg-light-card dark:bg-dark-card border-t border-light-border dark:border-0">
+            <div class="p-1.5 bg-light-card dark:bg-dark-card border-t border-light-border dark:border-0">
                 {#if searchTerm.trim() && !editingTag && !filteredTags.some(tag => tag.value.toLowerCase() === searchTerm.trim().toLowerCase())}
                     <Button 
                         variant="primary"
-                        class="w-full"
+                        size="xs"
+                        class="w-full overflow-hidden"
                         on:click={handleCreate}
                     >
-                        <div class="flex items-center justify-center">
-                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center w-full">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                             </svg>
-                            Add "{searchTerm.trim()}"
+                            <span class="truncate ml-1 flex-1 text-center" title='Add "{searchTerm.trim()}"'>
+                                Add "{searchTerm.trim()}"
+                            </span>
                         </div>
                     </Button>
                 {:else}
-                    <div class="text-sm text-light-text-muted dark:text-dark-text-muted text-center">
+                    <div class="text-xs text-light-text-muted dark:text-dark-text-muted text-center">
                         Type to add new tag
                     </div>
                 {/if}
@@ -318,5 +322,17 @@
 
     :global(.input[disabled]) {
         cursor: not-allowed;
+    }
+
+    :global(.button-xs) {
+        @apply py-1 px-2 text-xs;
+    }
+
+    :global(.button-xs .truncate) {
+        max-width: calc(100% - 1.5rem);
+    }
+
+    :global(.button-xs) {
+        @apply overflow-hidden whitespace-nowrap;
     }
 </style> 

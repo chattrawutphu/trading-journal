@@ -13,7 +13,7 @@ const dayConfigSchema = new mongoose.Schema({
     note: {
         type: String,
         default: '',
-        maxlength: [500, 'Note cannot exceed 500 characters']
+        maxlength: [1000, 'Note cannot exceed 1000 characters']
     },
     tags: {
         type: [String],

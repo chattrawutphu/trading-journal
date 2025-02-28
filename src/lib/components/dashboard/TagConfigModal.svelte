@@ -63,7 +63,7 @@
                     })
                 ],
                 content: formState.note || '',
-                editable: subscriptionType !== SUBSCRIPTION_TYPES.BASIC,
+                editable: true,
                 onUpdate: ({ editor }) => {
                     formState.note = editor.getHTML();
                 }
@@ -241,10 +241,10 @@
                         Notes
                     </label>
                     <span class="text-xs text-light-text-muted dark:text-dark-text-muted">
-                        {formState.note.length}/500
+                        {formState.note.length}/1000
                     </span>
                 </div>
-                <div class="editor-container {subscriptionType === SUBSCRIPTION_TYPES.BASIC ? 'opacity-50 pointer-events-none' : ''}">
+                <div class="editor-container">
                     <div class="editor-menu border border-light-border dark:border-dark-hover rounded-t-md bg-light-bg dark:bg-dark-hover p-1 flex flex-wrap gap-1">
                         <!-- Text Style -->
                         <button 

@@ -64,10 +64,10 @@
     }
 </script>
 
-<Modal bind:show on:close={handleClose} showDefaultHeader={false}>
-    <div class="w-full max-w-3xl mx-auto bg-gradient-to-br from-light-card/95 to-light-card dark:from-dark-card/95 dark:to-dark-card backdrop-blur-xl rounded-2xl overflow-hidden border border-light-border/10 dark:border-dark-border/10 shadow-2xl">
+<Modal bind:show on:close={handleClose} showDefaultHeader={false} width="max-w-4xl" hideHeader>
+    <div class="w-full max-h-[85vh] flex flex-col bg-gradient-to-br from-light-card/95 to-light-card dark:from-dark-card/95 dark:to-dark-card backdrop-blur-xl rounded-2xl overflow-hidden border border-light-border/10 dark:border-dark-border/10 shadow-2xl">
         <!-- Header with Exchange Theme -->
-        <div class="px-6 py-6 border-b border-light-border/10 dark:border-dark-border/10"
+        <div class="px-6 py-6 border-b border-light-border/10 dark:border-dark-border/10 sticky top-0 z-10"
              style="background: linear-gradient(to bottom right, {theme.color}0D, {theme.color}1A);">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-4">
@@ -96,8 +96,8 @@
             </div>
         </div>
 
-        <!-- Content -->
-        <div class="p-6">
+        <!-- Content (scrollable) -->
+        <div class="p-6 overflow-y-auto">
             {#if tradeHistory}
                 <div class="space-y-6">
                     <!-- Summary Stats -->
@@ -175,8 +175,8 @@
             {/if}
         </div>
 
-        <!-- Footer -->
-        <div class="px-6 py-4 bg-gradient-to-t from-light-card/90 to-light-card/0 dark:from-dark-card/90 dark:to-dark-card/0 border-t border-light-border/10 dark:border-dark-border/10">
+        <!-- Footer (stays fixed) -->
+        <div class="px-6 py-4 bg-gradient-to-t from-light-card/90 to-light-card/0 dark:from-dark-card/90 dark:to-dark-card/0 border-t border-light-border/10 dark:border-dark-border/10 sticky bottom-0">
             <div class="flex justify-end gap-3">
                 <Button 
                     variant="secondary"

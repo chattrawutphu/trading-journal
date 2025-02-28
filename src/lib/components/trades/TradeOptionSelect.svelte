@@ -57,19 +57,33 @@
         searchTerm = value;
     });
 
+    function validateInputLength(value, type) {
+        if (!value) return '';
+        
+        const maxLength = type === 'SYMBOL' ? 16 : 50;
+        return value.slice(0, maxLength);
+    }
+
     function handleInput() {
         if (disabled) return;
         if (!isOpen) isOpen = true;
+        
+        searchTerm = validateInputLength(searchTerm, type);
+        
         if (!editingOption) {
             if (searchTerm.trim() === '') {
                 value = '';
-                dispatch('change', { value: '' });
+                if (type !== 'TAG') {
+                    dispatch('change', { value: '' });
+                }
             }
         }
     }
 
     function handleSelect(option) {
         if (disabled) return;
+        if (!option.value) return;
+        
         value = option.value;
         searchTerm = option.value;
         isOpen = false;
@@ -78,18 +92,24 @@
 
     async function handleCreate() {
         if (disabled) return;
-        if (!searchTerm.trim()) return;
+        const trimmedValue = searchTerm.trim();
+        if (!trimmedValue || trimmedValue.length === 0) return;
+
+        const validatedValue = validateInputLength(trimmedValue, type);
+        
         try {
             if (type === 'SYMBOL' && accountId) {
-                await accountSymbolStore.addSymbol(accountId, searchTerm.trim());
+                await accountSymbolStore.addSymbol(accountId, validatedValue);
             } else if (type === 'STRATEGY') {
-                await userStrategyStore.addStrategy(searchTerm.trim());
+                await userStrategyStore.addStrategy(validatedValue);
             } else if (type === 'TAG') {
-                dispatch('change', { value: searchTerm.trim() });
+                if (validatedValue) {
+                    dispatch('change', { value: validatedValue });
+                }
                 isOpen = false;
                 return;
             }
-            value = searchTerm.trim();
+            value = validatedValue;
             searchTerm = value;
             isOpen = false;
             dispatch('change', { value });
@@ -104,19 +124,22 @@
             editValue = '';
             return;
         }
+
+        const validatedValue = validateInputLength(editValue.trim(), type);
+        
         try {
             if (type === 'SYMBOL' && accountId) {
                 await accountSymbolStore.removeSymbol(accountId, option.value);
-                await accountSymbolStore.addSymbol(accountId, editValue.trim());
+                await accountSymbolStore.addSymbol(accountId, validatedValue);
                 if (value === option.value) {
-                    value = editValue.trim();
+                    value = validatedValue;
                 }
             } else if (type === 'STRATEGY') {
                 const strategies = $userStrategyStore.strategies.filter(s => s !== option.value);
-                strategies.push(editValue.trim());
+                strategies.push(validatedValue);
                 await userStrategyStore.updateStrategies(strategies);
                 if (value === option.value) {
-                    value = editValue.trim();
+                    value = validatedValue;
                 }
             }
             searchTerm = value;
@@ -162,7 +185,11 @@
             editingOption = null;
             editValue = '';
         } else if (!options.some(opt => opt.value.toLowerCase() === searchTerm.toLowerCase())) {
-            searchTerm = value;
+            if (type === 'TAG' && !value) {
+                searchTerm = '';
+            } else {
+                searchTerm = value;
+            }
         }
     }
 
@@ -206,6 +233,7 @@
             on:keydown={handleKeydown}
             {placeholder}
             {disabled}
+            maxlength={type === 'SYMBOL' ? 16 : 50}
             class="input w-full pr-8 px-2.5 py-1.5 h-8 text-sm bg-light-bg dark:bg-dark-bg border border-light-border dark:border-0 rounded-md
                 {disabled ? 'cursor-not-allowed' : ''}"
         />
@@ -225,7 +253,7 @@
 
     <!-- Dropdown -->
     {#if isOpen && !disabled}
-        <div class="absolute z-50 w-full mt-1 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-0 rounded-md shadow-lg divide-y divide-light-border dark:divide-dark-border max-h-[240px] overflow-auto"
+        <div class="absolute z-50 w-full mt-1 bg-light-bg overflow-hidden dark:bg-dark-bg border border-light-border dark:border-0 rounded-md shadow-lg divide-y divide-light-border dark:divide-dark-border max-h-[240px] overflow-auto"
             transition:fade={{ duration: 100 }}
         >
             {#if loading}
@@ -276,12 +304,13 @@
                             {:else}
                                 <div class="flex items-center justify-between px-2 py-1.5">
                                     <div 
-                                        class="flex-1 text-sm text-light-text-muted dark:text-dark-text cursor-pointer"
+                                        class="flex-1 text-sm text-light-text-muted dark:text-dark-text cursor-pointer truncate mr-2"
+                                        title={option.value}
                                         on:click={() => handleSelect(option)}
                                     >
                                         {option.value}
                                     </div>
-                                    <div class="hidden group-hover:flex items-center space-x-1">
+                                    <div class="hidden group-hover:flex items-center space-x-1 flex-shrink-0">
                                         <button
                                             type="button"
                                             class="p-1 text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text"
@@ -313,22 +342,25 @@
             {/if}
 
             <!-- Add New Option Button -->
-            <div class="p-2 bg-light-card dark:bg-dark-card border-t border-light-border dark:border-0">
+            <div class="p-1.5 bg-light-card dark:bg-dark-card border-t border-light-border dark:border-0">
                 {#if searchTerm.trim() && !editingOption && !filteredOptions.some(opt => opt.value.toLowerCase() === searchTerm.trim().toLowerCase())}
                     <Button 
                         variant="primary"
-                        class="w-full"
+                        size="xs"
+                        class="w-full overflow-hidden"
                         on:click={handleCreate}
                     >
-                        <div class="flex items-center justify-center">
-                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center w-full">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                             </svg>
-                            Add "{searchTerm.trim()}"
+                            <span class="truncate ml-1 flex-1 text-center" title='Add "{searchTerm.trim()}"'>
+                                Add "{searchTerm.trim()}"
+                            </span>
                         </div>
                     </Button>
                 {:else}
-                    <div class="text-sm text-light-text-muted dark:text-dark-text-muted text-center">
+                    <div class="text-xs text-light-text-muted dark:text-dark-text-muted text-center">
                         Type to add new {type.toLowerCase()}
                     </div>
                 {/if}
@@ -358,5 +390,20 @@
     /* แก้ไข style สำหรับ disabled state ให้มี opacity เท่ากับฟิลด์อื่นๆ */
     :global(.input[disabled]) {
         cursor: not-allowed;
+    }
+
+    /* เพิ่ม style สำหรับปุ่ม Add */
+    :global(.button-xs) {
+        @apply py-1 px-2 text-xs;
+    }
+
+    /* จำกัดความกว้างของข้อความในปุ่ม */
+    :global(.button-xs .truncate) {
+        max-width: calc(100% - 1.5rem); /* หักความกว้างของไอคอน + padding */
+    }
+
+    /* ป้องกันการ scroll */
+    :global(.button-xs) {
+        @apply overflow-hidden whitespace-nowrap;
     }
 </style>
