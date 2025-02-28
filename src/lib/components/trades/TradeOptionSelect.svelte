@@ -309,6 +309,11 @@
                                         on:click={() => handleSelect(option)}
                                     >
                                         {option.value}
+                                        {#if option.usageCount > 0}
+                                            <span class="ml-1 text-xs text-light-text-muted dark:text-dark-text-muted">
+                                                ({option.usageCount})
+                                            </span>
+                                        {/if}
                                     </div>
                                     <div class="hidden group-hover:flex items-center space-x-1 flex-shrink-0">
                                         <button

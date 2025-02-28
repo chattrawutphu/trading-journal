@@ -20,6 +20,8 @@ import './schedulers/subscriptionScheduler.js';
 import mongoose from 'mongoose';
 import dayTagRoutes from './routes/dayTagRoutes.js';
 import dayTagHistoryRoutes from './routes/dayTagHistoryRoutes.js';
+import tradeTagRoutes from './routes/tradeTagRoutes.js';
+import tradeTagHistoryRoutes from './routes/tradeTagHistoryRoutes.js';
 
 // Get the directory path for ES modules
 const __filename = fileURLToPath(
@@ -131,6 +133,14 @@ app.use('/api/day-tags', async(req, res, next) => {
 app.use('/api/tag-history', async(req, res, next) => {
     await connectToDatabase();
     return dayTagHistoryRoutes(req, res, next);
+});
+app.use('/api/trade-tags', async(req, res, next) => {
+    await connectToDatabase();
+    return tradeTagRoutes(req, res, next);
+});
+app.use('/api/trade-tag-history', async(req, res, next) => {
+    await connectToDatabase();
+    return tradeTagHistoryRoutes(req, res, next);
 });
 
 // 404 handler

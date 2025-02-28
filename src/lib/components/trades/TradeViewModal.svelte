@@ -4,6 +4,8 @@
     import { binanceExchange } from '$lib/exchanges';
     import { onMount } from 'svelte';
     import { createEventDispatcher } from 'svelte';
+    import TradeTagHistoryModal from "./TradeTagHistoryModal.svelte";
+    import { tradeTagStore } from '$lib/stores/tradeTagStore';
     
     const dispatch = createEventDispatcher();
     
@@ -1155,6 +1157,38 @@
 
     // Add variable to store current interval
     let currentInterval = '1m';
+
+    let showTagHistoryModal = false;
+    let selectedTagForHistory = null;
+    let selectedTagColor = null;
+
+    function handleTagHistory(tag) {
+        selectedTagForHistory = tag;
+        selectedTagColor = getTagColor(tag);
+        showTagHistoryModal = true;
+    }
+
+    function handleTagHistoryClose() {
+        showTagHistoryModal = false;
+        selectedTagForHistory = null;
+        selectedTagColor = null;
+    }
+
+    function handleTradeView(event) {
+        dispatch('view', event.detail);
+    }
+
+    function handleTradeEdit(event) {
+        dispatch('edit', event.detail);
+    }
+
+    function handleTradeFavorite(event) {
+        dispatch('favorite', event.detail);
+    }
+
+    function handleTradeDelete(event) {
+        dispatch('delete', event.detail);
+    }
 </script>
 
 {#if show && trade}
@@ -1274,7 +1308,6 @@
                             class="p-2 rounded-lg text-light-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
                             on:click={() => {
                                 dispatch('edit', trade);
-                                close();
                             }}
                             title="Edit trade"
                         >
@@ -1764,10 +1797,21 @@
                     <h3 class="text-sm font-semibold text-theme-500 mb-3">Tags</h3>
                     <div class="flex flex-wrap gap-2">
                         {#each trade.tags as tag}
+                            {@const tagData = $tradeTagStore.tags.find(t => t.value === tag)}
                             {@const tagColor = getTagColor(tag)}
-                            <span class="px-2 py-0.5 rounded-full text-xs {tagColor.bg} {tagColor.text}">
-                                {tag}
-                            </span>
+                            <button
+                                type="button"
+                                class="flex items-center gap-2 px-3 py-1.5 rounded-full {tagColor.bg} {tagColor.text} text-sm hover:opacity-80 transition-opacity"
+                                on:click={() => handleTagHistory(tag)}
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                </svg>
+                                <span class="font-medium">{tag}</span>
+                                <span class="text-xs opacity-75 font-normal">
+                                    ({tagData?.usageCount || 0})
+                                </span>
+                            </button>
                         {/each}
                     </div>
                 </div>
@@ -1776,6 +1820,20 @@
         </div>
     </div>
 </div>
+{/if}
+
+{#if showTagHistoryModal && trade && trade.account}
+    <TradeTagHistoryModal
+        bind:show={showTagHistoryModal}
+        tag={selectedTagForHistory}
+        tagColor={selectedTagColor}
+        accountId={trade.account}
+        on:close={handleTagHistoryClose}
+        on:view={handleTradeView}
+        on:edit={handleTradeEdit}
+        on:favorite={handleTradeFavorite}
+        on:delete={handleTradeDelete}
+    />
 {/if}
 
 <style>

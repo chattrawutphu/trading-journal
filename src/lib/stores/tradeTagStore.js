@@ -1,74 +1,53 @@
 import { writable } from 'svelte/store';
 import { api } from '$lib/utils/api';
 
-function createTradeTagStore() {
-    const { subscribe, set, update } = writable({
-        tags: [],
-        loading: false,
-        error: null
-    });
+export const tradeTagStore = writable({
+    tags: [],
+    loading: false,
+    error: null
+});
 
-    return {
-        subscribe,
-        loadTags: async() => {
-            try {
-                update(state => ({...state, loading: true, error: null }));
-                const tags = await api.getTradeTags();
-                update(state => ({
-                    ...state,
-                    tags,
-                    loading: false
-                }));
-            } catch (error) {
-                update(state => ({
-                    ...state,
-                    loading: false,
-                    error: error.message
-                }));
-                throw error;
-            }
-        },
-        addTag: async(tag) => {
-            try {
-                update(state => ({...state, loading: true, error: null }));
-                const newTag = await api.addTradeTag(tag);
-                update(state => ({
-                    ...state,
-                    tags: [...state.tags, newTag],
-                    loading: false
-                }));
-                return newTag;
-            } catch (error) {
-                update(state => ({
-                    ...state,
-                    loading: false,
-                    error: error.message
-                }));
-                throw error;
-            }
-        },
-        deleteTag: async(tagId) => {
-            try {
-                update(state => ({...state, loading: true, error: null }));
-                await api.deleteTradeTag(tagId);
-                update(state => ({
-                    ...state,
-                    tags: state.tags.filter(tag => tag._id !== tagId),
-                    loading: false
-                }));
-            } catch (error) {
-                update(state => ({
-                    ...state,
-                    loading: false,
-                    error: error.message
-                }));
-                throw error;
-            }
-        },
-        clearError: () => {
-            update(state => ({...state, error: null }));
-        }
-    };
+export async function loadTags() {
+    tradeTagStore.update(state => ({ ...state, loading: true, error: null }));
+    try {
+        const tags = await api.getTradeTags();
+        tradeTagStore.update(state => ({ ...state, tags, loading: false }));
+    } catch (error) {
+        tradeTagStore.update(state => ({ ...state, error: error.message, loading: false }));
+    }
 }
 
-export const tradeTagStore = createTradeTagStore();
+export async function addTag(tag) {
+    try {
+        const newTag = await api.createTradeTag(tag);
+        tradeTagStore.update(state => ({
+            ...state,
+            tags: [...state.tags, newTag]
+        }));
+        return newTag;
+    } catch (error) {
+        console.error('Error adding tag:', error);
+        throw new Error(error.message);
+    }
+}
+
+export async function deleteTag(tagId) {
+    try {
+        await api.deleteTradeTag(tagId);
+        tradeTagStore.update(state => ({
+            ...state,
+            tags: state.tags.filter(tag => tag._id !== tagId)
+        }));
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
+
+export async function updateTagUsage(tagIds) {
+    try {
+        await api.updateTradeTagUsage(tagIds);
+        await loadTags();
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}

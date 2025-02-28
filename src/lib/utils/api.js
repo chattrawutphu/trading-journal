@@ -302,23 +302,58 @@ export const api = {
         });
     },
 
-    // Get trade tags
+    // Trade Tag endpoints
     async getTradeTags() {
-        return await api.fetch('/trade-options?type=TAG');
+        return await api.fetch('/trade-tags');
     },
 
-    // Add trade tag
-    async addTradeTag(tag) {
-        return await api.fetch('/trade-options', {
+    async createTradeTag(tag) {
+        if (!tag || typeof tag !== 'string') {
+            throw new Error('Tag value is required and must be a string');
+        }
+        
+        const trimmedTag = tag.trim();
+        if (!trimmedTag) {
+            throw new Error('Tag value cannot be empty');
+        }
+
+        return await api.fetch('/trade-tags', {
             method: 'POST',
-            body: JSON.stringify({ type: 'TAG', value: tag }),
+            body: JSON.stringify({ value: trimmedTag }),
         });
     },
 
-    // Delete trade tag
     async deleteTradeTag(tagId) {
-        return await api.fetch(`/trade-options/${tagId}`, {
+        return await api.fetch(`/trade-tags/${tagId}`, {
             method: 'DELETE',
+        });
+    },
+
+    async incrementTradeTagUsage(tagId) {
+        return await api.fetch(`/trade-tags/${tagId}/increment`, {
+            method: 'POST',
+        });
+    },
+
+    async updateTradeTagUsage(tagIds) {
+        return await api.fetch('/trade-tags/update-usage', {
+            method: 'POST',
+            body: JSON.stringify({ tagIds }),
+        });
+    },
+
+    async getTaggedTrades(accountId, tag) {
+        return await api.fetch(`/trade-tags/${encodeURIComponent(tag)}/trades?accountId=${accountId}`);
+    },
+
+    async getTradeTagHistory(tag) {
+        return await api.fetch(`/trade-tag-history/${encodeURIComponent(tag)}`);
+    },
+
+    async updateTradeTagHistory(tag, data) {
+        return await api.fetch(`/trade-tag-history/${encodeURIComponent(tag)}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
         });
     },
 

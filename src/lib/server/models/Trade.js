@@ -1,5 +1,6 @@
 // server/models/Trade.js
 import mongoose from 'mongoose';
+import TradeTag from './TradeTag.js';
 
 const tradeSchema = new mongoose.Schema({
     account: {
@@ -206,7 +207,7 @@ tradeSchema.methods.calculateUnrealizedPnL = function() {
 };
 
 // ปรับปรุง pre-save hook
-tradeSchema.pre('save', function(next) {
+tradeSchema.pre('save', async function(next) {
     // Generate orderId for manual trades if needed
     if (!this.orderId && this.type === 'MANUAL') {
         this.orderId = generateOrderId();
@@ -224,6 +225,30 @@ tradeSchema.pre('save', function(next) {
     
     if (this.greedLevel < 1) {
         this.greedLevel = 1;
+    }
+
+    // Update tag usage count
+    if (this.isModified('tags')) {
+        const oldTags = this._doc.tags || [];
+        const newTags = this.tags || [];
+
+        const tagsToRemove = oldTags.filter(tag => !newTags.includes(tag));
+        const tagsToAdd = newTags.filter(tag => !oldTags.includes(tag));
+
+        if (tagsToRemove.length > 0) {
+            await TradeTag.updateMany(
+                { value: { $in: tagsToRemove } },
+                { $inc: { usageCount: -1 } }
+            );
+        }
+
+        if (tagsToAdd.length > 0) {
+            await TradeTag.updateMany(
+                { value: { $in: tagsToAdd } },
+                { $inc: { usageCount: 1 } },
+                { upsert: true }
+            );
+        }
     }
 
     next();

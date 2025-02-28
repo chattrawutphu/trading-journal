@@ -11,7 +11,7 @@
     import { goto } from '$app/navigation';
     import { tradeDate } from '$lib/stores/tradeDateStore';
     import { api } from "$lib/utils/api";
-    import { tradeTagStore } from '$lib/stores/tradeTagStore';
+    import { tradeTagStore, loadTags, addTag, deleteTag, updateTagUsage } from '$lib/stores/tradeTagStore';
     import { onMount, onDestroy } from 'svelte';
     import Modal from '../common/Modal.svelte';
     import LimitReachedModal from '../common/LimitReachedModal.svelte';
@@ -24,6 +24,7 @@
     import Color from '@tiptap/extension-color';
     import TextStyle from '@tiptap/extension-text-style';
     import Image from '@tiptap/extension-image';
+    import TradeTagHistoryModal from './TradeTagHistoryModal.svelte';
 
     const dispatch = createEventDispatcher();
 
@@ -36,6 +37,8 @@
     let previousSymbol = "";
     let initialFormData = null;
     let isInitialized = false;
+
+    let selectedTag = '';
 
     const defaultForm = {
         entryDate: getCurrentDateTime(),
@@ -440,21 +443,46 @@
     });
 
     async function handleTagSelect(event) {
-        const tagValue = event.detail.value;
-        if (form.tags.length < 7 && !form.tags.includes(tagValue)) {
-            try {
-                if (!$tradeTagStore.tags.some(t => t.value === tagValue)) {
-                    await tradeTagStore.addTag(tagValue);
+        const newTag = event.detail.value;
+        if (!form.tags.includes(newTag)) {
+            const existingTag = $tradeTagStore.tags.find(tag => tag.value === newTag);
+            if (existingTag) {
+                // Tag already exists, update its usage count
+                try {
+                    await updateTagUsage([existingTag._id]);
+                    form.tags = [...form.tags, newTag];
+                    // Inform user that tag already exists
+                    alert(`Tag "${newTag}" already exists. Its usage count has been updated.`);
+                } catch (error) {
+                    console.error('Failed to update tag usage:', error);
                 }
-                form.tags = [...form.tags, tagValue];
-            } catch (error) {
-                console.error('Failed to add tag:', error);
+            } else {
+                // Tag does not exist, add it
+                try {
+                    const tagData = await addTag(newTag);
+                    await updateTagUsage([tagData._id]);
+                    form.tags = [...form.tags, newTag];
+                } catch (error) {
+                    console.error('Failed to add tag:', error);
+                    alert(`Failed to add tag "${newTag}". Please try again.`);
+                }
             }
         }
     }
 
-    function removeTag(tag) {
+    async function removeTag(tag) {
         form.tags = form.tags.filter(t => t !== tag);
+        try {
+            const tagData = $tradeTagStore.tags.find(t => t.value === tag);
+            if (tagData) {
+                await updateTagUsage([tagData._id]);
+                if (tagData.usageCount === 1) {
+                    await deleteTag(tagData._id);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to remove tag:', error);
+        }
     }
 
     function getTagColor(tag) {
@@ -610,6 +638,42 @@
         
         e.target.value = value;
         form.leverage = value;
+    }
+
+    let showTagHistoryModal = false;
+    let selectedTagForHistory = null;
+    let selectedTagColor = null;
+
+    function handleTagHistory(tag) {
+        selectedTagForHistory = tag;
+        selectedTagColor = getTagColor(tag);
+        showTagHistoryModal = true;
+    }
+
+    function handleTagHistoryClose() {
+        showTagHistoryModal = false;
+        selectedTagForHistory = null;
+        selectedTagColor = null;
+    }
+
+    function handleTradeView(event) {
+        dispatch('view', event.detail);
+    }
+
+    function handleTradeEdit(event) {
+        dispatch('edit', event.detail);
+    }
+
+    function handleTradeFavorite(event) {
+        dispatch('favorite', event.detail);
+    }
+
+    function handleTradeDelete(event) {
+        dispatch('delete', event.detail);
+    }
+
+    $: if (show) {
+        loadTags();
     }
 </script>
 
@@ -1047,8 +1111,8 @@
                                         <TradeOptionSelect
                                             type="TAG"
                                             placeholder="Add tags..."
-                                            value=""
-                                            options={$tradeTagStore.tags.map(t => ({ value: t.value }))}
+                                            bind:value={selectedTag}
+                                            options={$tradeTagStore.tags}
                                             on:change={handleTagSelect}
                                             loading={$tradeTagStore.loading}
                                             error={$tradeTagStore.error}
@@ -1057,9 +1121,11 @@
                                         {#if form.tags.length > 0}
                                             <div class="flex flex-wrap gap-2 mt-2">
                                                 {#each form.tags as tag}
+                                                    {@const tagData = $tradeTagStore.tags.find(t => t.value === tag)}
                                                     {@const tagColor = getTagColor(tag)}
-                                                    <div class="flex items-center gap-1 px-2 py-1 rounded-full {tagColor.bg} {tagColor.text} text-sm">
-                                                        <span>{tag}</span>
+                                                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-full {tagColor.bg} {tagColor.text} text-sm">
+                                                        <span class="font-medium">{tag}</span>
+                                                        <span class="text-xs opacity-75 font-normal">({tagData?.usageCount || 0})</span>
                                                         <button
                                                             type="button"
                                                             class="hover:opacity-75"
@@ -1129,7 +1195,6 @@
                                             type="button"
                                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive({ textAlign: 'left' }) ? 'bg-theme-500/10' : ''}" 
                                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().setTextAlign('left').run()}
-
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"/>
@@ -1139,7 +1204,6 @@
                                             type="button"
                                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive({ textAlign: 'center' }) ? 'bg-theme-500/10' : ''}" 
                                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().setTextAlign('center').run()}
-
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M4 18h16"/>
@@ -1149,7 +1213,6 @@
                                             type="button"
                                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive({ textAlign: 'right' }) ? 'bg-theme-500/10' : ''}" 
                                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().setTextAlign('right').run()}
-
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M10 12h10M4 18h16"/>
@@ -1159,7 +1222,6 @@
                                             type="button"
                                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('bulletList') ? 'bg-theme-500/10' : ''}" 
                                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleBulletList().run()}
-
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
@@ -1169,7 +1231,6 @@
                                             type="button"
                                             class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover {editor?.isActive('orderedList') ? 'bg-theme-500/10' : ''}" 
                                             on:click|preventDefault|stopPropagation={() => editor?.chain().focus().toggleOrderedList().run()}
-
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h10M7 16h10M3 8h.01M3 12h.01M3 16h.01"/>
@@ -1186,7 +1247,6 @@
                                                     editor?.chain().focus().unsetLink().run();
                                                 }
                                             }}
-                                            
                                         >
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
@@ -1197,28 +1257,26 @@
                                                 type="color" 
                                                 class="absolute opacity-0 w-full h-full cursor-pointer" 
                                                 on:input|preventDefault|stopPropagation={(e) => editor?.chain().focus().setColor(e.target.value).run()}
-                                    
-                                />
+                                            />
                                             <button 
                                                 type="button"
                                                 class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover" 
-                                                
                                             >
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
-                                            </svg>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v14a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                                                </svg>
+                                            </div>
+                                            <div class="w-px h-6 bg-light-border dark:bg-dark-hover mx-1"></div>
+                                            <button 
+                                                type="button"
+                                                class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover"
+                                                on:click={handleImageUpload}
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                                </svg>
+                                            </button>
                                         </div>
-                                        <div class="w-px h-6 bg-light-border dark:bg-dark-hover mx-1"></div>
-                                        <button 
-                                            type="button"
-                                            class="p-1 rounded hover:bg-light-hover dark:hover:bg-dark-hover"
-                                            on:click={handleImageUpload}
-                                            
-                                        >
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                        </button>
                                     </div>
                                     <div 
                                         bind:this={editorElement}
@@ -1257,7 +1315,6 @@
                                     <p class="text-sm text-red-500">{errors.url}</p>
                                 {/if}
                             </div>
-                        </div>
                     {/if}
                 </form>
             </div>
@@ -1334,6 +1391,18 @@
         on:upgrade={upgradePlan}
     />
 {/if}
+
+<TradeTagHistoryModal
+    bind:show={showTagHistoryModal}
+    tag={selectedTagForHistory}
+    tagColor={selectedTagColor}
+    {accountId}
+    on:close={handleTagHistoryClose}
+    on:view={handleTradeView}
+    on:edit={handleTradeEdit}
+    on:favorite={handleTradeFavorite}
+    on:delete={handleTradeDelete}
+/>
 
 <style lang="postcss">
     .card {
