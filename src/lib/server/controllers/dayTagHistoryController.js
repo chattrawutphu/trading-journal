@@ -12,7 +12,7 @@ const handleError = (res, error) => {
 export const getTagHistory = async(req, res) => {
     try {
         const { tag } = req.params;
-        const tagHistory = await DayTagHistory.findOne({ 
+        const tagHistory = await DayTagHistory.findOne({
             user: req.user._id,
             tag
         });
@@ -29,15 +29,15 @@ export const updateTagHistory = async(req, res) => {
 
         const tagHistory = await DayTagHistory.findOneAndUpdate(
             { user: req.user._id, tag },
-            { 
-                $set: { 
+            {
+                $set: {
                     note: note || '',
                     favorite: favorite || false,
                     user: req.user._id,
                     tag
                 }
             },
-            { 
+            {
                 new: true,
                 upsert: true
             }

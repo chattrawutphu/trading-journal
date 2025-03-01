@@ -5,12 +5,17 @@
     import { onMount } from 'svelte';
     import { createEventDispatcher } from 'svelte';
     import TradeTagHistoryModal from "./TradeTagHistoryModal.svelte";
-    import { tradeTagStore } from '$lib/stores/tradeTagStore';
+    import { tradeTagStore, loadTags } from '$lib/stores/tradeTagStore';
     
     const dispatch = createEventDispatcher();
     
     export let show = false;
     export let trade = null;
+    
+    // Load tags when modal is shown
+    $: if (show) {
+        loadTags();
+    }
     
     // Compute position history, supporting backward compatibility
     $: positionHistory = trade ? (trade.positionHistory || convertCloseHistoryToPositionHistory(trade.closeHistory)) : [];

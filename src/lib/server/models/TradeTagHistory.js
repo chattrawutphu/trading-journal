@@ -8,10 +8,6 @@ const tradeTagHistorySchema = new mongoose.Schema({
         trim: true,
         maxlength: [50, 'Tag value cannot exceed 50 characters']
     },
-    favorite: {
-        type: Boolean,
-        default: false
-    },
     notes: {
         type: String,
         trim: true,

@@ -10,10 +10,6 @@ const dayTagHistorySchema = new mongoose.Schema({
         default: '',
         maxlength: [1000, 'Note cannot exceed 1000 characters']
     },
-    favorite: {
-        type: Boolean,
-        default: false
-    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
