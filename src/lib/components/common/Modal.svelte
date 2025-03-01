@@ -6,6 +6,7 @@
     export let show = false;
     export let width = '';
     export let hideHeader = false;
+    export let title = '';
 </script>
 
 {#if show}
@@ -22,7 +23,11 @@
             <!-- Header -->
             {#if !hideHeader}
             <div class="px-6 py-4 border-b border-light-border dark:border-dark-border flex justify-between items-start">
-                <slot name="title"></slot>
+                <slot name="title">
+                    {#if title}
+                        <h2 class="text-xl font-bold text-light-text dark:text-dark-text">{title}</h2>
+                    {/if}
+                </slot>
                 <button 
                     class="p-1 rounded-lg text-light-text-muted dark:text-dark-text-muted 
                            hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
