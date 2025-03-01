@@ -466,7 +466,7 @@
             <div class="space-y-2">
                 <div class="flex justify-between items-center">
                     <label class="block text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
-                        Tags ({formState.tags.length}/7)
+                        Day Tags ({formState.tags.length}/7)
                     </label>
                 </div>
                 <div class="space-y-2">

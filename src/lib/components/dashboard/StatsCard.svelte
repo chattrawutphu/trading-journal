@@ -3,6 +3,7 @@
     import { accountStore } from '$lib/stores/accountStore';
     import { binanceExchange } from '$lib/exchanges';
     import { dailyBalancesStore } from '$lib/stores/dailyBalancesStore';
+    import { api } from '$lib/utils/api';
     
     export let totalPnL;
     export let openTrades;

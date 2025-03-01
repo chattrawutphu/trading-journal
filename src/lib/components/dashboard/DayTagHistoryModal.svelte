@@ -320,10 +320,10 @@
                         </svg>
                     </button>
                     <div class="flex items-center gap-1 px-3 py-1.5 rounded-full {tagColor.bg} {tagColor.text}">
-                        <span class="text-sm font-medium">{tag}</span>
+                        <span class="text-sm font-medium">Day Tag: {tag}</span>
                     </div>
                     <h2 class="text-xl font-bold text-light-text dark:text-dark-text">
-                        Tag Details
+                        Day Tag Details
                     </h2>
                 </div>
                 <div class="flex items-center gap-4">
