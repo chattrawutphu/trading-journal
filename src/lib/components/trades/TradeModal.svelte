@@ -270,6 +270,9 @@
         try {
             const formData = prepareFormData(form);
             
+            // Store original tags for comparison
+            const originalTags = trade ? [...(trade.tags || [])] : [];
+            
             if (trade) {
                 await api.updateTrade(trade._id, formData);
             } else {
@@ -278,10 +281,20 @@
                     account: accountId,
                     type: 'MANUAL'
                 };
-                // console.log('Submitting trade payload:', payload);
                 const result = await api.createTrade(payload);
-                // console.log('API response:', result);
             }
+            
+            // Update tag usage counts after successful save
+            // Find all affected tags (both added and removed)
+            const allAffectedTags = [...new Set([...originalTags, ...form.tags])];
+            const tagIdsToUpdate = $tradeTagStore.tags
+                .filter(tag => allAffectedTags.includes(tag.value))
+                .map(tag => tag._id);
+                
+            if (tagIdsToUpdate.length > 0) {
+                await updateTagUsage(tagIdsToUpdate);
+            }
+            
             dispatch('tradeUpdated');
             
             // ส่ง global event ไปยัง window เพื่อให้ component อื่นๆ รับทราบ
@@ -316,6 +329,9 @@
 
         try {
             const tradeData = prepareFormData(form);
+            
+            // Store original tags for comparison
+            const originalTags = trade ? [...(trade.tags || [])] : [];
 
             if (editMode) {
                 await api.updateTrade(trade._id, tradeData);
@@ -325,6 +341,17 @@
                     account: accountId,
                     type: 'MANUAL'
                 });
+            }
+            
+            // Update tag usage counts after successful save
+            // Find all affected tags (both added and removed)
+            const allAffectedTags = [...new Set([...originalTags, ...form.tags])];
+            const tagIdsToUpdate = $tradeTagStore.tags
+                .filter(tag => allAffectedTags.includes(tag.value))
+                .map(tag => tag._id);
+                
+            if (tagIdsToUpdate.length > 0) {
+                await updateTagUsage(tagIdsToUpdate);
             }
 
             handleClose();
@@ -445,44 +472,28 @@
     async function handleTagSelect(event) {
         const newTag = event.detail.value;
         if (!form.tags.includes(newTag)) {
+            // Only add the tag to the form state without updating usage count yet
+            form.tags = [...form.tags, newTag];
+            
+            // Check if tag exists in store
             const existingTag = $tradeTagStore.tags.find(tag => tag.value === newTag);
-            if (existingTag) {
-                // Tag already exists, update its usage count
+            if (!existingTag) {
+                // If tag doesn't exist in store, add it to the store without updating usage
                 try {
-                    await updateTagUsage([existingTag._id]);
-                    form.tags = [...form.tags, newTag];
-                    // Inform user that tag already exists
-                    alert(`Tag "${newTag}" already exists. Its usage count has been updated.`);
-                } catch (error) {
-                    console.error('Failed to update tag usage:', error);
-                }
-            } else {
-                // Tag does not exist, add it
-                try {
-                    const tagData = await addTag(newTag);
-                    await updateTagUsage([tagData._id]);
-                    form.tags = [...form.tags, newTag];
+                    await addTag(newTag);
                 } catch (error) {
                     console.error('Failed to add tag:', error);
                     alert(`Failed to add tag "${newTag}". Please try again.`);
+                    // Remove the tag from form if adding to store failed
+                    form.tags = form.tags.filter(t => t !== newTag);
                 }
             }
         }
     }
 
-    async function removeTag(tag) {
+    function removeTag(tag) {
+        // Only remove the tag from the form state without updating usage count
         form.tags = form.tags.filter(t => t !== tag);
-        try {
-            const tagData = $tradeTagStore.tags.find(t => t.value === tag);
-            if (tagData) {
-                await updateTagUsage([tagData._id]);
-                if (tagData.usageCount === 1) {
-                    await deleteTag(tagData._id);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to remove tag:', error);
-        }
     }
 
     function getTagColor(tag) {

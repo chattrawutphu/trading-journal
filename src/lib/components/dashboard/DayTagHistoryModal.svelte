@@ -271,23 +271,6 @@
         showTagConfigModal = true;
     }
 
-    async function handleTagFavoriteToggle() {
-        if (!tagHistory) return;
-        
-        try {
-            const updatedHistory = {
-                ...tagHistory,
-                favorite: !tagHistory.favorite
-            };
-            
-            await api.updateTagHistory(tag, updatedHistory);
-            tagHistory = updatedHistory;
-            dispatch('tagHistoryUpdated', updatedHistory);
-        } catch (err) {
-            console.error('Error updating tag favorite:', err);
-        }
-    }
-
     async function handleTagConfigUpdated(event) {
         const updatedHistory = event.detail;
         if (updatedHistory) {
@@ -309,16 +292,6 @@
             <!-- Header -->
             <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
                 <div class="flex items-center gap-4">
-                    <!-- Favorite Star -->
-                    <button
-                        class="text-light-text-muted dark:text-dark-text-muted hover:text-yellow-500 transition-colors"
-                        on:click={handleTagFavoriteToggle}
-                        title={tagHistory?.favorite ? "Remove from favorites" : "Add to favorites"}
-                    >
-                        <svg class="w-6 h-6" fill={tagHistory?.favorite ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-                        </svg>
-                    </button>
                     <div class="flex items-center gap-1 px-3 py-1.5 rounded-full {tagColor.bg} {tagColor.text}">
                         <span class="text-sm font-medium">Day Tag: {tag}</span>
                     </div>

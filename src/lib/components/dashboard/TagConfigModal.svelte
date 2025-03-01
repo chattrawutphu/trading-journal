@@ -30,8 +30,7 @@
 
     let formState = {
         tagName: '',
-        note: '',
-        favorite: false
+        note: ''
     };
 
     let error = null;
@@ -76,8 +75,7 @@
     function resetForm() {
         formState = {
             tagName: tag || '',
-            note: config?.note || '',
-            favorite: config?.favorite || false
+            note: config?.note || ''
         };
         if (editor) {
             editor.commands.setContent(formState.note || '');
@@ -113,8 +111,7 @@
             error = null;
 
             const data = {
-                note: formState.note,
-                favorite: formState.favorite
+                note: formState.note
             };
 
             // ถ้ามีการเปลี่ยนแปลงชื่อ tag
@@ -135,7 +132,7 @@
                 // รีโหลด tags
                 await dayTagStore.loadTags();
             } else {
-                // ถ้าไม่มีการเปลี่ยนชื่อ tag ให้อัพเดทแค่ note และ favorite
+                // ถ้าไม่มีการเปลี่ยนชื่อ tag ให้อัพเดทแค่ note
                 const updatedHistory = await api.updateTagHistory(tag, data);
                 dispatch('configUpdated', updatedHistory);
             }
@@ -407,20 +404,6 @@
                         data-placeholder="Add notes for this tag..."
                     ></div>
                 </div>
-            </div>
-
-            <!-- Favorite Toggle -->
-            <div class="flex items-center gap-2">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        bind:checked={formState.favorite}
-                        class="checkbox"
-                    />
-                    <span class="text-sm text-light-text-muted dark:text-dark-text-muted">
-                        Mark as favorite
-                    </span>
-                </label>
             </div>
 
             {#if error}

@@ -119,14 +119,9 @@
     }
 
     function close() {
-        // Reset all data when closing
-        trades = [];
-        transactions = [];
-        dayConfig = null;
-        totalUnrealizedPnL = null;
-        isLoadingUnrealizedPnL = true;
-        selectedTrade = null;
-        selectedTransaction = null;
+        // Just set show to false, don't reset data yet
+        show = false;
+        // The data reset will happen in the outroend event handler
         dispatch('close');
     }
 
@@ -458,7 +453,17 @@
     <div class="text-red-500">{error}</div>
 {:else if show}
     <div class="fixed modal inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-         transition:fade={{ duration: 150 }}>
+         transition:fade={{ duration: 150 }}
+         on:outroend={() => {
+            // Reset all data after the fade transition completes
+            trades = [];
+            transactions = [];
+            dayConfig = null;
+            totalUnrealizedPnL = null;
+            isLoadingUnrealizedPnL = true;
+            selectedTrade = null;
+            selectedTransaction = null;
+         }}>
         <div class="card w-full max-w-4xl mx-auto relative transform ease-out max-h-[90vh] flex flex-col">
             <!-- Header -->
             <div class="px-8 py-5 border-b border-light-border dark:border-0 flex justify-between items-center bg-light-card dark:bg-dark-card rounded-t-xl backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90 z-10">
