@@ -4,19 +4,24 @@
 
     const dispatch = createEventDispatcher();
     export let show = false;
+    export let showModal = false;
     export let width = '';
+    export let maxWidth = '';
+    export let size = '';
     export let hideHeader = false;
     export let title = '';
+    
+    $: isVisible = show || showModal;
 </script>
 
-{#if show}
+{#if isVisible}
     <div 
         class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
         transition:fade={{ duration: 150 }}
         on:click|self={() => dispatch('close')}
     >
         <div 
-            class="w-full {width || 'max-w-xl'} bg-light-card dark:bg-dark-card border border-light-border dark:border-0 
+            class="w-full {size ? `modal-${size}` : ''} {maxWidth || ''} {width || 'max-w-xl'} bg-light-card dark:bg-dark-card border border-light-border dark:border-0 
                    rounded-xl shadow-xl"
             on:click|stopPropagation
         >
@@ -42,7 +47,9 @@
 
             <!-- Content -->
             <div class="relative">
-                <slot></slot>
+                <slot name="body">
+                    <slot></slot>
+                </slot>
             </div>
 
             <!-- Footer -->
@@ -55,5 +62,46 @@
     /* ทำให้ Modal อยู่เหนือทุกอย่าง */
     div {
         isolation: isolate;
+    }
+    
+    /* Size variants */
+    .modal-sm {
+        max-width: 24rem; /* 384px */
+    }
+    
+    .modal-md {
+        max-width: 28rem; /* 448px */
+    }
+    
+    .modal-lg {
+        max-width: 32rem; /* 512px */
+    }
+    
+    .modal-xl {
+        max-width: 36rem; /* 576px */
+    }
+    
+    .modal-2xl {
+        max-width: 42rem; /* 672px */
+    }
+    
+    .modal-3xl {
+        max-width: 48rem; /* 768px */
+    }
+    
+    .modal-4xl {
+        max-width: 56rem; /* 896px */
+    }
+    
+    .modal-5xl {
+        max-width: 64rem; /* 1024px */
+    }
+    
+    .modal-6xl {
+        max-width: 72rem; /* 1152px */
+    }
+    
+    .modal-7xl {
+        max-width: 80rem; /* 1280px */
     }
 </style>

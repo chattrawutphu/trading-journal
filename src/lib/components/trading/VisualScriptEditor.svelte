@@ -23,59 +23,59 @@
     
     // Available conditions and actions
     const availableConditions = [
-        { id: 'price_above', name: 'Price Above', params: [{ name: 'value', type: 'number', default: 0 }] },
-        { id: 'price_below', name: 'Price Below', params: [{ name: 'value', type: 'number', default: 0 }] },
+        { id: 'price_above', name: 'Price Above', params: [{ name: 'value', type: 'number', default: 0 }], description: 'Triggered when the price is above a certain value' },
+        { id: 'price_below', name: 'Price Below', params: [{ name: 'value', type: 'number', default: 0 }], description: 'Triggered when the price is below a certain value' },
         { id: 'ema_crossover', name: 'EMA Crossover', params: [
             { name: 'fast_period', type: 'number', default: 9 },
             { name: 'slow_period', type: 'number', default: 21 }
-        ]},
+        ], description: 'Triggered when the fast EMA crosses over the slow EMA' },
         { id: 'rsi_above', name: 'RSI Above', params: [
             { name: 'period', type: 'number', default: 14 },
             { name: 'value', type: 'number', default: 70 }
-        ]},
+        ], description: 'Triggered when the RSI is above a certain value' },
         { id: 'rsi_below', name: 'RSI Below', params: [
             { name: 'period', type: 'number', default: 14 },
             { name: 'value', type: 'number', default: 30 }
-        ]},
+        ], description: 'Triggered when the RSI is below a certain value' },
         { id: 'volume_spike', name: 'Volume Spike', params: [
             { name: 'multiplier', type: 'number', default: 2 }
-        ]},
+        ], description: 'Triggered when the volume is above a certain multiplier' },
         { id: 'time_of_day', name: 'Time of Day', params: [
             { name: 'start_time', type: 'time', default: '09:00' },
             { name: 'end_time', type: 'time', default: '16:00' }
-        ]}
+        ], description: 'Triggered when the time is between a certain start and end time' }
     ];
     
     const availableActions = [
         { id: 'buy_market', name: 'Buy Market', params: [
             { name: 'amount', type: 'number', default: 0 },
             { name: 'amount_type', type: 'select', options: ['USD', '%'], default: 'USD' }
-        ]},
+        ], description: 'Buys a market order' },
         { id: 'sell_market', name: 'Sell Market', params: [
             { name: 'amount', type: 'number', default: 0 },
             { name: 'amount_type', type: 'select', options: ['USD', '%'], default: 'USD' }
-        ]},
+        ], description: 'Sells a market order' },
         { id: 'buy_limit', name: 'Buy Limit', params: [
             { name: 'price', type: 'number', default: 0 },
             { name: 'amount', type: 'number', default: 0 },
             { name: 'amount_type', type: 'select', options: ['USD', '%'], default: 'USD' }
-        ]},
+        ], description: 'Buys a limit order' },
         { id: 'sell_limit', name: 'Sell Limit', params: [
             { name: 'price', type: 'number', default: 0 },
             { name: 'amount', type: 'number', default: 0 },
             { name: 'amount_type', type: 'select', options: ['USD', '%'], default: 'USD' }
-        ]},
+        ], description: 'Sells a limit order' },
         { id: 'set_stop_loss', name: 'Set Stop Loss', params: [
             { name: 'price', type: 'number', default: 0 },
             { name: 'type', type: 'select', options: ['Fixed', 'Trailing'], default: 'Fixed' },
             { name: 'trail_percent', type: 'number', default: 1, showIf: { field: 'type', value: 'Trailing' } }
-        ]},
+        ], description: 'Sets a stop loss order' },
         { id: 'set_take_profit', name: 'Set Take Profit', params: [
             { name: 'price', type: 'number', default: 0 }
-        ]},
+        ], description: 'Sets a take profit order' },
         { id: 'send_notification', name: 'Send Notification', params: [
             { name: 'message', type: 'text', default: '' }
-        ]}
+        ], description: 'Sends a notification' }
     ];
     
     // Functions to handle drag and drop
@@ -101,7 +101,8 @@
                 const newItem = {
                     ...draggedItem,
                     id: `${draggedItem.id}_${Date.now()}`,
-                    params: draggedItem.params.map(p => ({ ...p, value: p.default }))
+                    params: draggedItem.params.map(p => ({ ...p, value: p.default })),
+                    comment: '' // Initialize with empty comment
                 };
                 
                 if (type === 'condition') {
@@ -216,6 +217,9 @@
                             on:dragend={handleDragEnd}
                         >
                             {condition.name}
+                            <div class="text-xs text-light-text-muted dark:text-dark-text-muted mt-1 truncate">
+                                {condition.description}
+                            </div>
                         </div>
                     {/each}
                 </div>
@@ -232,6 +236,9 @@
                             on:dragend={handleDragEnd}
                         >
                             {action.name}
+                            <div class="text-xs text-light-text-muted dark:text-dark-text-muted mt-1 truncate">
+                                {action.description}
+                            </div>
                         </div>
                     {/each}
                 </div>
@@ -266,10 +273,28 @@
                             >
                                 <div class="flex-1">
                                     <div class="font-medium text-light-text dark:text-dark-text">{condition.name}</div>
-                                    <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                                    <div class="text-xs text-light-text-muted dark:text-dark-text-muted italic">
+                                        {getConditionById(condition.id.split('_')[0])?.description || ''}
+                                    </div>
+                                    
+                                    <!-- Condition Comment -->
+                                    {#if condition.comment}
+                                        <div class="mt-2 mb-1 mx-1 p-2 text-xs bg-yellow-50 dark:bg-yellow-900/10 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700/50 rounded-md italic">
+                                            <div class="flex items-start">
+                                                <svg class="w-3.5 h-3.5 mr-1.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                                </svg>
+                                                <span>{condition.comment}</span>
+                                            </div>
+                                        </div>
+                                    {/if}
+                                    
+                                    <div class="text-xs text-light-text-muted dark:text-dark-text-muted mt-1">
                                         {#each condition.params as param}
                                             {#if shouldShowParam(param, condition)}
-                                                <span class="mr-2">{param.name}: {formatParamValue(param)}</span>
+                                                <span class="inline-flex items-center mr-2 px-1.5 py-0.5 rounded-md bg-light-hover/50 dark:bg-dark-hover/50">
+                                                    <span class="font-medium mr-1">{param.name}:</span> {formatParamValue(param)}
+                                                </span>
                                             {/if}
                                         {/each}
                                     </div>
@@ -331,10 +356,28 @@
                             >
                                 <div class="flex-1">
                                     <div class="font-medium text-light-text dark:text-dark-text">{action.name}</div>
-                                    <div class="text-sm text-light-text-muted dark:text-dark-text-muted">
+                                    <div class="text-xs text-light-text-muted dark:text-dark-text-muted italic">
+                                        {getActionById(action.id.split('_')[0])?.description || ''}
+                                    </div>
+                                    
+                                    <!-- Action Comment -->
+                                    {#if action.comment}
+                                        <div class="mt-2 mb-1 mx-1 p-2 text-xs bg-yellow-50 dark:bg-yellow-900/10 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700/50 rounded-md italic">
+                                            <div class="flex items-start">
+                                                <svg class="w-3.5 h-3.5 mr-1.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                                </svg>
+                                                <span>{action.comment}</span>
+                                            </div>
+                                        </div>
+                                    {/if}
+                                    
+                                    <div class="text-xs text-light-text-muted dark:text-dark-text-muted mt-1">
                                         {#each action.params as param}
                                             {#if shouldShowParam(param, action)}
-                                                <span class="mr-2">{param.name}: {formatParamValue(param)}</span>
+                                                <span class="inline-flex items-center mr-2 px-1.5 py-0.5 rounded-md bg-light-hover/50 dark:bg-dark-hover/50">
+                                                    <span class="font-medium mr-1">{param.name}:</span> {formatParamValue(param)}
+                                                </span>
                                             {/if}
                                         {/each}
                                     </div>
@@ -419,6 +462,19 @@
                             </div>
                         {/if}
                     {/each}
+                    
+                    <!-- Comment Field -->
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-light-text dark:text-dark-text mb-1">
+                            Comment
+                        </label>
+                        <textarea 
+                            class="w-full p-2 rounded-md bg-light-input dark:bg-dark-input border border-light-border dark:border-dark-border text-light-text dark:text-dark-text"
+                            bind:value={editingItem.comment}
+                            rows="3"
+                            placeholder="Add a comment about this item..."
+                        ></textarea>
+                    </div>
                 </div>
                 
                 <div class="flex justify-end space-x-2 mt-6">

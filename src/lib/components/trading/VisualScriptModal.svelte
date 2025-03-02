@@ -221,35 +221,49 @@
             <div class="border-b border-light-border dark:border-dark-border">
                 <div class="flex space-x-4">
                     <button 
-                        class="py-2 px-4 border-b-2 font-medium text-sm {activeTab === 'editor' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text'}"
+                        class="py-3 px-4 border-b-2 font-medium text-sm flex items-center gap-2 
+                            {activeTab === 'editor' 
+                                ? 'border-theme-500 text-theme-500 font-semibold' 
+                                : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
                         on:click={() => activeTab = 'editor'}
                     >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
                         Visual Editor
                     </button>
                     <button 
-                        class="py-2 px-4 border-b-2 font-medium text-sm {activeTab === 'preview' ? 'border-theme-500 text-theme-500' : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text'}"
+                        class="py-3 px-4 border-b-2 font-medium text-sm flex items-center gap-2
+                            {activeTab === 'preview' 
+                                ? 'border-theme-500 text-theme-500 font-semibold' 
+                                : 'border-transparent text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'}"
                         on:click={() => activeTab = 'preview'}
                     >
-                        Code Preview
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                        JSON Preview
                     </button>
                 </div>
             </div>
             
             <!-- Tab Content -->
-            <div class="tab-content">
+            <div class="tab-content mt-4">
                 {#if activeTab === 'editor'}
                     <VisualScriptEditor 
                         script={{ conditions: scriptData.conditions, actions: scriptData.actions }}
                         on:change={handleScriptChange}
                     />
                 {:else if activeTab === 'preview'}
-                    <VisualScriptPreview 
-                        script={{ 
-                            name: scriptData.name, 
-                            conditions: scriptData.conditions, 
-                            actions: scriptData.actions 
-                        }}
-                    />
+                    <div class="p-1">
+                        <VisualScriptPreview 
+                            script={{ 
+                                name: scriptData.name, 
+                                conditions: scriptData.conditions, 
+                                actions: scriptData.actions 
+                            }}
+                        />
+                    </div>
                 {/if}
             </div>
         </div>

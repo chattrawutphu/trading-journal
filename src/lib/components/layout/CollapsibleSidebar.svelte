@@ -13,9 +13,9 @@
     
     // Add subscription badge styles
     const subscriptionBadgeStyles = {
-        'basic': 'bg-gray-200 text-gray-800',
-        'pro': 'bg-blue-200 text-blue-800',
-        'pro_plus': 'bg-purple-200 text-purple-800'
+        'basic': 'bg-gray-100 dark:bg-gray-800/40 text-gray-800 dark:text-gray-300',
+        'pro': 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300',
+        'pro+': 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300'
     };
 
     const dispatch = createEventDispatcher();
@@ -272,7 +272,7 @@
                                 <p class="text-sm font-semibold text-light-text dark:text-dark-text truncate">
                                     {getUserDisplayName($auth.user)}
                                 </p>
-                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full {getSubscriptionBadgeStyle($subscriptionStore?.type)}">
+                                <span class="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded {getSubscriptionBadgeStyle($subscriptionStore?.type)}">
                                     {formatSubscriptionType($subscriptionStore?.type)}
                                 </span>
                             </div>
