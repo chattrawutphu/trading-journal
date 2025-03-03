@@ -7,6 +7,7 @@
     import Modal from "$lib/components/common/Modal.svelte";
     import CommandContainer from "$lib/components/trading/CommandContainer.svelte";
     import VisualScriptPreview from "$lib/components/trading/VisualScriptPreview.svelte";
+    import CommandMiniMap from '$lib/components/trading/CommandMiniMap.svelte';
     import { subscriptionStore } from "$lib/stores/subscriptionStore";
     import { SUBSCRIPTION_TYPES } from "$lib/config/subscription";
     
@@ -18,6 +19,30 @@
     let showCodePreview = false;
     let generatedCode = "";
     let showCopied = false;
+    
+    // Add state for tracking active container
+    let activeContainerId = null;
+    let showMiniMap = true;
+    let visibleContainers = new Set();
+    let allCommandContainers = [];
+    
+    // Function to handle mini map selection
+    function handleMiniMapSelect(event) {
+        const { containerId } = event.detail;
+        activeContainerId = containerId;
+        
+        // Scroll to the selected container
+        const containerElement = document.querySelector(`[data-container-id="${containerId}"]`);
+        if (containerElement) {
+            containerElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+    
+    // Update active container when scrolling or interacting
+    function updateActiveContainer() {
+        // Logic to determine which container is currently in view
+        // This could use Intersection Observer or scroll position calculations
+    }
     
     // Symbol and Timeframe edit state
     let showSymbolSelector = false;
@@ -358,6 +383,58 @@
         }
     ];
     
+    // Handle container registration from CommandContainer components
+    function handleContainerRegistration(event) {
+        const { id, level, type, name, parentId } = event.detail;
+        
+        // Update allCommandContainers array
+        const existingIndex = allCommandContainers.findIndex(c => c.id === id);
+        if (existingIndex >= 0) {
+            allCommandContainers[existingIndex] = { id, level, type, name, parentId };
+        } else {
+            allCommandContainers = [...allCommandContainers, { id, level, type, name, parentId }];
+        }
+    }
+    
+    // Handle container visibility updates
+    function handleContainerVisibility(event) {
+        const { id, isVisible } = event.detail;
+        
+        if (isVisible) {
+            visibleContainers.add(id);
+        } else {
+            visibleContainers.delete(id);
+        }
+        
+        // Force Svelte to recognize the change in the Set
+        visibleContainers = new Set(visibleContainers);
+    }
+    
+    // Add this handler for child container events
+    function handleChildContainer(event) {
+        const { childId, parentId, level, type, name } = event.detail;
+        
+        // Update allCommandContainers array with the child container info
+        const existingIndex = allCommandContainers.findIndex(c => c.id === childId);
+        if (existingIndex >= 0) {
+            allCommandContainers[existingIndex] = { 
+                id: childId, 
+                level, 
+                type, 
+                name, 
+                parentId  // This is critical for the parent-child relationship
+            };
+        } else {
+            allCommandContainers = [...allCommandContainers, { 
+                id: childId, 
+                level, 
+                type, 
+                name, 
+                parentId
+            }];
+        }
+    }
+    
     onMount(() => {
         // Get strategy ID from URL
         strategyId = $page.params.id;
@@ -419,8 +496,9 @@
     
     // Add a new container
     function addContainer() {
-        const newContainer = {
-            id: `container_${Date.now()}`,
+        // Create IF container
+        const ifContainer = {
+            id: `container_if_${Date.now()}`,
             name: 'Command Group',
             conditions: [],
             actions: [],
@@ -430,7 +508,21 @@
             comment: ''
         };
         
-        containers = [...containers, newContainer];
+        // Create ELSE container
+        const elseContainer = {
+            id: `container_else_${Date.now()}`,
+            name: 'Default Actions',
+            conditions: [],
+            actions: [],
+            children: [],
+            containerType: 'ELSE',
+            disabled: false,
+            comment: '',
+            parentIfId: ifContainer.id // Reference to parent IF container
+        };
+        
+        // Add both containers
+        containers = [...containers, ifContainer, elseContainer];
         saveStrategy();
     }
     
@@ -443,8 +535,79 @@
     
     // Handle container removal
     function handleContainerRemove(event) {
-        const { index } = event.detail;
-        containers = containers.filter((_, i) => i !== index);
+        const { index, container } = event.detail;
+        
+        // ทุกครั้งที่ลบ Container (IF หรือ ELSE_IF) ลบทั้งกลุ่ม
+        // ไม่ว่าจะลบ Container ใด ให้ลบทั้งชุด IF/ELSE_IF/ELSE
+        // ต้องรองรับ nested containers ด้วย (containers ที่ซ้อนกันหลายระดับ)
+        
+        // ฟังก์ชันสำหรับการลบ containers แบบ nested (recursively)
+        function removeContainerGroup(containersList, targetContainer) {
+            if (!containersList || containersList.length === 0) return containersList;
+            
+            // สร้าง array ใหม่ที่ลบทั้งกลุ่ม container ออกไป
+            const newContainers = [];
+            
+            // ใช้ flag เพื่อตรวจสอบว่าอยู่ในกลุ่มเดียวกันหรือไม่
+            let skipGroup = false;
+            let currentGroupIfId = null;
+            
+            // ตรวจสอบทีละ container
+            for (let i = 0; i < containersList.length; i++) {
+                const current = containersList[i];
+                
+                // ตรวจสอบว่าเป็น IF ที่เริ่มกลุ่มใหม่หรือไม่
+                if (current.containerType === 'IF') {
+                    // ถ้าเป็น IF ตัวที่ต้องการลบ
+                    if (current.id === targetContainer.id) {
+                        // เริ่มข้าม (skip) ทั้งกลุ่มนี้
+                        skipGroup = true;
+                        currentGroupIfId = current.id;
+                        continue; // ข้าม container นี้
+                    } 
+                    // ถ้าเป็น ELSE_IF ที่ต้องการลบ ต้องหา IF ที่เป็นพ่อของมัน
+                    else if (targetContainer.containerType === 'ELSE_IF' && 
+                             current.id === targetContainer.parentIfId) {
+                        // ลบทั้งกลุ่มที่มี parentIfId เดียวกัน
+                        skipGroup = true;
+                        currentGroupIfId = current.id;
+                        continue;
+                    } else {
+                        // ถ้าเป็น IF ตัวใหม่ที่ไม่ใช่ตัวที่ต้องการลบ
+                        skipGroup = false;
+                        currentGroupIfId = current.id;
+                    }
+                }
+                
+                // ถ้าเป็น ELSE_IF หรือ ELSE ที่เกี่ยวข้องกับ IF ที่ต้องการลบ
+                if ((current.containerType === 'ELSE_IF' || current.containerType === 'ELSE') &&
+                    (current.parentIfId === currentGroupIfId && skipGroup)) {
+                    continue; // ข้าม container นี้
+                }
+                
+                // ตรวจสอบลูกของ container นี้ (recursive)
+                if (current.children && current.children.length > 0) {
+                    // ถ้ามี container ที่ต้องการลบอยู่ในลูก
+                    if (current.children.some(child => child.id === targetContainer.id || 
+                       (targetContainer.containerType === 'ELSE_IF' && 
+                        child.id === targetContainer.parentIfId))) {
+                        // ลบกลุ่ม containers ในลูก
+                        current.children = removeContainerGroup(current.children, targetContainer);
+                    }
+                }
+                
+                // เพิ่ม container ที่ไม่ได้ถูกข้ามลงในอาร์เรย์ใหม่
+                newContainers.push(current);
+            }
+            
+            return newContainers;
+        }
+        
+        // เริ่มการลบจาก containers หลัก
+        if (strategy && strategy.containers) {
+            containers = removeContainerGroup(containers, container);
+        }
+        
         saveStrategy();
     }
     
@@ -687,6 +850,29 @@
     function handleCommandEvents(event) {
         // ... existing code ...
     }
+    
+    // Add an ELSE_IF container after the specified container index
+    function addElseIfContainer(ifContainer, afterIndex) {
+        // Create ELSE_IF container
+        const elseIfContainer = {
+            id: `container_elseif_${Date.now()}`,
+            name: 'Additional Condition',
+            conditions: [],
+            actions: [],
+            children: [],
+            containerType: 'ELSE_IF',
+            disabled: false,
+            comment: '',
+            parentIfId: ifContainer.id // Reference to parent IF container
+        };
+        
+        // Insert ELSE_IF container at the correct position (after the specified index)
+        const newContainers = [...containers];
+        newContainers.splice(afterIndex + 1, 0, elseIfContainer);
+        containers = newContainers;
+        
+        saveStrategy();
+    }
 </script>
 
 <div class="editor-container relative">
@@ -881,15 +1067,40 @@
                             >
                                 <div class="command-container-content">
                                     <CommandContainer 
-                                        {container}
+                                        container={container}
                                         index={i}
-                                        nestingLevel={1}
+                                        nestingLevel={0}
+                                        siblingContainers={containers}
                                         on:update={handleContainerUpdate}
                                         on:remove={handleContainerRemove}
                                         on:selectcondition={handleSelectCondition}
                                         on:selectaction={handleSelectAction}
+                                        on:registercontainer={handleContainerRegistration}
+                                        on:containervisible={handleContainerVisibility}
+                                        on:childcontainer={handleChildContainer}
                                     />
                                 </div>
+                                
+                                <!-- Add ELSE_IF button between IF/ELSE_IF and the next container -->
+                                {#if (container.containerType === 'IF' || container.containerType === 'ELSE_IF') && 
+                                    i + 1 < containers.length && 
+                                    (containers[i+1].containerType === 'ELSE_IF' || containers[i+1].containerType === 'ELSE') &&
+                                    containers[i+1].parentIfId === (container.containerType === 'IF' ? container.id : container.parentIfId)}
+                                    <div class="flex justify-center -mt-2 mb-2 relative z-10">
+                                        <button 
+                                            class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800 hover:bg-purple-200 dark:hover:bg-purple-800/60 transition-colors duration-200 shadow-sm"
+                                            on:click={() => addElseIfContainer(
+                                                container.containerType === 'IF' ? container : containers.find(c => c.id === container.parentIfId), 
+                                                i
+                                            )}
+                                        >
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                            </svg>
+                                            Add ELSE IF
+                                        </button>
+                                    </div>
+                                {/if}
                             </div>
                         {/each}
                     </div>
@@ -923,8 +1134,8 @@
                         </button>
                     </div>
                     <div class="p-4 pt-2">
-                        <VisualScriptPreview script={generatePreviewCode()} />
-                    </div>
+                    <VisualScriptPreview script={generatePreviewCode()} />
+                </div>
                 </div>
             </Modal>
         {/if}
@@ -1251,3 +1462,20 @@
         background-color: #f0abfc;
     }
 </style> 
+
+<!-- Add the mini-map component at the bottom of your template -->
+{#if showMiniMap}
+    <CommandMiniMap 
+        containers={allCommandContainers} 
+        visibleContainers={visibleContainers} 
+    />
+{/if}
+
+<!-- ในส่วนของ UI ที่เหมาะสม เช่น sidebar หรือ floating panel -->
+<div class="mini-map-panel fixed right-4 bottom-4 z-10 shadow-lg">
+    <CommandMiniMap 
+        containers={containers} 
+        activeContainerId={activeContainerId}
+        on:selectcontainer={handleMiniMapSelect}
+    />
+</div>
