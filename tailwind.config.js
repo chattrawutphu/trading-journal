@@ -39,6 +39,20 @@ export default {
           border: '#334155',
           text: '#f1f5f9',
           'text-muted': '#94a3b8',
+        },
+        // Sweet theme colors (pastel)
+        sweet: {
+          primary: '#ffb6e0', // Brighter pastel pink
+          secondary: '#f8a5d1', // Slightly darker pastel pink
+          accent: '#ffc2e4', // Light pastel pink
+          bg: '#fff5f9', // Very light pink background
+          card: '#fff8fc',
+          hover: '#ffecf3',
+          border: '#ffd1e6',
+          text: '#7a2c60', // Dark pink/mauve text
+          'text-muted': '#b06c9f',
+          success: '#c4f0c5', // Keeping a light green for success (but more pastel)
+          danger: '#ff8aaf', // Softer pink for error/danger states
         }
       },
       animation: {
@@ -71,6 +85,8 @@ export default {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-purple': 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
         'gradient-purple-dark': 'linear-gradient(135deg, #6b21a8 0%, #4c1d95 100%)',
+        'gradient-pink': 'linear-gradient(135deg, #ffb6e0 0%, #f8a5d1 100%)',
+        'gradient-pink-dark': 'linear-gradient(135deg, #f8a5d1 0%, #ff8aaf 100%)',
         'grid-pattern': "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')",
       },
       fontFamily: {
@@ -149,5 +165,11 @@ export default {
     forms,
     typography,
     aspectRatio,
+    function({ addVariant, e }) {
+      // Add variant for sweet theme with proper escaping
+      addVariant('sweet', '.sweet &');
+      // Also add direct sweet class variant
+      addVariant('sweet-root', ':root.sweet &');
+    }
   ],
 };

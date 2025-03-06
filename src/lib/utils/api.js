@@ -485,4 +485,50 @@ export const api = {
             method: 'DELETE'
         });
     },
+
+    // Add this method to your existing api.js file
+    async getFilteredTrades(accountId, filters) {
+        try {
+            const queryParams = new URLSearchParams();
+            
+            // Build query parameters from filters
+            if (filters.symbol) queryParams.append('symbol', filters.symbol);
+            if (filters.status.length) queryParams.append('status', filters.status.join(','));
+            if (filters.side.length) queryParams.append('side', filters.side.join(','));
+            if (filters.dateRange.start) queryParams.append('dateStart', filters.dateRange.start);
+            if (filters.dateRange.end) queryParams.append('dateEnd', filters.dateRange.end);
+            if (filters.type.length) queryParams.append('type', filters.type.join(','));
+            if (filters.favorite) queryParams.append('favorite', 'true');
+            if (filters.tags.length) queryParams.append('tags', filters.tags.join(','));
+            if (filters.profitableOnly) queryParams.append('profitable', 'true');
+            if (filters.unprofitableOnly) queryParams.append('unprofitable', 'true');
+            if (filters.strategy) queryParams.append('strategy', filters.strategy);
+            if (filters.emotions.length) queryParams.append('emotions', filters.emotions.join(','));
+            if (filters.confidenceLevel.min !== 1 || filters.confidenceLevel.max !== 10) {
+                queryParams.append('confidenceMin', filters.confidenceLevel.min);
+                queryParams.append('confidenceMax', filters.confidenceLevel.max);
+            }
+            if (filters.greedLevel.min !== 1 || filters.greedLevel.max !== 10) {
+                queryParams.append('greedMin', filters.greedLevel.min);
+                queryParams.append('greedMax', filters.greedLevel.max);
+            }
+            if (filters.hasStopLoss !== null) queryParams.append('hasStopLoss', filters.hasStopLoss);
+            if (filters.hasTakeProfit !== null) queryParams.append('hasTakeProfit', filters.hasTakeProfit);
+            if (filters.amount.min) queryParams.append('amountMin', filters.amount.min);
+            if (filters.amount.max) queryParams.append('amountMax', filters.amount.max);
+            if (filters.pnl.min) queryParams.append('pnlMin', filters.pnl.min);
+            if (filters.pnl.max) queryParams.append('pnlMax', filters.pnl.max);
+            if (filters.pnlPercentage.min) queryParams.append('pnlPercentMin', filters.pnlPercentage.min);
+            if (filters.pnlPercentage.max) queryParams.append('pnlPercentMax', filters.pnlPercentage.max);
+            if (filters.excludeZeroPnL) queryParams.append('excludeZeroPnL', 'true');
+            if (filters.disabled !== null) queryParams.append('disabled', filters.disabled);
+            if (filters.positionHistory) queryParams.append('hasPositionHistory', 'true');
+            
+            // Use the correct path and our api.fetch method instead of direct fetch
+            return await this.fetch(`/accounts/${accountId}/trades/filter?${queryParams.toString()}`);
+        } catch (error) {
+            console.error('Error fetching filtered trades:', error);
+            throw error;
+        }
+    },
 };

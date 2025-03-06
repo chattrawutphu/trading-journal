@@ -1463,19 +1463,22 @@
     }
 </style> 
 
-<!-- Add the mini-map component at the bottom of your template -->
+<!-- คงตัวที่สมบูรณ์ไว้ -->
 {#if showMiniMap}
     <CommandMiniMap 
         containers={allCommandContainers} 
-        visibleContainers={visibleContainers} 
-    />
-{/if}
-
-<!-- ในส่วนของ UI ที่เหมาะสม เช่น sidebar หรือ floating panel -->
-<div class="mini-map-panel fixed right-4 bottom-4 z-10 shadow-lg">
-    <CommandMiniMap 
-        containers={containers} 
+        visibleContainers={visibleContainers}
         activeContainerId={activeContainerId}
         on:selectcontainer={handleMiniMapSelect}
     />
-</div>
+{/if}
+
+<!-- ลบส่วนนี้ออก (ตัวที่ซ้ำซ้อน) -->
+<!-- <div class="mini-map-panel fixed right-4 bottom-4 z-10 shadow-lg">
+    <CommandMiniMap 
+        containers={containers}
+        visibleContainers={visibleContainers}
+        activeContainerId={activeContainerId}
+        on:selectcontainer={handleMiniMapSelect}
+    />
+</div> -->

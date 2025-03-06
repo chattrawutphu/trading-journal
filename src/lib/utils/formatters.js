@@ -47,3 +47,9 @@ export function formatNumber(value, decimals = 0) {
     }
     return value.toFixed(decimals);
 }
+
+export function formatDateForInput(date) {
+    if (!date) return '';
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}

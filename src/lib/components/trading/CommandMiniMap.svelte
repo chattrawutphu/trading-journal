@@ -130,6 +130,36 @@
     function getIndentation(level) {
         return level * 1.25; // 1.25rem per level of depth
     }
+    
+    // ติดตามการเปลี่ยนแปลงของ containers และอัพเดท UI
+    $: if (containers) {
+        // Force rerender when containers change
+        setTimeout(() => {
+            if (miniMapContainer) {
+                // You could add any custom logic here
+                console.log("MiniMap containers updated:", containers.length);
+            }
+        }, 0);
+    }
+    
+    // Check if a container is visible on screen and make it flash
+    function highlightVisibleContainer(id) {
+        const element = miniMapContainer?.querySelector(`[data-container-id="${id}"]`);
+        if (element) {
+            element.classList.add('highlight-pulse');
+            setTimeout(() => {
+                element.classList.remove('highlight-pulse');
+            }, 2000);
+        }
+    }
+    
+    // Track when visibleContainers change
+    $: if (visibleContainers && miniMapContainer) {
+        // Highlight newly visible containers
+        visibleContainers.forEach(id => {
+            highlightVisibleContainer(id);
+        });
+    }
 </script>
 
 <div class="fixed bottom-4 right-4 z-50 command-mini-map {miniMapVisible ? '' : 'hidden'} 
@@ -289,5 +319,16 @@
     .mini-map-label {
         font-size: 10px;
         color: #e5e7eb;
+    }
+    
+    /* Add a highlight animation for new or updated containers */
+    @keyframes pulse-highlight {
+        0% { background-color: rgba(var(--color-theme-500-rgb), 0.1); }
+        50% { background-color: rgba(var(--color-theme-500-rgb), 0.3); }
+        100% { background-color: rgba(var(--color-theme-500-rgb), 0.1); }
+    }
+    
+    .highlight-pulse {
+        animation: pulse-highlight 1.5s ease-in-out;
     }
 </style> 

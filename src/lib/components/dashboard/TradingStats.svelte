@@ -231,6 +231,31 @@
         }
     }
 
+    // Helper functions for color classes based on profit/loss
+    function getIconBgColorClass(isPositive) {
+        return isPositive 
+            ? 'bg-green-500/20 dark:bg-green-500/20 sweet:bg-sweet-success/20' 
+            : 'bg-red-500/20 dark:bg-red-500/20 sweet:bg-sweet-danger/20';
+    }
+
+    function getIconTextColorClass(isPositive) {
+        return isPositive 
+            ? 'text-green-500 dark:text-green-500 sweet:text-sweet-success' 
+            : 'text-red-500 dark:text-red-500 sweet:text-sweet-danger';
+    }
+
+    function getPnLTextColorClass(isPositive) {
+        return isPositive 
+            ? 'text-green-500 dark:text-green-500 sweet:text-sweet-success' 
+            : 'text-red-500 dark:text-red-500 sweet:text-sweet-danger';
+    }
+
+    function getPillBgColorClass(isPositive) {
+        return isPositive 
+            ? 'bg-green-500/10 text-green-500 dark:bg-green-500/10 dark:text-green-500 sweet:bg-sweet-success/10 sweet:text-sweet-success' 
+            : 'bg-red-500/10 text-red-500 dark:bg-red-500/10 dark:text-red-500 sweet:bg-sweet-danger/10 sweet:text-sweet-danger';
+    }
+
     $: currentPeriodData = selectedPeriod && stats[selectedPeriod] 
         ? stats[selectedPeriod] 
         : { pnl: 0, trades: 0, balanceChange: 0 };
@@ -248,16 +273,16 @@
                 <!-- Period Label & Icon -->
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full {currentPeriodData.pnl >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-center justify-center shadow-sm">
-                            <svg class="w-5 h-5 {currentPeriodData.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-10 h-10 rounded-full {getIconBgColorClass(currentPeriodData.pnl >= 0)} flex items-center justify-center shadow-sm">
+                            <svg class="w-5 h-5 {getIconTextColorClass(currentPeriodData.pnl >= 0)}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[selectedPeriod].icon}/>
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-base font-semibold text-light-text dark:text-dark-text capitalize">
+                            <h3 class="text-base font-semibold text-light-text dark:text-dark-text sweet:text-sweet-text capitalize">
                                 {PERIOD_OPTIONS[selectedPeriod].label}
                             </h3>
-                            <p class="text-xs text-light-text-muted dark:text-dark-text-muted flex items-center gap-1">
+                            <p class="text-xs text-light-text-muted dark:text-dark-text-muted sweet:text-sweet-text-muted flex items-center gap-1">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                 </svg>
@@ -266,7 +291,7 @@
                         </div>
                     </div>
                     <svg 
-                        class="absolute bottom-2 right-2/4 w-5 h-5 text-light-text-muted dark:text-dark-text-muted transition-transform duration-300 {showOtherPeriods ? 'rotate-180' : ''}"
+                        class="absolute bottom-2 right-2/4 w-5 h-5 text-light-text-muted dark:text-dark-text-muted sweet:text-sweet-text-muted transition-transform duration-300 {showOtherPeriods ? 'rotate-180' : ''}"
                         fill="none" 
                         stroke="currentColor" 
                         viewBox="0 0 24 24"
@@ -277,11 +302,11 @@
 
                 <!-- PnL Display -->
                 <div class="flex items-baseline gap-2">
-                    <p class="text-3xl font-bold tracking-tight {currentPeriodData.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                    <p class="text-3xl font-bold tracking-tight {getPnLTextColorClass(currentPeriodData.pnl >= 0)}">
                         {formatCurrency(currentPeriodData.pnl)}
                     </p>
                     {#if currentPeriodData.balanceChange !== 0}
-                        <span class="pill-badge {currentPeriodData.balanceChange > 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
+                        <span class="pill-badge {getPillBgColorClass(currentPeriodData.balanceChange > 0)}">
                             {formatPercentage(currentPeriodData.balanceChange)}
                         </span>
                     {/if}
@@ -291,39 +316,39 @@
             <!-- Period List Dropdown -->
             {#if showOtherPeriods}
                 <div 
-                    class="mt-2 rounded-lg overflow-hidden shadow-xl divide-y divide-light-border dark:divide-dark-border"
+                    class="mt-2 rounded-lg overflow-hidden shadow-xl divide-y divide-light-border dark:divide-dark-border sweet:divide-sweet-border"
                     transition:slide={{ duration: 300 }}
                 >
                     {#each $tradingStatsConfig.selectedPeriods as period}
                         {#if stats[period]}
                             <button
-                                class="w-full flex items-center justify-between py-2 px-4 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover transition-colors duration-200 {period === selectedPeriod ? 'bg-theme-500/10 border-l-4 border-theme-500' : 'border-l-4 border-transparent'}"
+                                class="w-full flex items-center justify-between py-2 px-4 bg-light-card dark:bg-dark-card sweet:bg-sweet-card hover:bg-light-hover dark:hover:bg-dark-hover sweet:hover:bg-sweet-hover transition-colors duration-200 {period === selectedPeriod ? 'bg-theme-500/10 border-l-4 border-theme-500' : 'border-l-4 border-transparent'}"
                                 on:click={() => {
                                     selectedPeriod = period;
                                     showOtherPeriods = false;
                                 }}
                             >
                                 <div class="flex items-center gap-2">
-                                    <div class="w-8 h-8 rounded-full {stats[period]?.pnl >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-center justify-center">
-                                        <svg class="w-4 h-4 {stats[period]?.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="w-8 h-8 rounded-full {getIconBgColorClass(stats[period]?.pnl >= 0)} flex items-center justify-center">
+                                        <svg class="w-4 h-4 {getIconTextColorClass(stats[period]?.pnl >= 0)}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[period].icon}/>
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 class="text-base font-medium text-light-text dark:text-dark-text capitalize">
+                                        <h3 class="text-base font-medium text-light-text dark:text-dark-text sweet:text-sweet-text capitalize">
                                             {PERIOD_OPTIONS[period].label}
                                         </h3>
-                                        <p class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                                        <p class="text-xs text-light-text-muted dark:text-dark-text-muted sweet:text-sweet-text-muted">
                                             {stats[period]?.trades || 0} trades
                                         </p>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-base font-bold {stats[period]?.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                    <p class="text-base font-bold {getPnLTextColorClass(stats[period]?.pnl >= 0)}">
                                         {formatCompactNumber(stats[period]?.pnl || 0)}
                                     </p>
                                     {#if stats[period]?.balanceChange !== 0}
-                                        <span class="small-pill-badge {stats[period]?.balanceChange > 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
+                                        <span class="small-pill-badge {getPillBgColorClass(stats[period]?.balanceChange > 0)}">
                                             {formatPercentage(stats[period]?.balanceChange || 0)}
                                         </span>
                                     {/if}
@@ -336,9 +361,9 @@
         {:else}
             <div class="card p-4 text-center">
                 <div class="animate-pulse flex flex-col items-center gap-3">
-                    <div class="w-10 h-10 bg-light-hover dark:bg-dark-hover rounded-full"></div>
-                    <div class="h-4 w-24 bg-light-hover dark:bg-dark-hover rounded"></div>
-                    <div class="h-6 w-32 bg-light-hover dark:bg-dark-hover rounded"></div>
+                    <div class="w-10 h-10 bg-light-hover dark:bg-dark-hover sweet:bg-sweet-hover rounded-full"></div>
+                    <div class="h-4 w-24 bg-light-hover dark:bg-dark-hover sweet:bg-sweet-hover rounded"></div>
+                    <div class="h-6 w-32 bg-light-hover dark:bg-dark-hover sweet:bg-sweet-hover rounded"></div>
                 </div>
             </div>
         {/if}
@@ -352,27 +377,27 @@
                 {@const data = stats[period] || { pnl: 0, trades: 0, balanceChange: 0 }}
                 <div class="stat-card" class:positive={data.pnl >= 0} class:negative={data.pnl < 0}>
                     <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-sm font-semibold text-light-text dark:text-dark-text capitalize">
+                        <h3 class="text-sm font-semibold text-light-text dark:text-dark-text sweet:text-sweet-text capitalize">
                             {PERIOD_OPTIONS[period].label}
                         </h3>
-                        <div class="w-8 h-8 rounded-full {data.pnl >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-center justify-center shadow-sm">
-                            <svg class="w-4 h-4 {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-8 h-8 rounded-full {getIconBgColorClass(data.pnl >= 0)} flex items-center justify-center shadow-sm">
+                            <svg class="w-4 h-4 {getIconTextColorClass(data.pnl >= 0)}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={PERIOD_OPTIONS[period].icon}/>
                             </svg>
                         </div>
                     </div>
                     <div class="space-y-2">
                         <div class="flex flex-wrap items-baseline justify-between">
-                            <p class="text-xl font-bold tracking-tight {data.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                            <p class="text-xl font-bold tracking-tight {getPnLTextColorClass(data.pnl >= 0)}">
                                 {formatCurrency(data.pnl)}
                             </p>
                             {#if data.balanceChange !== 0}
-                                <span class="pill-badge {data.balanceChange > 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
+                                <span class="pill-badge {getPillBgColorClass(data.balanceChange > 0)}">
                                     {formatPercentage(data.balanceChange)}
                                 </span>
                             {/if}
                         </div>
-                        <div class="flex items-center gap-1.5 text-light-text-muted dark:text-dark-text-muted">
+                        <div class="flex items-center gap-1.5 text-light-text-muted dark:text-dark-text-muted sweet:text-sweet-text-muted">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                             </svg>
@@ -390,16 +415,16 @@
                     <div class="animate-pulse space-y-3">
                         <!-- Header -->
                         <div class="flex items-center justify-between">
-                            <div class="h-4 w-20 bg-light-hover dark:bg-dark-hover rounded"></div>
-                            <div class="w-8 h-8 rounded-full bg-light-hover dark:bg-dark-hover"></div>
+                            <div class="h-4 w-20 bg-light-hover dark:bg-dark-hover sweet:bg-sweet-hover rounded"></div>
+                            <div class="w-8 h-8 rounded-full bg-light-hover dark:bg-dark-hover sweet:bg-sweet-hover"></div>
                         </div>
                         
                         <!-- PnL and Stats -->
                         <div class="space-y-2">
-                            <div class="h-6 w-32 bg-light-hover dark:bg-dark-hover rounded"></div>
+                            <div class="h-6 w-32 bg-light-hover dark:bg-dark-hover sweet:bg-sweet-hover rounded"></div>
                             <div class="flex items-center gap-2">
-                                <div class="h-4 w-4 bg-light-hover dark:bg-dark-hover rounded-full"></div>
-                                <div class="h-4 w-20 bg-light-hover dark:bg-dark-hover rounded"></div>
+                                <div class="h-4 w-4 bg-light-hover dark:bg-dark-hover sweet:bg-sweet-hover rounded-full"></div>
+                                <div class="h-4 w-20 bg-light-hover dark:bg-dark-hover sweet:bg-sweet-hover rounded"></div>
                             </div>
                         </div>
                     </div>
@@ -411,12 +436,12 @@
 
 <style lang="postcss">
     .card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg backdrop-blur-sm;
+        @apply bg-light-card dark:bg-dark-card sweet:bg-sweet-card border border-light-border dark:border-dark-border sweet:border-sweet-border rounded-lg shadow-lg backdrop-blur-sm;
         transition: all 0.3s ease;
     }
 
     .stat-card {
-        @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-3 backdrop-blur-sm transform transition-all duration-300;
+        @apply bg-light-card dark:bg-dark-card sweet:bg-sweet-card border border-light-border dark:border-dark-border sweet:border-sweet-border rounded-lg p-3 backdrop-blur-sm transform transition-all duration-300;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
 
@@ -428,9 +453,17 @@
     .stat-card.positive:hover {
         border-color: rgba(34, 197, 94, 0.2);
     }
+    
+    .sweet .stat-card.positive:hover {
+        border-color: rgba(255, 182, 193, 0.4);
+    }
 
     .stat-card.negative:hover {
         border-color: rgba(239, 68, 68, 0.2);
+    }
+    
+    .sweet .stat-card.negative:hover {
+        border-color: rgba(255, 105, 180, 0.4);
     }
 
     .pill-badge {
@@ -444,7 +477,7 @@
     /* Add active state for mobile */
     @media (max-width: 768px) {
         .card:active {
-            @apply bg-light-hover/60 dark:bg-dark-hover/60;
+            @apply bg-light-hover/60 dark:bg-dark-hover/60 sweet:bg-sweet-hover/60;
             transform: scale(0.98);
         }
     }

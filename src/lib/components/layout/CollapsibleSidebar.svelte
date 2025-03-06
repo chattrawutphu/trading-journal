@@ -6,7 +6,7 @@
     import { subscriptionStore } from '$lib/stores/subscriptionStore';
     import { layoutStore } from '$lib/stores/layoutStore';
     import { goto } from '$app/navigation';
-    import ThemeToggle from '../common/ThemeToggle.svelte';
+    import { theme, THEMES } from '$lib/stores/themeStore';
     import { menuItems } from '../../data/menuItems.js';
     import { onMount } from 'svelte';
     import { fade, fly } from 'svelte/transition';
@@ -23,11 +23,57 @@
     export let key = ''; // Add key prop for forcing component reload
 
     const isCollapsed = writable(collapsed);
+    
+    // Theme dropdown state
+    let showThemeDropdown = false;
+    let themeButtonEl;
+    let dropdownPosition = { top: 'bottom', left: 'left' };
 
     function toggleCollapse() {
         collapsed = !collapsed;
         isCollapsed.set(collapsed);
         dispatch("collapse", collapsed);
+    }
+    
+    function setTheme(newTheme) {
+        theme.set(newTheme);
+        showThemeDropdown = false;
+    }
+    
+    function toggleThemeDropdown() {
+        if (!showThemeDropdown) {
+            calculateDropdownPosition();
+        }
+        showThemeDropdown = !showThemeDropdown;
+    }
+    
+    function calculateDropdownPosition() {
+        if (!themeButtonEl) return;
+        
+        const rect = themeButtonEl.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        
+        // Calculate if there's enough space below
+        const spaceBelow = viewportHeight - rect.bottom;
+        // Dropdown height (approximately 3 items * 36px)
+        const dropdownHeight = 108;
+        
+        // Calculate horizontal position
+        const spaceRight = viewportWidth - rect.left;
+        const dropdownWidth = 160; // w-40 = 10rem = 160px
+        
+        dropdownPosition = {
+            top: spaceBelow >= dropdownHeight ? 'bottom' : 'top',
+            left: spaceRight >= dropdownWidth ? 'left' : 'right'
+        };
+    }
+    
+    // Click outside handler for theme dropdown
+    function handleClickOutside(event) {
+        if (showThemeDropdown && !event.target.closest('.theme-dropdown')) {
+            showThemeDropdown = false;
+        }
     }
 
     $: $isCollapsed = collapsed;
@@ -93,6 +139,9 @@
         
         window.addEventListener('layoutchange', handleLayoutChange);
         
+        // Add click outside listener for theme dropdown
+        document.addEventListener('click', handleClickOutside);
+        
         window.addEventListener('layoutupdate', async () => {
             await layoutStore.loadLayouts();
         });
@@ -104,6 +153,8 @@
             window.removeEventListener('layoutupdate', async () => {
                 await layoutStore.loadLayouts();
             });
+            // Remove click outside listener
+            document.removeEventListener('click', handleClickOutside);
         };
     });
 
@@ -228,12 +279,22 @@
                     viewBox="0 0 24 24"
                 >
                     <path
+                        class="sweet:hidden"
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         stroke-width="2"
                         d={$isCollapsed
                             ? "M13 5l7 7-7 7M5 5l7 7-7 7"
                             : "M11 19l-7-7 7-7m8 14l-7-7 7-7"}
+                    />
+                    <path
+                        class="hidden sweet:block"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d={$isCollapsed
+                            ? "M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"
+                            : "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"}
                     />
                 </svg>
             </button>
@@ -396,9 +457,79 @@
         <!-- Footer -->
         <div class="p-4 border-t border-light-border dark:border-dark-border mt-auto">
             <div class="{$isCollapsed ? 'flex flex-col gap-4 items-center' : 'flex items-center justify-between'}">
-                <!-- Theme Toggle -->
-                <div class="{$isCollapsed ? 'mx-auto' : ''}">
-                    <ThemeToggle />
+                <!-- Theme Dropdown -->
+                <div class="relative theme-dropdown {$isCollapsed ? 'mx-auto' : ''}">
+                    <button
+                        bind:this={themeButtonEl}
+                        on:click|stopPropagation={toggleThemeDropdown}
+                        class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-light-text hover:dark:text-dark-text hover:bg-light-hover dark:hover:bg-dark-hover flex items-center gap-2"
+                        aria-label="Toggle theme"
+                    >
+                        {#if $theme === THEMES.DARK}
+                            <!-- Sun icon for dark theme -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        {:else if $theme === THEMES.SWEET}
+                            <!-- Candy icon for sweet theme -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                        {:else}
+                            <!-- Moon icon for light theme -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                        {/if}
+                        
+                        {#if !$isCollapsed}
+                            <span class="text-sm">Theme</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        {/if}
+                    </button>
+                    
+                    {#if showThemeDropdown}
+                        <div 
+                            class="absolute w-40 bg-light-card dark:bg-dark-card shadow-lg rounded-lg border border-light-border dark:border-dark-border overflow-hidden z-50"
+                            class:bottom-full={dropdownPosition.top === 'top'}
+                            class:top-full={dropdownPosition.top === 'bottom'}
+                            class:left-0={dropdownPosition.left === 'left'}
+                            class:right-0={dropdownPosition.left === 'right'}
+                            class:mb-1={dropdownPosition.top === 'top'}
+                            class:mt-1={dropdownPosition.top === 'bottom'}
+                            transition:fade={{ duration: 150 }}
+                        >
+                            <button 
+                                class="w-full px-3 py-2 text-left flex items-center gap-2 text-sm hover:bg-light-hover dark:hover:bg-dark-hover {$theme === THEMES.LIGHT ? 'bg-light-hover dark:bg-dark-hover' : ''}"
+                                on:click={() => setTheme(THEMES.LIGHT)}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                </svg>
+                                <span>Light</span>
+                            </button>
+                            <button 
+                                class="w-full px-3 py-2 text-left flex items-center gap-2 text-sm hover:bg-light-hover dark:hover:bg-dark-hover {$theme === THEMES.DARK ? 'bg-light-hover dark:bg-dark-hover' : ''}"
+                                on:click={() => setTheme(THEMES.DARK)}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                <span>Dark</span>
+                            </button>
+                            <button 
+                                class="w-full px-3 py-2 text-left flex items-center gap-2 text-sm hover:bg-light-hover dark:hover:bg-dark-hover {$theme === THEMES.SWEET ? 'bg-light-hover dark:bg-dark-hover' : ''}"
+                                on:click={() => setTheme(THEMES.SWEET)}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                <span>Sweet</span>
+                            </button>
+                        </div>
+                    {/if}
                 </div>
 
                 <!-- Logout Button -->

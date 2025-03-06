@@ -55,11 +55,37 @@
     >
         {#if !isOpen}
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                <path 
+                    class="sweet:hidden"
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M4 6h16M4 12h16M4 18h16"
+                />
+                <path 
+                    class="hidden sweet:block"
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                />
             </svg>
         {:else}
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                <path 
+                    class="sweet:hidden"
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M6 18L18 6M6 6l12 12"
+                />
+                <path 
+                    class="hidden sweet:block"
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
             </svg>
         {/if}
     </button>
@@ -198,7 +224,20 @@
                     on:click={handleLogout}
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        <path 
+                            class="sweet:hidden"
+                            stroke-linecap="round" 
+                            stroke-linejoin="round" 
+                            stroke-width="2" 
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                        />
+                        <path 
+                            class="hidden sweet:block"
+                            stroke-linecap="round" 
+                            stroke-linejoin="round" 
+                            stroke-width="2" 
+                            d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+                        />
                     </svg>
                     <span class="ml-3">Logout</span>
                 </button>

@@ -108,7 +108,7 @@
                 <div class="absolute -top-3 -right-3 z-20 flex gap-0.5">
                     <button 
                         on:click={() => onConfigClick(widget)}
-                        class="p-1 rounded-lg bg-light-hover dark:bg-dark-hover text-light-text dark:text-dark-text hover:bg-light-hover/80 dark:hover:bg-dark-hover/80"
+                        class="p-1 rounded-lg bg-light-hover dark:bg-dark-hover sweet:bg-sweet-hover text-light-text dark:text-dark-text sweet:text-sweet-text hover:bg-light-hover/80 dark:hover:bg-dark-hover/80 sweet:hover:bg-sweet-hover/80"
                     >
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
@@ -134,8 +134,7 @@
 
             {#if editMode}
                 <button 
-                    class="absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg flex items-center justify-center cursor-pointer md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -top-[11px] left-1/2 -translate-x-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]
-                       {widget !== widgets[0] ? 'hidden md:flex' : 'flex'}"
+                    class="absolute w-[22px] h-[22px] bg-light-card dark:bg-dark-card sweet:bg-sweet-primary text-light-text dark:text-dark-text sweet:text-white rounded-lg flex items-center justify-center cursor-pointer md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -top-[11px] left-1/2 -translate-x-1/2 hover:scale-105 hover:bg-light-hover dark:hover:bg-dark-hover sweet:hover:bg-sweet-secondary active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] sweet:shadow-[0_0_0_4px_var(--sweet-background),0_4px_6px_rgba(0,0,0,0.1)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)] sweet:hover:shadow-[0_0_0_4px_var(--sweet-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--sweet-secondary-rgb),0.4)]"
                     on:click={(e) => handleAddButtonClick('top', widget, e)}
                 >
                     <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,7 +143,7 @@
                 </button>
 
                 <button 
-                    class="absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg flex items-center justify-center cursor-pointer md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -bottom-[11px] left-1/2 -translate-x-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]"
+                    class="absolute w-[22px] h-[22px] bg-light-card dark:bg-dark-card sweet:bg-sweet-primary text-light-text dark:text-dark-text sweet:text-white rounded-lg flex items-center justify-center cursor-pointer md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -bottom-[11px] left-1/2 -translate-x-1/2 hover:scale-105 hover:bg-light-hover dark:hover:bg-dark-hover sweet:hover:bg-sweet-secondary active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] sweet:shadow-[0_0_0_4px_var(--sweet-background),0_4px_6px_rgba(0,0,0,0.1)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)] sweet:hover:shadow-[0_0_0_4px_var(--sweet-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--sweet-secondary-rgb),0.4)]"
                     on:click={(e) => handleAddButtonClick('bottom', widget, e)}
                 >
                     <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,7 +152,7 @@
                 </button>
 
                 <button 
-                    class="hidden md:flex absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -left-[11px] top-1/2 -translate-y-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]"
+                    class="hidden md:flex absolute w-[22px] h-[22px] bg-light-card dark:bg-dark-card sweet:bg-sweet-primary text-light-text dark:text-dark-text sweet:text-white rounded-lg items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -left-[11px] top-1/2 -translate-y-1/2 hover:scale-105 hover:bg-light-hover dark:hover:bg-dark-hover sweet:hover:bg-sweet-secondary active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] sweet:shadow-[0_0_0_4px_var(--sweet-background),0_4px_6px_rgba(0,0,0,0.1)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)] sweet:hover:shadow-[0_0_0_4px_var(--sweet-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--sweet-secondary-rgb),0.4)]"
                     on:click={(e) => handleAddButtonClick('left', widget, e)}
                 >
                     <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +161,7 @@
                 </button>
 
                 <button 
-                    class="hidden md:flex absolute w-[22px] h-[22px] bg-theme-500 text-white rounded-lg items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -right-[11px] top-1/2 -translate-y-1/2 hover:scale-105 hover:bg-theme-600 active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)]"
+                    class="hidden md:flex absolute w-[22px] h-[22px] bg-light-card dark:bg-dark-card sweet:bg-sweet-primary text-light-text dark:text-dark-text sweet:text-white rounded-lg items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out z-20 -right-[11px] top-1/2 -translate-y-1/2 hover:scale-105 hover:bg-light-hover dark:hover:bg-dark-hover sweet:hover:bg-sweet-secondary active:scale-95 shadow-[0_0_0_4px_var(--light-background),0_4px_6px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_4px_var(--dark-background),0_4px_6px_rgba(0,0,0,0.2),0_0_10px_rgba(var(--theme-500-rgb),0.3)] sweet:shadow-[0_0_0_4px_var(--sweet-background),0_4px_6px_rgba(0,0,0,0.1)] dark:hover:bg-theme-400 dark:hover:shadow-[0_0_0_4px_var(--dark-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--theme-400-rgb),0.4)] sweet:hover:shadow-[0_0_0_4px_var(--sweet-background),0_6px_8px_rgba(0,0,0,0.3),0_0_15px_rgba(var(--sweet-secondary-rgb),0.4)]"
                     on:click={(e) => handleAddButtonClick('right', widget, e)}
                 >
                     <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

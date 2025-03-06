@@ -397,20 +397,20 @@
         let baseClasses = "";
         
         if (isFutureDate(day)) {
-            baseClasses = "opacity-50 bg-light-hover/20 dark:bg-dark-hover/20";
+            baseClasses = "opacity-50 bg-light-hover/20 dark:bg-dark-hover/20 sweet:bg-sweet-hover/20";
         } else if (!stats || (!stats.pnl && !stats.openTrades && !stats.transactions?.length)) {
-            baseClasses = "cursor-pointer rounded-md bg-light-hover/10 dark:bg-dark-hover/10";
+            baseClasses = "cursor-pointer rounded-md bg-light-hover/10 dark:bg-dark-hover/10 sweet:bg-sweet-hover/10";
         } else {
             // Check for closed trades first
             const hasClosedTrades = stats.wins > 0 || stats.losses > 0;
             if (hasClosedTrades) {
-                baseClasses = `cursor-pointer rounded-md ${
-                    stats.pnl > 0 
-                        ? "bg-green-100 border border-green-300/30 dark:border-0 dark:bg-green-900/20" 
-                        : "bg-red-100 border border-red-300/30 dark:border-0 dark:bg-red-900/20"
-                }`;
+                if (stats.pnl > 0) {
+                    baseClasses = "cursor-pointer rounded-md bg-green-100 border border-green-300/30 dark:border-0 dark:bg-green-900/20 sweet:border-0 sweet:bg-sweet-success/10";
+                } else {
+                    baseClasses = "cursor-pointer rounded-md bg-red-100 border border-red-300/30 dark:border-0 dark:bg-red-900/20 sweet:border-0 sweet:bg-sweet-danger/10";
+                }
             } else if (stats.openTrades > 0 || stats.transactions?.length > 0) {
-                baseClasses = `cursor-pointer rounded-md bg-yellow-50 border border-yellow-300/30 dark:border-0 dark:bg-yellow-900/10`;
+                baseClasses = "cursor-pointer rounded-md bg-yellow-50 border border-yellow-300/30 dark:border-0 dark:bg-yellow-900/10 sweet:border-0 sweet:bg-yellow-400/10";
             } else {
                 baseClasses = "cursor-pointer rounded-md";
             }
@@ -418,10 +418,11 @@
 
         // Add today card styles if it's today
         if (isToday(day)) {
-            baseClasses += " relative bg-indigo-50/10 dark:bg-indigo-900/10" +
+            baseClasses += " relative bg-indigo-50/10 dark:bg-indigo-900/10 sweet:bg-sweet-primary/5" +
                 " before:content-[''] before:absolute before:inset-[-2px]" +
                 " before:z-[1] before:rounded-lg before:p-[2px]" +
                 " before:bg-gradient-to-r before:from-purple-400 before:via-blue-400 before:to-indigo-400" +
+                " before:sweet:from-sweet-primary before:sweet:via-sweet-secondary before:sweet:to-sweet-accent" +
                 " before:animate-border-dance before:pointer-events-none" +
                 " before:[mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)]" +
                 " before:[mask-composite:exclude]";
@@ -442,13 +443,20 @@
         if (hasClosedTrades) {
             if ($theme === "dark") {
                 return stats.pnl > 0 ? "text-green-300" : "text-red-300";
+            } else if ($theme === "sweet") {
+                return stats.pnl > 0 ? "text-sweet-success" : "text-sweet-danger";
             }
             return stats.pnl > 0 ? "text-green-600" : "text-red-600";
         }
 
         // If no closed trades but has open trades or transactions
         if (stats.openTrades > 0 || stats.transactions?.length > 0) {
-            return $theme === "dark" ? "text-yellow-300" : "text-yellow-600";
+            if ($theme === "dark") {
+                return "text-yellow-300";
+            } else if ($theme === "sweet") {
+                return "text-yellow-500";
+            }
+            return "text-yellow-600";
         }
 
         return "";
@@ -644,9 +652,9 @@
 
     function getMonthlyPnLClass() {
         const pnl = monthlyStats.pnl;
-        if (pnl > 0) return 'text-green-500 dark:text-green-400';
-        if (pnl < 0) return 'text-red-500 dark:text-red-400';
-        return 'text-light-text dark:text-dark-text';
+        if (pnl > 0) return 'text-green-500 dark:text-green-400 sweet:text-sweet-success';
+        if (pnl < 0) return 'text-red-500 dark:text-red-400 sweet:text-sweet-danger';
+        return 'text-light-text dark:text-dark-text sweet:text-sweet-text';
     }
 
     // เพิ่มฟังก์ชันสำหรับจัดการ click outside
@@ -829,23 +837,23 @@
             </div>
 
             <!-- Center: Monthly Stats (Card-like) -->
-            <div class="flex-1 rounded-lg bg-light-background/50 dark:bg-dark-background/50 p-1.5 flex items-center">
+            <div class="flex-1 rounded-lg bg-light-background/50 dark:bg-dark-background/50 sweet:bg-sweet-bg/50 p-1.5 flex items-center">
                 <div class="flex items-center gap-1 flex-wrap">
                     <!-- Open Trades -->
                     {#if monthlyStats.openTrades > 0}
-                        <span class="text-xs whitespace-nowrap bg-yellow-500/10 dark:bg-yellow-400/10 px-1 rounded text-yellow-600 dark:text-yellow-400">
+                        <span class="text-xs whitespace-nowrap bg-yellow-500/10 dark:bg-yellow-400/10 sweet:bg-yellow-400/10 px-1 rounded text-yellow-600 dark:text-yellow-400 sweet:text-yellow-500">
                             {monthlyStats.openTrades} open
                         </span>
                     {/if}
                     <!-- Win Trades -->
                     {#if monthlyStats.wins > 0}
-                        <span class="text-xs whitespace-nowrap bg-green-500/10 dark:bg-green-400/10 px-1 rounded text-green-600 dark:text-green-400">
+                        <span class="text-xs whitespace-nowrap bg-green-500/10 dark:bg-green-400/10 sweet:bg-sweet-success/10 px-1 rounded text-green-600 dark:text-green-400 sweet:text-sweet-success">
                             {monthlyStats.wins} win
                         </span>
                     {/if}
                     <!-- Loss Trades -->
                     {#if monthlyStats.losses > 0}
-                        <span class="text-xs whitespace-nowrap bg-red-500/10 dark:bg-red-400/10 px-1 rounded text-red-600 dark:text-red-400">
+                        <span class="text-xs whitespace-nowrap bg-red-500/10 dark:bg-red-400/10 sweet:bg-sweet-danger/10 px-1 rounded text-red-600 dark:text-red-400 sweet:text-sweet-danger">
                             {monthlyStats.losses} loss
                         </span>
                     {/if}
@@ -856,13 +864,14 @@
                     </span>
                     <!-- แสดง monthly percentage ถ้ามีค่า -->
                     {#if monthlyStats.monthlyPercentage !== 0}
-                        <span class="text-xs {monthlyStats.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">
+                        <span class="text-xs {monthlyStats.pnl >= 0 ? 'text-green-500 dark:text-green-500 sweet:text-sweet-success' : 'text-red-500 dark:text-red-500 sweet:text-sweet-danger'}">
                             {monthlyStats.monthlyPercentage}%
                         </span>
                     {/if}
-                    <!--<span class="text-xs text-light-text-muted dark:text-dark-text-muted">
+                    <!-- แสดง volume -->
+                    <span class="text-xs text-light-text-muted dark:text-dark-text-muted sweet:text-sweet-text-muted">
                         ${formatAmount(monthlyStats.volume)}
-                    </span>-->
+                    </span>
                 </div>
             </div>
 
@@ -895,7 +904,7 @@
             {/each}
         </div>
 
-        <div class="grid grid-cols-7 gap-1 lg:gap-1.5 flex-1 {$theme === 'dark' ? 'dark-calendar' : ''}">
+        <div class="grid grid-cols-7 gap-1 lg:gap-1.5 flex-1 {$theme === 'dark' ? 'dark-calendar' : ''} {$theme === 'sweet' ? 'sweet-calendar' : ''}">
             {#each calendarDays as day, index (day !== null ? day : 'empty-' + index)}
                 {#if day !== null}
                     <div class="relative calendar-day-cell">
@@ -909,32 +918,32 @@
 
                             <!-- เนื้อหาปกติ -->
                             <div class="relative h-full flex flex-col z-20">
-                                <div class=" absolute top-0 end-0 pt-0.5 px-1 pb-0 text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                                <div class=" absolute top-0 end-0 pt-0.5 px-1 pb-0 text-sm font-medium text-light-text-muted dark:text-dark-text-muted sweet:text-sweet-text-muted">
                                     <div class="flex w-full justify-between items-center">
 
                                         <span class="ml-auto">{day}</span>
                                     </div>
                                 </div>
-<div class=" absolute top-0 start-0 pt-0.5 px-1 pb-0 text-sm font-medium text-light-text-muted dark:text-dark-text-muted">
+                                <div class=" absolute top-0 start-0 pt-0.5 px-1 pb-0 text-sm font-medium text-light-text-muted dark:text-dark-text-muted sweet:text-sweet-text-muted">
                                     <div class="flex w-full justify-between items-center">
-                                {#if isToday(day)}
-                                <span class="text-xs text-purple-500 dark:text-purple-400">today</span>
-                            {/if}
-                        </div>
-                    </div>
+                                        {#if isToday(day)}
+                                            <span class="text-xs text-purple-500 dark:text-purple-400 sweet:text-sweet-primary">today</span>
+                                        {/if}
+                                    </div>
+                                </div>
 
                                 {#if statsPerDay[day]}
                                     <div
                                         class="absolute top-0 md:-top-2 inset-0 p-1.5 pt-5 flex flex-col"
                                     >
-                                    <div class={`border-s border-s-[2.25px] border-transparent ${statsPerDay[day].pnl === 0 ? '' : statsPerDay[day].pnl < 0 ? 'dark:border-red-600 ps-1' : 'dark:border-green-600 ps-1'}`}>
+                                    <div class={`border-s border-s-[2.25px] border-transparent ${statsPerDay[day].pnl === 0 ? '' : statsPerDay[day].pnl < 0 ? 'dark:border-red-600 sweet:border-sweet-danger ps-1' : 'dark:border-green-600 sweet:border-sweet-success ps-1'}`}>
                                         {#if statsPerDay[day].trades.length > 0}
                                         {@const isShowAllState = !(statsPerDay[day].openTrades > 0 && statsPerDay[day].wins > 0 && statsPerDay[day].losses > 0)}
                                             <div class="trade-stats space-y-0.5 overflow-y-auto">
                                                 <div class=" hidden md:flex items-center gap-1 flex-wrap">
                                                     
                                                     {#if statsPerDay[day].openTrades > 0}
-                                                        <span class="text-xs whitespace-nowrap bg-yellow-500/10 dark:bg-yellow-400/10 px-1 rounded text-yellow-600 dark:text-yellow-400">
+                                                        <span class="text-xs whitespace-nowrap bg-yellow-500/10 dark:bg-yellow-400/10 sweet:bg-yellow-400/10 px-1 rounded text-yellow-600 dark:text-yellow-400 sweet:text-yellow-500">
                                                             {statsPerDay[day].openTrades}
                                                             {#if isShowAllState}
                                                                 open
@@ -946,7 +955,7 @@
                                                     {/if}
                                                     <div class="trade-results gap-1 text-xs">
                                                         {#if statsPerDay[day].wins > 0}
-                                                            <span class="whitespace-nowrap bg-green-500/10 dark:bg-green-400/10 px-1 rounded text-green-600 dark:text-green-400">
+                                                            <span class="whitespace-nowrap bg-green-500/10 dark:bg-green-400/10 sweet:bg-sweet-success/10 px-1 rounded text-green-600 dark:text-green-400 sweet:text-sweet-success">
                                                                 {statsPerDay[day].wins}
                                                                 {#if isShowAllState}
                                                                 win
@@ -956,7 +965,7 @@
                                                             </span>
                                                         {/if}
                                                         {#if statsPerDay[day].losses > 0}
-                                                            <span class="whitespace-nowrap bg-red-500/10 dark:bg-red-400/10 px-1 rounded text-red-600 dark:text-red-400">
+                                                            <span class="whitespace-nowrap bg-red-500/10 dark:bg-red-400/10 sweet:bg-sweet-danger/10 px-1 rounded text-red-600 dark:text-red-400 sweet:text-sweet-danger">
                                                                 {statsPerDay[day].losses}
                                                                 {#if isShowAllState}
                                                                     loss
@@ -979,7 +988,7 @@
                                                         {((statsPerDay[day].pnl / Math.abs($dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance)) * 100).toFixed(1)}%
                                                     </span>
                                                 {:else}
-                                                    <span class="pnl-percentage whitespace-nowrap text-xs text-light-text-muted dark:text-dark-text-muted">
+                                                    <span class="pnl-percentage whitespace-nowrap text-xs text-light-text-muted dark:text-dark-text-muted sweet:text-sweet-text-muted">
                                                         N/A
                                                     </span>
                                                 {/if}
@@ -988,7 +997,7 @@
 
                                         {#if statsPerDay[day].openTrades > 0}
                                             <div class="pnl-stats flex-wrap flex flex-col md:flex-row justify-between items-start md:items-center">
-                                                <span class="text-sm font-bold whitespace-nowrap text-yellow-600 dark:text-yellow-400">
+                                                <span class="text-sm font-bold whitespace-nowrap text-yellow-600 dark:text-yellow-400 sweet:text-yellow-500">
                                                     {#if isLoadingPrices}
                                                         Loading...
                                                     {:else}
@@ -996,7 +1005,7 @@
                                                     {/if}
                                                 </span>
                                                 {#if $dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))]?.startBalance && !isNaN($dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance) && $dailyBalancesStore[formatDateForInput(new Date(selectedYear, selectedMonth, day))].startBalance !== 0}
-                                                    <span class="pnl-percentage whitespace-nowrap text-xs text-yellow-600 dark:text-yellow-400">
+                                                    <span class="pnl-percentage whitespace-nowrap text-xs text-yellow-600 dark:text-yellow-400 sweet:text-yellow-500">
                                                         {#if isLoadingPrices}
                                                             Loading...
                                                         {:else}
@@ -1004,7 +1013,7 @@
                                                         {/if}
                                                     </span>
                                                 {:else}
-                                                    <span class="pnl-percentage whitespace-nowrap text-xs text-light-text-muted dark:text-dark-text-muted">
+                                                    <span class="pnl-percentage whitespace-nowrap text-xs text-light-text-muted dark:text-dark-text-muted sweet:text-sweet-text-muted">
                                                         N/A
                                                     </span>
                                                 {/if}
@@ -1018,7 +1027,7 @@
                                                 {#if statsPerDay[day].transactions.some((t) => t.type === "deposit")}
                                                     <div class="flex items-center">
                                                         <svg
-                                                            class="w-[17px] h-[17px] text-green-600 dark:text-green-400"
+                                                            class="w-[17px] h-[17px] text-green-600 dark:text-green-400 sweet:text-sweet-success"
                                                             fill="none"
                                                             stroke="currentColor"
                                                             viewBox="0 0 24 24"
@@ -1035,7 +1044,7 @@
                                                 {#if statsPerDay[day].transactions.some((t) => t.type === "withdrawal")}
                                                     <div class="flex items-center">
                                                         <svg
-                                                            class="w-[17px] h-[17px] text-red-600 dark:text-red-400"
+                                                            class="w-[17px] h-[17px] text-red-600 dark:text-red-400 sweet:text-sweet-danger"
                                                             fill="none"
                                                             stroke="currentColor"
                                                             viewBox="0 0 24 24"
@@ -1059,7 +1068,7 @@
                                 {#if !statsPerDay[day]?.pnl && !statsPerDay[day]?.openTrades && !statsPerDay[day]?.transactions?.length && !isFutureDate(day)}
                                     <div class="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 z-30">
                                         <svg
-                                            class="w-8 h-8 text-gray-400/50 dark:text-gray-500/50"
+                                            class="w-8 h-8 text-gray-400/50 dark:text-gray-500/50 sweet:text-sweet-text/50"
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
@@ -1238,5 +1247,22 @@
 
     :global(.animate-border-dance:hover) {
         animation: border-dance 2s ease infinite;
+    }
+
+    /* เพิ่ม styles สำหรับ sweet theme calendar */
+    :global(.sweet) .sweet-calendar {
+        @apply gap-2; /* เพิ่ม gap ระหว่าง cell ใน sweet mode */
+    }
+
+    /* เพิ่ม animation สำหรับ sweet theme */
+    :global(.sweet) .today-card::before {
+        background: linear-gradient(
+            45deg, 
+            theme(colors.pink.300), 
+            theme(colors.blue.300), 
+            theme(colors.yellow.300),
+            theme(colors.pink.300)
+        );
+        background-size: 300% 300%;
     }
 </style>

@@ -16,6 +16,7 @@
     import { api } from '$lib/utils/api';
     import Modal from '$lib/components/common/Modal.svelte';
     import { loadingStore } from '$lib/stores/loadingStore'; // Import loading store
+    import TradeFilterBar from '$lib/components/trades/TradeFilterBar.svelte';
 
     let error = '';
     let trades = [];
@@ -37,6 +38,49 @@
     let currentAccountId = null;
     let transactionNote = ''; // Add this variable if not already present
     let showDeleteConfirmModal = false;
+
+    let filters = {
+        symbol: '',
+        status: [],
+        side: [],
+        dateRange: {
+            start: '',
+            end: ''
+        },
+        type: [],
+        favorite: false,
+        tags: [],
+        profitableOnly: false,
+        unprofitableOnly: false,
+        showAdvanced: false,
+        strategy: '',
+        emotions: [],
+        confidenceLevel: {
+            min: 1,
+            max: 10
+        },
+        greedLevel: {
+            min: 1,
+            max: 10
+        },
+        hasStopLoss: null,
+        hasTakeProfit: null,
+        amount: {
+            min: '',
+            max: ''
+        },
+        pnl: {
+            min: '',
+            max: ''
+        },
+        pnlPercentage: {
+            min: '',
+            max: ''
+        },
+        excludeZeroPnL: false,
+        disabled: null,
+        positionHistory: false
+    };
 
     function updateTradeStats(tradeList) {
         // แยกและอัพเดท trades ทั้งหมด
@@ -233,6 +277,105 @@
     function handleAddAccount() {
         showAccountModal = true;
     }
+
+    async function handleFilterChange(event) {
+        console.log("Filter changed:", event.detail);
+        filters = event.detail;
+        
+        // Apply the filters - if they're complex, use server-side filtering
+        if (isComplexFiltering(filters)) {
+            try {
+                loadingStore.set(true);
+                error = '';
+                
+                console.log("Using server-side filtering");
+                
+                try {
+                    // Try to get filtered trades from the server
+                    const response = await api.getFilteredTrades($accountStore.currentAccount._id, filters);
+                    console.log("Server returned filtered trades:", response.length);
+                    updateTradeStats(response);
+                } catch (err) {
+                    console.error("Server filtering failed, falling back to client-side:", err);
+                    
+                    // Fallback to client-side filtering if server fails
+                    // Note: This only filters the trades we already have loaded client-side
+                    const clientFiltered = filterTradesClientSide(trades, filters);
+                    console.log("Client-side filtering found:", clientFiltered.length);
+                    updateTradeStats(clientFiltered);
+                }
+            } catch (err) {
+                error = err.message;
+                console.error("Error during filtering:", err);
+            } finally {
+                loadingStore.set(false);
+            }
+        } else {
+            console.log("Using client-side filtering");
+            // For simple filters, we'll notify the TradeTable that filters have changed
+            // by forcing a change detection
+            openTrades = [...openTrades]; 
+            closedTrades = [...closedTrades];
+        }
+    }
+
+    // Implement client-side filtering as a fallback
+    function filterTradesClientSide(tradeList, filters) {
+        return tradeList.filter(trade => {
+            // Symbol filter
+            if (filters.symbol && !trade.symbol.toLowerCase().includes(filters.symbol.toLowerCase())) {
+                return false;
+            }
+
+            // Status filter
+            if (filters.status.length > 0 && !filters.status.includes(trade.status)) {
+                return false;
+            }
+
+            // Side filter
+            if (filters.side.length > 0 && !filters.side.includes(trade.side)) {
+                return false;
+            }
+
+            // Basic date filtering - you may need to adjust this
+            if (filters.dateRange.start || filters.dateRange.end) {
+                const entryDate = new Date(trade.entryDate);
+                if (filters.dateRange.start) {
+                    const startDate = new Date(filters.dateRange.start);
+                    if (entryDate < startDate) return false;
+                }
+                if (filters.dateRange.end) {
+                    const endDate = new Date(filters.dateRange.end);
+                    endDate.setHours(23, 59, 59, 999); // End of the day
+                    if (entryDate > endDate) return false;
+                }
+            }
+
+            // Basic implementation of other filters
+            // Add more as needed from the TradeTable filterTrades function
+            
+            return true; // Include trade if it passes all filters
+        });
+    }
+
+    // Helper function to determine if filters are complex enough to warrant server call
+    function isComplexFiltering(filters) {
+        // Add null checks for all properties
+        if (!filters) return false;
+        
+        return (
+            (filters.dateRange && filters.dateRange.start && filters.dateRange.end) ||
+            (filters.tags && filters.tags.length > 0) ||
+            (filters.pnl && (filters.pnl.min || filters.pnl.max)) ||
+            (filters.emotions && filters.emotions.length > 0) ||
+            filters.strategy ||
+            (filters.amount && (filters.amount.min || filters.amount.max)) ||
+            (filters.pnlPercentage && (filters.pnlPercentage.min || filters.pnlPercentage.max)) ||
+            filters.excludeZeroPnL ||
+            filters.hasStopLoss !== null ||
+            filters.hasTakeProfit !== null
+        );
+    }
 </script>
 
 <div class="space-y-4 p-1 lg:p-4 lg:py-0 py-0">
@@ -291,7 +434,10 @@
                 {#if activeTab === 'trades'}
                     {#if hasTrades}
                         <!-- Filters -->
-                        <TradeFilters />
+                        <TradeFilterBar 
+                            bind:filters={filters}
+                            on:filter={handleFilterChange}
+                        />
 
                         {#if hasOpenTrades}
                             <!-- Open Trades -->
@@ -302,6 +448,9 @@
                                 <TradeTable 
                                     trades={openTrades}
                                     type="open"
+                                    filters={filters}
+                                    isTradesPage={true}
+                                    key={JSON.stringify(filters)}
                                     on:view={handleView}
                                     on:edit={handleEdit}
                                     on:deleted={loadTrades}
@@ -320,6 +469,9 @@
                                 <TradeTable 
                                     trades={closedTrades}
                                     type="closed"
+                                    filters={filters}
+                                    isTradesPage={true}
+                                    key={JSON.stringify(filters)}
                                     on:view={handleView}
                                     on:edit={handleEdit}
                                     on:deleted={loadTrades}

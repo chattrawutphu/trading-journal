@@ -3,7 +3,7 @@
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import { auth } from '$lib/stores/authStore';
-    import { theme } from '$lib/stores/themeStore';
+    import { theme, THEMES } from '$lib/stores/themeStore';
     import { accountStore } from '$lib/stores/accountStore';
     import { subscriptionStore } from '$lib/stores/subscriptionStore';
     import { layoutStore } from '$lib/stores/layoutStore'; // Import layoutStore
@@ -148,10 +148,15 @@
 
     // Update document class based on theme
     $: if (typeof document !== 'undefined') {
-        if ($theme === 'dark') {
+        if ($theme === THEMES.DARK) {
             document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light', 'sweet');
+        } else if ($theme === THEMES.SWEET) {
+            document.documentElement.classList.add('sweet');
+            document.documentElement.classList.remove('dark', 'light');
         } else {
-            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+            document.documentElement.classList.remove('dark', 'sweet');
         }
     }
 </script>

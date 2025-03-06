@@ -13,6 +13,7 @@
         --bg-color: rgb(255 255 255 / var(--tw-bg-opacity));
         --text-color: rgb(31 41 55 / var(--tw-text-opacity));
         --text-muted-color: rgb(107 114 128 / var(--tw-text-opacity));
+        --light-background: rgb(255 255 255 / var(--tw-bg-opacity));
     }
     /* Dark theme variables */
      :root[class~="dark"] {
@@ -20,7 +21,34 @@
         --bg-color: rgb(15 23 42 / var(--tw-bg-opacity));
         --text-color: rgb(241 245 249 / var(--tw-text-opacity));
         --text-muted-color: rgb(148 163 184 / var(--tw-text-opacity));
+        --dark-background: rgb(15 23 42 / var(--tw-bg-opacity));
     }
+    /* Sweet theme variables */
+     :root[class~="sweet"] {
+        --border-color: rgb(255 209 230 / var(--tw-border-opacity));
+        --bg-color: rgb(255 245 249 / var(--tw-bg-opacity));
+        --text-color: rgb(122 44 96 / var(--tw-text-opacity));
+        --text-muted-color: rgb(176 108 159 / var(--tw-text-opacity));
+        --sweet-background: rgb(255 245 249 / var(--tw-bg-opacity));
+        
+        /* Sweet theme custom colors */
+        --sweet-primary: rgb(255 182 224 / var(--tw-bg-opacity));
+        --sweet-primary-rgb: 255, 182, 224;
+        --sweet-secondary: rgb(248 165 209 / var(--tw-bg-opacity));
+        --sweet-secondary-rgb: 248, 165, 209;
+        --sweet-accent: rgb(255 194 228 / var(--tw-bg-opacity));
+        --sweet-accent-rgb: 255, 194, 228;
+        --sweet-success: rgb(196 240 197 / var(--tw-text-opacity));
+        --sweet-success-rgb: 196, 240, 197;
+        --sweet-danger: rgb(255 138 175 / var(--tw-text-opacity));
+        --sweet-danger-rgb: 255, 138, 175;
+        
+        /* Theme color overrides for sweet theme */
+        --theme-500: var(--sweet-primary);
+        --theme-400: var(--sweet-secondary);
+        --theme-300: var(--sweet-accent);
+    }
+    
     /* Base input styles */
     input[type="text"],
     input[type="email"],
@@ -62,8 +90,191 @@
     .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
         filter: invert(0.8);
     }
+    
+    /* Sweet theme input styles */
+    .sweet input:focus,
+    .sweet textarea:focus,
+    .sweet select:focus {
+        border-color: rgb(255 182 193 / 0.5);
+        box-shadow: 0 0 0 2px rgb(255 182 193 / 0.1);
+    }
 }
 
+@layer components {
+    /* Global CSS variables */
+    :root {
+        --tw-bg-opacity: 1;
+        --tw-text-opacity: 1;
+        --tw-border-opacity: 1;
+    }
+    
+    /* Sweet theme utility classes */
+    .sweet {
+        --tw-bg-opacity: 1;
+        --tw-text-opacity: 1;
+        --tw-border-opacity: 1;
+        
+        /* Sweet theme background and text colors */
+        & .bg-light-bg {
+            background-color: rgb(255 245 247 / var(--tw-bg-opacity)) !important;
+        }
+        
+        & .bg-light-card {
+            background-color: rgb(255 248 250 / var(--tw-bg-opacity)) !important;
+        }
+        
+        & .bg-light-hover {
+            background-color: rgb(255 236 240 / var(--tw-bg-opacity)) !important;
+        }
+        
+        & .border-light-border {
+            border-color: rgb(255 209 220 / var(--tw-border-opacity)) !important;
+        }
+        
+        & .text-light-text {
+            color: rgb(74 44 64 / var(--tw-text-opacity)) !important;
+        }
+        
+        & .text-light-text-muted {
+            color: rgb(140 108 127 / var(--tw-text-opacity)) !important;
+        }
+        
+        /* Sweet theme status colors */
+        & .text-green-500, & .text-sweet-success {
+            color: rgb(255 182 193 / var(--tw-text-opacity)) !important;
+        }
+        
+        & .text-red-500, & .text-sweet-danger {
+            color: rgb(255 105 180 / var(--tw-text-opacity)) !important;
+        }
+        
+        & .bg-green-500\/10, & .bg-sweet-success\/10 {
+            background-color: rgba(255, 182, 193, 0.1) !important;
+        }
+        
+        & .bg-red-500\/10, & .bg-sweet-danger\/10 {
+            background-color: rgba(255, 105, 180, 0.1) !important;
+        }
+        
+        & .bg-green-500\/20, & .bg-sweet-success\/20 {
+            background-color: rgba(255, 182, 193, 0.2) !important;
+        }
+        
+        & .bg-red-500\/20, & .bg-sweet-danger\/20 {
+            background-color: rgba(255, 105, 180, 0.2) !important;
+        }
+        
+        & .border-green-500, & .border-sweet-success {
+            border-color: rgb(255, 182, 193, var(--tw-border-opacity)) !important;
+        }
+        
+        & .border-red-500, & .border-sweet-danger {
+            border-color: rgb(255, 105, 180, var(--tw-border-opacity)) !important;
+        }
+        
+        /* Sweet theme utility classes */
+        & .text-theme-500 {
+            color: rgb(255, 182, 193, var(--tw-text-opacity)) !important;
+        }
+        
+        & .text-theme-400 {
+            color: rgb(255, 182, 193, var(--tw-text-opacity)) !important;
+        }
+        
+        & .bg-theme-100 {
+            background-color: rgba(255, 182, 193, 0.1) !important;
+        }
+        
+        & .border-theme-200 {
+            border-color: rgba(255, 182, 193, 0.2) !important;
+        }
+        
+        & .shadow-theme-500\/25 {
+            box-shadow: 0 4px 6px -1px rgba(255, 182, 193, 0.25), 0 2px 4px -1px rgba(255, 182, 193, 0.1) !important;
+        }
+        
+        /* Sweet theme gradients */
+        & .bg-gradient-purple {
+            background-image: linear-gradient(135deg, #ffb6e0 0%, #f8a5d1 100%) !important;
+        }
+        
+        & .bg-gradient-purple-dark {
+            background-image: linear-gradient(135deg, #f8a5d1 0%, #ff8aaf 100%) !important;
+        }
+        
+        /* Sweet theme shadows */
+        & .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(255, 182, 224, 0.1), 0 4px 6px -2px rgba(255, 182, 224, 0.05);
+        }
+        
+        & .focus\:ring-theme-500:focus {
+            --tw-ring-color: rgba(255, 182, 224, 0.5);
+            --tw-ring-offset-color: var(--sweet-background);
+        }
+        
+        /* Sweet theme button hover */
+        & .btn-primary:hover {
+            background-image: linear-gradient(135deg, #f8a5d1 0%, #ff8aaf 100%) !important;
+        }
+    }
+    
+    /* Direct sweet variants for components */
+    .bg-sweet-bg {
+        background-color: rgb(255 245 247 / var(--tw-bg-opacity)) !important;
+    }
+    
+    .bg-sweet-card {
+        background-color: rgb(255 248 250 / var(--tw-bg-opacity)) !important;
+    }
+    
+    .bg-sweet-hover {
+        background-color: rgb(255 236 240 / var(--tw-bg-opacity)) !important;
+    }
+    
+    .border-sweet-border {
+        border-color: rgb(255 209 220 / var(--tw-border-opacity)) !important;
+    }
+    
+    .text-sweet-text {
+        color: rgb(74 44 64 / var(--tw-text-opacity)) !important;
+    }
+    
+    .text-sweet-text-muted {
+        color: rgb(140 108 127 / var(--tw-text-opacity)) !important;
+    }
+    
+    .text-sweet-success {
+        color: rgb(255 182 193 / var(--tw-text-opacity)) !important;
+    }
+    
+    .text-sweet-danger {
+        color: rgb(255 105 180 / var(--tw-text-opacity)) !important;
+    }
+    
+    .bg-sweet-success\/10 {
+        background-color: rgba(255, 182, 193, 0.1) !important;
+    }
+    
+    .bg-sweet-danger\/10 {
+        background-color: rgba(255, 105, 180, 0.1) !important;
+    }
+    
+    .bg-sweet-success\/20 {
+        background-color: rgba(255, 182, 193, 0.2) !important;
+    }
+    
+    .bg-sweet-danger\/20 {
+        background-color: rgba(255, 105, 180, 0.2) !important;
+    }
+    
+    .border-sweet-success {
+        border-color: rgb(255, 182, 193, var(--tw-border-opacity)) !important;
+    }
+    
+    .border-sweet-danger {
+        border-color: rgb(255, 105, 180, var(--tw-border-opacity)) !important;
+    }
+}
 
 /* Custom Animations */
 
@@ -556,4 +767,353 @@
 
 .extra-large .text-10xl {
     font-size: 4rem;
+}
+
+/* Update theme-related classes */
+.bg-theme-500 {
+    background-color: rgb(168 85 247 / var(--tw-bg-opacity));
+}
+.dark .bg-theme-500 {
+    background-color: rgb(168 85 247 / var(--tw-bg-opacity));
+}
+.sweet .bg-theme-500 {
+    background-color: var(--sweet-primary);
+}
+
+.bg-theme-600 {
+    background-color: rgb(147 51 234 / var(--tw-bg-opacity));
+}
+.dark .bg-theme-600 {
+    background-color: rgb(147 51 234 / var(--tw-bg-opacity));
+}
+.sweet .bg-theme-600 {
+    background-color: var(--sweet-secondary);
+}
+
+.bg-theme-700 {
+    background-color: rgb(126 34 206 / var(--tw-bg-opacity));
+}
+.dark .bg-theme-700 {
+    background-color: rgb(126 34 206 / var(--tw-bg-opacity));
+}
+.sweet .bg-theme-700 {
+    background-color: var(--sweet-accent);
+}
+
+.bg-theme-800 {
+    background-color: rgb(107 33 168 / var(--tw-bg-opacity));
+}
+.dark .bg-theme-800 {
+    background-color: rgb(107 33 168 / var(--tw-bg-opacity));
+}
+.sweet .bg-theme-800 {
+    background-color: rgb(255 162 173 / var(--tw-bg-opacity));
+}
+
+.bg-theme-900 {
+    background-color: rgb(88 28 135 / var(--tw-bg-opacity));
+}
+.dark .bg-theme-900 {
+    background-color: rgb(88 28 135 / var(--tw-bg-opacity));
+}
+.sweet .bg-theme-900 {
+    background-color: rgb(255 142 153 / var(--tw-bg-opacity));
+}
+
+.text-theme-500 {
+    color: rgb(168 85 247 / var(--tw-text-opacity));
+}
+.dark .text-theme-500 {
+    color: rgb(168 85 247 / var(--tw-text-opacity));
+}
+.sweet .text-theme-500 {
+    color: var(--sweet-primary);
+}
+
+.text-theme-600 {
+    color: rgb(147 51 234 / var(--tw-text-opacity));
+}
+.dark .text-theme-600 {
+    color: rgb(147 51 234 / var(--tw-text-opacity));
+}
+.sweet .text-theme-600 {
+    color: var(--sweet-secondary);
+}
+
+.text-theme-700 {
+    color: rgb(126 34 206 / var(--tw-text-opacity));
+}
+.dark .text-theme-700 {
+    color: rgb(126 34 206 / var(--tw-text-opacity));
+}
+.sweet .text-theme-700 {
+    color: var(--sweet-accent);
+}
+
+.text-theme-800 {
+    color: rgb(107 33 168 / var(--tw-text-opacity));
+}
+.dark .text-theme-800 {
+    color: rgb(107 33 168 / var(--tw-text-opacity));
+}
+.sweet .text-theme-800 {
+    color: rgb(255 162 173 / var(--tw-text-opacity));
+}
+
+.text-theme-900 {
+    color: rgb(88 28 135 / var(--tw-text-opacity));
+}
+.dark .text-theme-900 {
+    color: rgb(88 28 135 / var(--tw-text-opacity));
+}
+.sweet .text-theme-900 {
+    color: rgb(255 142 153 / var(--tw-text-opacity));
+}
+
+.border-theme-500 {
+    border-color: rgb(168 85 247 / var(--tw-border-opacity));
+}
+.dark .border-theme-500 {
+    border-color: rgb(168 85 247 / var(--tw-border-opacity));
+}
+.sweet .border-theme-500 {
+    border-color: var(--sweet-primary);
+}
+
+.border-theme-600 {
+    border-color: rgb(147 51 234 / var(--tw-border-opacity));
+}
+.dark .border-theme-600 {
+    border-color: rgb(147 51 234 / var(--tw-border-opacity));
+}
+.sweet .border-theme-600 {
+    border-color: var(--sweet-secondary);
+}
+
+.border-theme-700 {
+    border-color: rgb(126 34 206 / var(--tw-border-opacity));
+}
+.dark .border-theme-700 {
+    border-color: rgb(126 34 206 / var(--tw-border-opacity));
+}
+.sweet .border-theme-700 {
+    border-color: var(--sweet-accent);
+}
+
+.border-theme-800 {
+    border-color: rgb(107 33 168 / var(--tw-border-opacity));
+}
+.dark .border-theme-800 {
+    border-color: rgb(107 33 168 / var(--tw-border-opacity));
+}
+.sweet .border-theme-800 {
+    border-color: rgb(255 162 173 / var(--tw-border-opacity));
+}
+
+.border-theme-900 {
+    border-color: rgb(88 28 135 / var(--tw-border-opacity));
+}
+.dark .border-theme-900 {
+    border-color: rgb(88 28 135 / var(--tw-border-opacity));
+}
+.sweet .border-theme-900 {
+    border-color: rgb(255 142 153 / var(--tw-border-opacity));
+}
+
+/* Hover variants */
+.hover\:bg-theme-500:hover {
+    background-color: rgb(168 85 247 / var(--tw-bg-opacity));
+}
+.dark .hover\:bg-theme-500:hover {
+    background-color: rgb(168 85 247 / var(--tw-bg-opacity));
+}
+.sweet .hover\:bg-theme-500:hover {
+    background-color: var(--sweet-primary);
+}
+
+.hover\:bg-theme-600:hover {
+    background-color: rgb(147 51 234 / var(--tw-bg-opacity));
+}
+.dark .hover\:bg-theme-600:hover {
+    background-color: rgb(147 51 234 / var(--tw-bg-opacity));
+}
+.sweet .hover\:bg-theme-600:hover {
+    background-color: var(--sweet-secondary);
+}
+
+.hover\:bg-theme-700:hover {
+    background-color: rgb(126 34 206 / var(--tw-bg-opacity));
+}
+.dark .hover\:bg-theme-700:hover {
+    background-color: rgb(126 34 206 / var(--tw-bg-opacity));
+}
+.sweet .hover\:bg-theme-700:hover {
+    background-color: var(--sweet-accent);
+}
+
+.hover\:bg-theme-800:hover {
+    background-color: rgb(107 33 168 / var(--tw-bg-opacity));
+}
+.dark .hover\:bg-theme-800:hover {
+    background-color: rgb(107 33 168 / var(--tw-bg-opacity));
+}
+.sweet .hover\:bg-theme-800:hover {
+    background-color: rgb(255 162 173 / var(--tw-bg-opacity));
+}
+
+.hover\:bg-theme-900:hover {
+    background-color: rgb(88 28 135 / var(--tw-bg-opacity));
+}
+.dark .hover\:bg-theme-900:hover {
+    background-color: rgb(88 28 135 / var(--tw-bg-opacity));
+}
+.sweet .hover\:bg-theme-900:hover {
+    background-color: rgb(255 142 153 / var(--tw-bg-opacity));
+}
+
+.hover\:text-theme-500:hover {
+    color: rgb(168 85 247 / var(--tw-text-opacity));
+}
+.dark .hover\:text-theme-500:hover {
+    color: rgb(168 85 247 / var(--tw-text-opacity));
+}
+.sweet .hover\:text-theme-500:hover {
+    color: var(--sweet-primary);
+}
+
+.hover\:text-theme-600:hover {
+    color: rgb(147 51 234 / var(--tw-text-opacity));
+}
+.dark .hover\:text-theme-600:hover {
+    color: rgb(147 51 234 / var(--tw-text-opacity));
+}
+.sweet .hover\:text-theme-600:hover {
+    color: var(--sweet-secondary);
+}
+
+.hover\:text-theme-700:hover {
+    color: rgb(126 34 206 / var(--tw-text-opacity));
+}
+.dark .hover\:text-theme-700:hover {
+    color: rgb(126 34 206 / var(--tw-text-opacity));
+}
+.sweet .hover\:text-theme-700:hover {
+    color: var(--sweet-accent);
+}
+
+.hover\:text-theme-800:hover {
+    color: rgb(107 33 168 / var(--tw-text-opacity));
+}
+.dark .hover\:text-theme-800:hover {
+    color: rgb(107 33 168 / var(--tw-text-opacity));
+}
+.sweet .hover\:text-theme-800:hover {
+    color: rgb(255 162 173 / var(--tw-text-opacity));
+}
+
+.hover\:text-theme-900:hover {
+    color: rgb(88 28 135 / var(--tw-text-opacity));
+}
+.dark .hover\:text-theme-900:hover {
+    color: rgb(88 28 135 / var(--tw-text-opacity));
+}
+.sweet .hover\:text-theme-900:hover {
+    color: rgb(255 142 153 / var(--tw-text-opacity));
+}
+
+.hover\:border-theme-500:hover {
+    border-color: rgb(168 85 247 / var(--tw-border-opacity));
+}
+.dark .hover\:border-theme-500:hover {
+    border-color: rgb(168 85 247 / var(--tw-border-opacity));
+}
+.sweet .hover\:border-theme-500:hover {
+    border-color: var(--sweet-primary);
+}
+
+.hover\:border-theme-600:hover {
+    border-color: rgb(147 51 234 / var(--tw-border-opacity));
+}
+.dark .hover\:border-theme-600:hover {
+    border-color: rgb(147 51 234 / var(--tw-border-opacity));
+}
+.sweet .hover\:border-theme-600:hover {
+    border-color: var(--sweet-secondary);
+}
+
+.hover\:border-theme-700:hover {
+    border-color: rgb(126 34 206 / var(--tw-border-opacity));
+}
+.dark .hover\:border-theme-700:hover {
+    border-color: rgb(126 34 206 / var(--tw-border-opacity));
+}
+.sweet .hover\:border-theme-700:hover {
+    border-color: var(--sweet-accent);
+}
+
+.hover\:border-theme-800:hover {
+    border-color: rgb(107 33 168 / var(--tw-border-opacity));
+}
+.dark .hover\:border-theme-800:hover {
+    border-color: rgb(107 33 168 / var(--tw-border-opacity));
+}
+.sweet .hover\:border-theme-800:hover {
+    border-color: rgb(255 162 173 / var(--tw-border-opacity));
+}
+
+.hover\:border-theme-900:hover {
+    border-color: rgb(88 28 135 / var(--tw-border-opacity));
+}
+.dark .hover\:border-theme-900:hover {
+    border-color: rgb(88 28 135 / var(--tw-border-opacity));
+}
+.sweet .hover\:border-theme-900:hover {
+    border-color: rgb(255 142 153 / var(--tw-border-opacity));
+}
+
+/* Sweet theme form elements */
+.sweet input[type="text"],
+.sweet input[type="email"],
+.sweet input[type="password"],
+.sweet input[type="number"],
+.sweet input[type="date"],
+.sweet input[type="time"],
+.sweet textarea,
+.sweet select {
+    background-color: rgb(255 248 252 / var(--tw-bg-opacity));
+    border-color: rgb(255 209 230 / var(--tw-border-opacity));
+    color: rgb(122 44 96 / var(--tw-text-opacity));
+}
+
+.sweet input::placeholder,
+.sweet textarea::placeholder {
+    color: rgb(176 108 159 / 0.6);
+}
+
+.sweet input:focus,
+.sweet textarea:focus,
+.sweet select:focus {
+    border-color: rgb(255 182 224 / var(--tw-border-opacity));
+    --tw-ring-color: rgba(255, 182, 224, 0.5);
+}
+
+/* Sweet theme calendar styles */
+.sweet input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: opacity(0.6) invert(0.4) sepia(0.6) saturate(3) hue-rotate(295deg);
+    cursor: pointer;
+}
+
+/* Sweet theme card styles */
+.sweet .card {
+    border-radius: 1rem;
+    border-color: rgba(255, 209, 230, 0.5);
+    box-shadow: 0 10px 15px -3px rgba(255, 182, 224, 0.1), 0 4px 6px -2px rgba(255, 182, 224, 0.05);
+    background-color: rgb(255 248 252 / var(--tw-bg-opacity));
+    backdrop-filter: blur(12px);
+}
+
+.sweet .card-hover:hover {
+    border-color: rgba(255, 182, 224, 0.8);
+    box-shadow: 0 20px 25px -5px rgba(255, 182, 224, 0.1), 0 10px 10px -5px rgba(255, 182, 224, 0.04);
+    transform: translateY(-2px);
 }

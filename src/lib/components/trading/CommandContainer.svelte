@@ -367,6 +367,7 @@
     
     // Add this to your existing props
     export let parentId = null; // Parent container ID
+    export let parentContainerType = null; // Parent container type (IF, ELSE_IF, ELSE)
     
     function getConditionDefinition(conditionId) {
         return availableConditions.find(c => c.id === conditionId.split('_')[0]);
@@ -443,8 +444,14 @@
         dispatch('remove', { index, container });
     }
     
-    // Add child container
+    // Adjust the addChildContainer function to create both IF and ELSE containers
     function addChildContainer() {
+        if (nestingLevel >= 3) {
+            console.warn('Maximum nesting level reached. Cannot add more child containers.');
+            return;
+        }
+        
+        // Initialize children array if it doesn't exist
         if (!container.children) {
             container.children = [];
         }
@@ -452,13 +459,14 @@
         // Create IF container
         const ifContainer = {
             id: `container_if_${Date.now()}`,
-            name: 'Command Group',
+            name: 'Nested Condition',
             conditions: [],
             actions: [],
             children: [],
             containerType: 'IF',
             disabled: false,
-            comment: ''
+            comment: '',
+            parentId: container.id
         };
         
         // Create ELSE container
@@ -471,16 +479,35 @@
             containerType: 'ELSE',
             disabled: false,
             comment: '',
+            parentId: container.id,
             parentIfId: ifContainer.id // Reference to parent IF container
         };
         
         // Add both containers
         container.children = [...container.children, ifContainer, elseContainer];
         
-        // ต้องขยายให็นหลังจากเพิ่ม child
+        // ต้องขยายให้เห็นหลังจากเพิ่ม child
         isExpanded = true;
         
-        dispatch('update', { index, container });
+        // Send update event
+        dispatch('update', { container, index });
+        
+        // Also dispatch specialized events for the mini-map
+        dispatch('childcontainer', { 
+            childId: ifContainer.id, 
+            parentId: container.id,
+            level: nestingLevel + 1,
+            type: ifContainer.containerType,
+            name: ifContainer.name
+        });
+        
+        dispatch('childcontainer', { 
+            childId: elseContainer.id, 
+            parentId: container.id,
+            level: nestingLevel + 1,
+            type: elseContainer.containerType,
+            name: elseContainer.name
+        });
     }
     
     // Handle child container update
@@ -540,7 +567,7 @@
     
     // Handle container name change
     function handleNameChange() {
-        dispatch('update', { index, container });
+        saveContainerChanges();
     }
     
     // Toggle operator between AND/OR
@@ -714,6 +741,14 @@
                 });
             });
         }
+        
+        dispatch('registercontainer', {
+            id: container.id,
+            level: nestingLevel,
+            type: container.containerType,
+            name: container.name,
+            parentId
+        });
     });
     
     onDestroy(() => {
@@ -888,22 +923,30 @@
         const indentation = level * 0.75; // Reduced from larger value
         return `margin-left: ${indentation}rem;`;
     }
+    
+    function saveContainerChanges() {
+        // ส่ง event เมื่อมีการเปลี่ยนแปลงใดๆ ของ container
+        dispatch('update', { index, container });
+    }
 </script>
 
 <!-- Add bind:this to the main container div -->
-<div bind:this={containerRef} class="command-container bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg mb-4 {container.disabled ? 'opacity-75' : ''} 
-    {container.containerType === 'IF' ? 'if-container' : 
-     container.containerType === 'ELSE_IF' ? 'else-if-container' : 
-     container.containerType === 'ELSE' ? 'else-container' : ''}
-    nested-container-level-{nestingLevel} <!-- เพิ่ม class นี้ -->
+<div bind:this={containerRef} class="command-container bg-light-card dark:bg-dark-card 
+    border border-light-border dark:border-dark-border rounded-lg mb-4 
+    {container.containerType === 'IF' ? 'if-container border-l-4 border-l-blue-500 dark:border-l-blue-600' : 
+     container.containerType === 'ELSE_IF' ? 'else-if-container border-l-4 border-l-purple-500 dark:border-l-purple-600' : 
+     container.containerType === 'ELSE' ? 'else-container border-l-4 border-l-green-500 dark:border-l-green-600' : ''}
+    {container.disabled ? 'opacity-75' : ''} 
     {!isValidContainerPosition ? 'invalid-container-position ring-2 ring-red-500/30 dark:ring-red-600/40' : ''}"
     data-container-id={container.id}
     data-container-level={nestingLevel}
     data-container-type={container.containerType}>
-    <!-- Logic flow connector -->
-    {#if container.containerType === 'ELSE_IF' || container.containerType === 'ELSE'}
+    <!-- Logic flow connector - แก้ไขให้ถูกต้องตามโครงสร้าง -->
+    {#if nestingLevel > 0 && (container.containerType === 'IF' || container.containerType === 'ELSE_IF' || container.containerType === 'ELSE')}
         <div class="logic-connector 
-            {container.containerType === 'ELSE_IF' ? 'bg-purple-400 dark:bg-purple-600' : 'bg-green-400 dark:bg-green-600'}">
+            {parentContainerType === 'IF' || !parentContainerType ? 'bg-blue-400 dark:bg-blue-600' : 
+             parentContainerType === 'ELSE_IF' ? 'bg-purple-400 dark:bg-purple-600' : 
+             'bg-green-400 dark:bg-green-600'}">
         </div>
     {/if}
     
@@ -1021,19 +1064,17 @@
             </button>
                         
                         <!-- Add Child Container option -->
-            <button
-                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            on:click|stopPropagation={() => {
-                                addChildContainer();
-                                closeAllDropdowns();
-                            }}
-                            role="menuitem"
-                        >
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                            Add Child IF-ELSE
-            </button>
+                        {#if nestingLevel < 3}
+                            <button 
+                                class="flex items-center text-sm px-3 py-1.5 rounded-md bg-theme-50 dark:bg-theme-900/20 text-theme-600 dark:text-theme-400 border border-theme-200 dark:border-theme-800"
+                                on:click={addChildContainer}
+                            >
+                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Add Child IF-ELSE
+                            </button>
+                        {/if}
                         
                         <!-- Test Conditions option -->
                 <button 
@@ -1434,7 +1475,6 @@
             {#if container.children && container.children.length > 0}
                 <div class="nested-containers mt-4 border-t border-light-border dark:border-dark-border pt-4">
                     {#each container.children as childContainer, childIndex}
-                        <!-- ตรงนี้แก้โดยไม่ใช้ style inline แต่ใช้ class แทน -->
                         <div class="child-container">
                             <svelte:self
                                 container={childContainer}
@@ -1442,6 +1482,7 @@
                                 nestingLevel={nestingLevel + 1}
                                 siblingContainers={container.children}
                                 parentId={container.id}
+                                parentContainerType={container.containerType}
                                 on:update={handleChildUpdate}
                                 on:remove={handleChildRemove}
                                 on:selectcondition
@@ -1885,10 +1926,10 @@
     
     .logic-connector {
         position: absolute;
-        left: -1.5rem;
-        top: 50%;
-        width: 1.5rem;
-        height: 2px;
+        left: -2.2rem;
+        top: 2rem;
+        width: 2.05rem;
+        height: 4px;
         background-color: rgba(var(--color-theme-500-rgb), 0.5);
     }
     
@@ -1966,6 +2007,25 @@
         /* Existing styles */
         overflow: visible;
     }
-
-
+    
+    /* Add these styles */
+    .command-container {
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    
+    /* Subtle glow for containers in dark mode */
+    :global(.dark) .if-container {
+        box-shadow: 0 0 8px rgba(59, 130, 246, 0.2);
+    }
+    
+    :global(.dark) .else-if-container {
+        box-shadow: 0 0 8px rgba(168, 85, 247, 0.2);
+    }
+    
+    :global(.dark) .else-container {
+        box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
+    }
+    
+    /* ลบส่วน hover effects ออก และเก็บแค่ส่วนอื่นๆ ไว้ */
 </style>

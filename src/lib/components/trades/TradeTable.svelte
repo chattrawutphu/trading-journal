@@ -13,6 +13,8 @@
     export let type = 'closed'; // 'open' or 'closed'
     export let isInModal = false; // Add this prop
     export let dailyBalance = null; // Add this prop to receive daily balance
+    export let filters = null; // Add filters prop
+    export let isTradesPage = false; // Add flag to indicate if we're in the trades page
 
     let sortField = type === 'closed' ? 'exitDate' : 'entryDate';
     let sortDirection = 'desc';
@@ -69,68 +71,18 @@
         return (pnl / amount) * 100;
     }
 
-    // เพิ่มฟังก์ชันสำหรับคำนวณ unrealized PnL
-    function calculateUnrealizedPnL(trade, currentPrice) {
-        if (!currentPrice) return null;
-        const qty = trade.quantity;
-        if (trade.side === 'LONG') {
-            return (currentPrice - trade.entryPrice) * qty;
-        } else {
-            return (trade.entryPrice - currentPrice) * qty;
+    // Make this reactive to both trades and filters - if either changes, we refilter
+    $: filteredTrades = filterTrades(trades);
+    
+    // Explicitly make this reactive to filters to ensure it updates when filters change
+    $: {
+        if (filters) {
+            // Force refiltering when filters change
+            filteredTrades = filterTrades(trades);
         }
     }
 
-    // ปรับปรุงฟังก์ชัน setupBinanceWebSocket
-    function setupBinanceWebSocket() {
-        isLoadingPrices = true;
-        
-        // ปิด WebSocket เก่าถ้ามี
-        if (binanceWs) {
-            binanceWs.close();
-        }
-
-        // กรองเฉพาะ open trades และสร้าง symbols array
-        const openTrades = trades.filter(t => t.status === 'OPEN');
-        const symbols = openTrades.map(t => t.symbol.toLowerCase());
-
-        if (symbols.length === 0) {
-            isLoadingPrices = false;
-            return;
-        }
-
-        // สร้าง WebSocket connection ใหม่
-        binanceWs = binanceExchange.createPriceWebSocket(symbols);
-
-        binanceWs.onopen = () => {
-            isLoadingPrices = true;
-        };
-
-        binanceWs.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.e === 'markPriceUpdate') {
-                isLoadingPrices = false;
-                const symbol = data.s;
-                const price = parseFloat(data.p);
-                currentPrices.set(symbol, price);
-                currentPrices = currentPrices; // Trigger Svelte reactivity
-            }
-        };
-
-        binanceWs.onerror = () => {
-            isLoadingPrices = false;
-        };
-
-        // Cleanup เมื่อ component ถูก destroy
-        return () => {
-            if (binanceWs) {
-                binanceWs.close();
-            }
-            isLoadingPrices = false;
-        };
-    }
-
-    // ปรับปรุง sortedTrades reactive statement
-    $: sortedTrades = [...trades].map(trade => ({
+    $: sortedTrades = [...filteredTrades].map(trade => ({
         ...trade,
         currentPrice: currentPrices.get(trade.symbol),
         unrealizedPnL: type === 'open' ? binanceExchange.calculateUnrealizedPnL(trade, currentPrices.get(trade.symbol)) : trade.pnl
@@ -312,6 +264,206 @@
         if (trade.status !== 'OPEN' || !trade.entryPrice || !trade.unrealizedPnL) return null;
         const percentage = (trade.unrealizedPnL / trade.amount) * 100;
         return percentage.toFixed(2);
+    }
+
+    // Add back the setupBinanceWebSocket function
+    function setupBinanceWebSocket() {
+        isLoadingPrices = true;
+        
+        // ปิด WebSocket เก่าถ้ามี
+        if (binanceWs) {
+            binanceWs.close();
+        }
+
+        // กรองเฉพาะ open trades และสร้าง symbols array
+        const openTrades = trades.filter(t => t.status === 'OPEN');
+        const symbols = openTrades.map(t => t.symbol.toLowerCase());
+
+        if (symbols.length === 0) {
+            isLoadingPrices = false;
+            return;
+        }
+
+        // สร้าง WebSocket connection ใหม่
+        binanceWs = binanceExchange.createPriceWebSocket(symbols);
+
+        binanceWs.onopen = () => {
+            isLoadingPrices = true;
+        };
+
+        binanceWs.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.e === 'markPriceUpdate') {
+                isLoadingPrices = false;
+                const symbol = data.s;
+                const price = parseFloat(data.p);
+                currentPrices.set(symbol, price);
+                currentPrices = currentPrices; // Trigger Svelte reactivity
+            }
+        };
+
+        binanceWs.onerror = () => {
+            isLoadingPrices = false;
+        };
+
+        // Cleanup เมื่อ component ถูก destroy
+        return () => {
+            if (binanceWs) {
+                binanceWs.close();
+            }
+            isLoadingPrices = false;
+        };
+    }
+
+    function filterTrades(tradesArray) {
+        // If not in trades page or no filters are provided, return all trades
+        if (!isTradesPage || !filters) {
+            return tradesArray;
+        }
+        
+        console.log("Filtering trades with filters:", filters);
+        
+        return tradesArray.filter(trade => {
+            // Symbol filter - add null check
+            if (filters.symbol && !trade.symbol.toLowerCase().includes(filters.symbol.toLowerCase())) {
+                return false;
+            }
+            
+            // Status filter - add null check
+            if (filters.status && filters.status.length > 0 && !filters.status.includes(trade.status)) {
+                return false;
+            }
+            
+            // Side filter - add null check
+            if (filters.side && filters.side.length > 0 && !filters.side.includes(trade.side)) {
+                return false;
+            }
+            
+            // Date range filter - add null check
+            if (filters.dateRange) {
+                const entryDate = new Date(trade.entryDate);
+                if (filters.dateRange.start) {
+                    const startDate = new Date(filters.dateRange.start);
+                    if (entryDate < startDate) return false;
+                }
+                if (filters.dateRange.end) {
+                    const endDate = new Date(filters.dateRange.end);
+                    endDate.setHours(23, 59, 59, 999); // End of the day
+                    if (entryDate > endDate) return false;
+                }
+            }
+            
+            // Type filter - add null check
+            if (filters.type && filters.type.length > 0 && !filters.type.includes(trade.type)) {
+                return false;
+            }
+            
+            // Favorite filter
+            if (filters.favorite && !trade.favorite) {
+                return false;
+            }
+
+            // Tags filter
+            if (filters.tags.length > 0) {
+                if (!trade.tags || !filters.tags.some(tag => trade.tags.includes(tag))) {
+                    return false;
+                }
+            }
+
+            // Profitable/Unprofitable filter
+            if (filters.profitableOnly && (trade.pnl <= 0 || trade.status === 'OPEN')) {
+                return false;
+            }
+            if (filters.unprofitableOnly && (trade.pnl >= 0 || trade.status === 'OPEN')) {
+                return false;
+            }
+
+            // Strategy filter
+            if (filters.strategy && (!trade.strategy || trade.strategy !== filters.strategy)) {
+                return false;
+            }
+
+            // Emotions filter
+            if (filters.emotions.length > 0 && (!trade.emotions || !filters.emotions.includes(trade.emotions))) {
+                return false;
+            }
+
+            // Confidence level filter
+            if (trade.confidenceLevel < filters.confidenceLevel.min || 
+                trade.confidenceLevel > filters.confidenceLevel.max) {
+                return false;
+            }
+
+            // Greed level filter
+            if (trade.greedLevel < filters.greedLevel.min || 
+                trade.greedLevel > filters.greedLevel.max) {
+                return false;
+            }
+
+            // Stop Loss filter
+            if (filters.hasStopLoss !== null && trade.hasStopLoss !== filters.hasStopLoss) {
+                return false;
+            }
+
+            // Take Profit filter
+            if (filters.hasTakeProfit !== null && trade.hasTakeProfit !== filters.hasTakeProfit) {
+                return false;
+            }
+
+            // Amount range filter
+            if (filters.amount.min && trade.amount < parseFloat(filters.amount.min)) {
+                return false;
+            }
+            if (filters.amount.max && trade.amount > parseFloat(filters.amount.max)) {
+                return false;
+            }
+
+            // PnL range filter
+            if (filters.pnl.min && trade.pnl < parseFloat(filters.pnl.min)) {
+                return false;
+            }
+            if (filters.pnl.max && trade.pnl > parseFloat(filters.pnl.max)) {
+                return false;
+            }
+
+            // PnL percentage filter
+            const pnlPercentage = calculatePnLPercentage(trade.pnl, trade.amount);
+            if (filters.pnlPercentage.min && pnlPercentage < parseFloat(filters.pnlPercentage.min)) {
+                return false;
+            }
+            if (filters.pnlPercentage.max && pnlPercentage > parseFloat(filters.pnlPercentage.max)) {
+                return false;
+            }
+
+            // Exclude zero PnL filter
+            if (filters.excludeZeroPnL && trade.pnl === 0) {
+                return false;
+            }
+
+            // Disabled filter
+            if (filters.disabled !== null && trade.disabled !== filters.disabled) {
+                return false;
+            }
+
+            // Position history filter
+            if (filters.positionHistory && (!trade.positionHistory || trade.positionHistory.length === 0)) {
+                return false;
+            }
+
+            // If we get here, the trade passed all filters
+            return true;
+        });
+    }
+
+    // เพิ่มฟังก์ชันสำหรับคำนวณ unrealized PnL
+    function calculateUnrealizedPnL(trade, currentPrice) {
+        if (!currentPrice) return null;
+        const qty = trade.quantity;
+        if (trade.side === 'LONG') {
+            return (currentPrice - trade.entryPrice) * qty;
+        } else {
+            return (trade.entryPrice - currentPrice) * qty;
+        }
     }
 </script>
 

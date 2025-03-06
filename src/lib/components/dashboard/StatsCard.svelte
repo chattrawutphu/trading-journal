@@ -188,29 +188,28 @@
         const baseClasses = "w-full h-full rounded-sm transition-colors duration-200";
         
         if (isFutureDate(day)) {
-            return `${baseClasses} bg-gray-500/5 dark:bg-gray-700/20`;
+            return `${baseClasses} bg-gray-500/5 dark:bg-gray-700/20 sweet:bg-gray-400/10`;
         }
         
         const pnl = dailyPnL[day] || 0;
-        // console.log(`Day ${day} PnL:`, pnl);
         
         if (pnl > 0) {
-            return `${baseClasses} bg-green-500/50 dark:bg-green-500/40`;
+            return `${baseClasses} bg-green-500/50 dark:bg-green-500/40 sweet:bg-sweet-success/40`;
         }
         if (pnl < 0) {
-            return `${baseClasses} bg-red-500/50 dark:bg-red-500/40`;
+            return `${baseClasses} bg-red-500/50 dark:bg-red-500/40 sweet:bg-sweet-danger/40`;
         }
-        return `${baseClasses} bg-gray-200/50 dark:bg-gray-600/30`;
+        return `${baseClasses} bg-gray-200/50 dark:bg-gray-600/30 sweet:bg-gray-300/30`;
     }
 
     function getDayTextClass(day) {
         if (!day || isFutureDate(day)) {
-            return "text-light-text-muted/50 dark:text-dark-text-muted/50";
+            return "text-light-text-muted/50 dark:text-dark-text-muted/50 sweet:text-sweet-text-muted/50";
         }
         const pnl = dailyPnL[day] || 0;
-        if (pnl > 0) return "text-green-800 dark:text-green-200 font-semibold";
-        if (pnl < 0) return "text-red-800 dark:text-red-200 font-semibold";
-        return "text-light-text-muted dark:text-dark-text-muted";
+        if (pnl > 0) return "text-green-800 dark:text-green-200 sweet:text-sweet-success font-semibold";
+        if (pnl < 0) return "text-red-800 dark:text-red-200 sweet:text-sweet-danger font-semibold";
+        return "text-light-text-muted dark:text-dark-text-muted sweet:text-sweet-text-muted";
     }
 
     // Add new calculations
@@ -248,6 +247,19 @@
         const wins = trades.filter(t => t.pnl > 0).length;
         return Math.round((wins / trades.length) * 100);
     }
+
+    // Add helper functions for theme-consistent coloring
+    function getPnLColorClass(value) {
+        return value > 0 
+            ? 'text-green-500 dark:text-green-500 sweet:text-sweet-success' 
+            : value < 0 
+                ? 'text-red-500 dark:text-red-500 sweet:text-sweet-danger' 
+                : 'text-light-text-muted dark:text-dark-text-muted sweet:text-sweet-text-muted';
+    }
+
+    function getStatCardClass(theme) {
+        return `stat-item bg-light-card dark:bg-dark-card sweet:bg-sweet-card shadow-sm border border-light-border dark:border-dark-border sweet:border-sweet-border rounded-lg p-4 ${theme}`;
+    }
 </script>
 
 <div class="card h-full flex flex-col {textSize}">
@@ -265,8 +277,8 @@
                             </div>
                         <div>
                             <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Total P&L</h3>
-                            <p class="text-lg font-bold {totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}">
-                                ${totalPnL.toFixed(2)}
+                            <p class="text-lg font-bold {getPnLColorClass(totalPnL)}">
+                                {new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(totalPnL)}
                             </p>
                         </div>
                     </div>
@@ -353,7 +365,9 @@
                         </div>
                         <div>
                             <h3 class="text-sm font-medium text-light-text-muted dark:text-dark-text-muted">Win Rate</h3>
-                            <p class="text-lg font-bold text-light-text dark:text-dark-text">{winRate}%</p>
+                            <p class="text-lg font-bold text-light-text dark:text-dark-text">
+                                {winRate}%
+                            </p>
                         </div>
                     </div>
                 </div>

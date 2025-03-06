@@ -21,3 +21,10 @@ theme.subscribe((value) => {
         localStorage.setItem('theme', value);
     }
 });
+
+// Export valid theme values for type-checking
+export const THEMES = {
+    LIGHT: 'light',
+    DARK: 'dark',
+    SWEET: 'sweet'
+};
