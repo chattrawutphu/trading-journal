@@ -21,7 +21,8 @@
     import DayConfigModal from './DayConfigModal.svelte';
     import { dayTagStore } from '$lib/stores/dayTagStore';
     import DayTagHistoryModal from './DayTagHistoryModal.svelte';
-
+    import TradeAIAnalysisModal from "$lib/components/ai/TradeAIAnalysisModal.svelte";
+    import AskAIButton from "$lib/components/ai/AskAIButton.svelte";
     const dispatch = createEventDispatcher();
 
     export let show = false;
@@ -58,6 +59,9 @@
     let showTagHistoryModal = false;
     let selectedTag = null;
     let selectedTagColor = null;
+
+    let showAIAnalysisModal = false;
+    let aiAnalysisTrade = null;
 
     $: if (show && accountId && date) {
         // Reset dayConfig เมื่อเปลี่ยนวัน
@@ -441,6 +445,59 @@
         showTagHistoryModal = false;
     }
 
+    function handleAskAI() {
+        // Prepare data for AI analysis
+        aiAnalysisTrade = {
+            // Meta information
+            date: date,
+            displayDate: displayDate,
+            
+            // Day summary
+            summary: {
+                totalPnL: dailySummary.totalPnL,
+                winCount: dailySummary.winCount,
+                lossCount: dailySummary.lossCount,
+                winRate: parseFloat(winRate),
+                openTradesCount: dailySummary.openTradesCount,
+                closedTradesCount: dailySummary.closedTradesCount,
+                totalDeposits: dailySummary.totalDeposits,
+                totalWithdrawals: dailySummary.totalWithdrawals,
+                unrealizedPnL: totalUnrealizedPnL,
+                startBalance: dailyBalance?.startBalance,
+                endBalance: dailyBalance?.endBalance
+            },
+            
+            // Day notes and tags
+            notes: dayConfig?.note || "",
+            tags: dayConfig?.tags || [],
+            
+            // All trades for the day (simplified version)
+            trades: trades.map(trade => ({
+                id: trade.id,
+                symbol: trade.symbol,
+                side: trade.side,
+                status: trade.status,
+                entryPrice: trade.entryPrice,
+                exitPrice: trade.exitPrice,
+                entryDate: trade.entryDate,
+                exitDate: trade.exitDate,
+                pnl: trade.pnl,
+                amount: trade.amount,
+                stopLoss: trade.stopLoss,
+                takeProfit: trade.takeProfit,
+                strategy: trade.strategy,
+                entryReason: trade.entryReason,
+                exitReason: trade.exitReason,
+                confidenceLevel: trade.confidenceLevel,
+                emotions: trade.emotions,
+                tags: trade.tags
+            }))
+        };
+        
+        // Open the AI analysis modal
+        showAIAnalysisModal = true;
+    }
+
     onMount(async () => {
         // ... existing onMount code ...
         await dayTagStore.loadTags(); // เพิ่มการโหลด tags
@@ -485,16 +542,17 @@
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-4 md:gap-1">
                         <Button variant="secondary" size="xs" on:click={handleDeposit}>
-                            <svg class="w-5 h-5 md:w-3 md:h-3 mr-0 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            <svg slot="icon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
                             </svg>
-                            <span class="hidden md:flex">Deposit</span>
+                            Deposit
                         </Button>
+
                         <Button variant="secondary" size="xs" on:click={handleWithdraw}>
-                            <svg class="w-5 h-5 md:w-3 md:h-3 mr-0 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            <svg slot="icon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-6-6h12" />
                             </svg>
-                            <span class="hidden md:flex">Withdraw</span>
+                            Withdraw
                         </Button>
                         <Button variant="secondary" size="xs" on:click={handleConfigEdit}>
                             <svg class="w-5 h-5 md:w-3 md:h-3 mr-0 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -502,13 +560,22 @@
                             </svg>
                             <span class="hidden md:flex">Edit</span>
                         </Button>
+
+                        <Button variant="primary" size="sm" on:click={handleNewTrade}>
+                            <svg slot="icon" class="w-5 h-5 mr-0 md:mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                            New Trade
+                        </Button>
+                        
+                        <!-- Add AskAI button here, next to New Trade -->
+                        <AskAIButton 
+                            disabled={trades.length === 0}
+                            on:click={handleAskAI}
+                            label="Ask AI"
+                            size="sm"
+                        />
                     </div>
-                    <Button variant="primary" size="sm" on:click={handleNewTrade}>
-                        <svg class="w-5 h-5 mr-0 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        <span class="hidden md:flex">New Trade</span>
-                    </Button>
                     <button class="p-2 rounded-lg text-light-text-muted dark:text-dark-text-muted hover:text-theme-500 hover:bg-light-hover dark:hover:bg-dark-hover"
                             on:click={close}>
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -856,6 +923,12 @@
     {accountId}
     onDaySelect={handleDaySelect}
     on:configUpdated={handleTagHistoryUpdate}
+/>
+
+<TradeAIAnalysisModal
+    bind:show={showAIAnalysisModal}
+    trade={aiAnalysisTrade}
+    chartData={[]}
 />
 
 <style lang="postcss">
