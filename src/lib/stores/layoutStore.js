@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { api } from '$lib/utils/api';
 
-// ปรับปรุง initial state ให้มี activeLayoutIndex
+// ปรับปรุง initial state
 const initialState = {
     layouts: [],
     activeLayoutIndex: 0
@@ -18,36 +18,40 @@ layoutStore.setActiveLayout = (index) => {
     }));
 };
 
-// ปรับปรุงฟังก์ชัน loadLayouts
+// ปรับปรุงฟังก์ชัน loadLayouts ให้ใช้ API แทน localStorage
 layoutStore.loadLayouts = async () => {
     try {
-        const storedLayouts = localStorage.getItem('layouts');
-        if (storedLayouts) {
-            const layouts = JSON.parse(storedLayouts);
-            // อัพเดต store ด้วยค่า layouts และคงค่า activeLayoutIndex ไว้
-            layoutStore.update(state => ({
-                ...state,
-                layouts
-            }));
-            return layouts;
-        }
+        // เปลี่ยนจากการใช้ localStorage มาใช้ API
+        const layouts = await api.getLayouts();
+        
+        // อัพเดต store ด้วยค่า layouts และคงค่า activeLayoutIndex ไว้
+        layoutStore.update(state => ({
+            ...state,
+            layouts
+        }));
+        return layouts;
     } catch (error) {
-        console.error('Error loading layouts:', error);
+        console.error('Error loading layouts from database:', error);
+        // หากเกิดข้อผิดพลาด ส่งคืนอาร์เรย์ว่าง
+        return [];
     }
-    return [];
 };
 
-// ปรับปรุงฟังก์ชัน saveLayouts
+// ปรับปรุงฟังก์ชัน saveLayouts ให้ใช้ API แทน localStorage
 layoutStore.saveLayouts = async (layouts) => {
     try {
-        localStorage.setItem('layouts', JSON.stringify(layouts));
+        // เปลี่ยนจากการใช้ localStorage มาใช้ API
+        await api.saveLayouts(layouts);
+        
         // อัพเดต store เฉพาะส่วน layouts
         layoutStore.update(state => ({
             ...state,
             layouts
         }));
+        
+        return true;
     } catch (error) {
-        console.error('Error saving layouts:', error);
+        console.error('Error saving layouts to database:', error);
         throw error;
     }
 };

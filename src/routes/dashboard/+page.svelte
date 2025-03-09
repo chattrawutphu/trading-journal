@@ -146,34 +146,59 @@
     // Modified loadLayouts function
     async function loadLayouts() {
         try {
+            dispatch('setLoading', true);
             const savedLayouts = await layoutStore.loadLayouts();
             
-            // เปลี่ยนวิธีการเข้าถึง layouts จาก store
-            layoutStore.subscribe(state => {
-                layouts = state.layouts || [];
-                // ตั้งค่า activeLayoutIndex ถ้ายังไม่ได้กำหนด
-                if (activeLayoutIndex === undefined || activeLayoutIndex >= layouts.length) {
-                    activeLayoutIndex = 0;
-                }
-            })();
-            
+            if (savedLayouts && savedLayouts.length > 0) {
+                // อัพเดต layouts จาก store
+                layoutStore.subscribe(state => {
+                    layouts = state.layouts || [];
+                    // ตั้งค่า activeLayoutIndex ถ้ายังไม่ได้กำหนด
+                    if (activeLayoutIndex === undefined || activeLayoutIndex >= layouts.length) {
+                        activeLayoutIndex = 0;
+                    }
+                })();
+            } else {
+                // ถ้าไม่มี layouts ในฐานข้อมูล สร้าง layout เริ่มต้น
+                layouts = [createDefaultLayout()];
+                // และบันทึกลงฐานข้อมูล
+                await layoutStore.saveLayouts(layouts);
+            }
         } catch (error) {
-            console.error('Error loading layouts:', error);
-            // Reset to default if there's an error
+            console.error('Error loading layouts from database:', error);
+            // กำหนดค่าเริ่มต้น
             layouts = [createDefaultLayout()];
             activeLayoutIndex = 0;
+            
+            // แสดงข้อความผิดพลาด
+            error = 'Failed to load layouts from server. Using default layout.';
+            showToast = true;
+            toastType = 'error';
+            toastMessage = error;
+        } finally {
+            dispatch('setLoading', false);
         }
     }
 
     // Modified saveLayouts function
     async function saveLayouts() {
         try {
+            dispatch('setLoading', true);
             await layoutStore.saveLayouts(layouts);
+            // แสดงข้อความสำเร็จ
+            toastType = 'success';
+            toastMessage = 'Layout saved successfully';
+            showToast = true;
+            
             // ส่ง event เพื่อแจ้งว่า layouts มีการเปลี่ยนแปลง
             window.dispatchEvent(new CustomEvent('layoutupdate'));
         } catch (error) {
-            console.error('Error saving layouts:', error);
-            error = 'Failed to save layouts. Please try again.';
+            console.error('Error saving layouts to database:', error);
+            toastType = 'error';
+            toastMessage = 'Failed to save layouts. Please try again.';
+            showToast = true;
+        } finally {
+            dispatch('setLoading', false);
         }
     }
 
