@@ -2,7 +2,6 @@
     import { fade, fly, slide } from 'svelte/transition';
     import { createEventDispatcher } from 'svelte';
     import { onMount, onDestroy } from 'svelte';
-    import AskAIButton from '$lib/components/ai/AskAiButton.svelte';
     
     const dispatch = createEventDispatcher();
     

@@ -1883,22 +1883,17 @@
     />
 {/if}
 
-{#if showAiAnalysisModal && trade}
+<!-- AI Analysis Modal -->
+{#if showAiAnalysisModal}
     <TradeAIAnalysisModal 
         bind:show={showAiAnalysisModal} 
-        {trade}
+        {trade} 
         chartData={chartData} 
         on:close={() => showAiAnalysisModal = false}
     />
 {/if}
 
-<!-- AI Analysis Button -->
-<div class="mt-4">
-    <AskAIButton 
-        onClick={openAIAnalysis}
-        theme="primary"
-    />
-</div>
+<!-- Remove duplicate AI Analysis Button -->
 
 <style>
     /* Smooth scrolling */
