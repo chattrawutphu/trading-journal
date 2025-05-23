@@ -1,9 +1,13 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  import { browser } from '$app/environment';
 
   let floatingContainer;
   let floatingElements = [];
   let floatingAnimationId;
+  let isVisible = true;
+  let lastRenderTime = 0;
+  const frameInterval = 1000 / 15; // Limit to 15 FPS for better performance
 
   // Define trading icons
   const icons = [
@@ -35,25 +39,34 @@
   ];
 
   function initFloatingElements() {
-    if (!floatingContainer) return;
+    if (!floatingContainer || !browser) return;
     
     const { width, height } = floatingContainer.getBoundingClientRect();
-    const elementCount = Math.min(Math.floor(width * height / 100000), 15);
+    // Reduce number of elements for better performance
+    const elementCount = Math.min(Math.floor(width * height / 200000), 8);
     
     floatingElements = Array.from({ length: elementCount }).map(() => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      size: Math.random() * 20 + 20,
-      speedX: (Math.random() - 0.5) * 0.5,
-      speedY: (Math.random() - 0.5) * 0.5,
+      size: Math.random() * 15 + 15, // Smaller elements
+      speedX: (Math.random() - 0.5) * 0.2, // Slower movement
+      speedY: (Math.random() - 0.5) * 0.2, // Slower movement
       rotation: Math.random() * 360,
-      rotationSpeed: (Math.random() - 0.5) * 0.5,
+      rotationSpeed: (Math.random() - 0.5) * 0.2, // Slower rotation
       icon: icons[Math.floor(Math.random() * icons.length)]
     }));
   }
   
-  function updateFloatingElements() {
-    if (!floatingContainer) {
+  function updateFloatingElements(timestamp) {
+    // Skip frames to improve performance
+    if (timestamp - lastRenderTime < frameInterval) {
+      floatingAnimationId = requestAnimationFrame(updateFloatingElements);
+      return;
+    }
+    
+    lastRenderTime = timestamp;
+    
+    if (!floatingContainer || !isVisible) {
       floatingAnimationId = requestAnimationFrame(updateFloatingElements);
       return;
     }
@@ -65,17 +78,16 @@
       element.x += element.speedX;
       element.y += element.speedY;
       
-      // Update rotation
-      element.rotation += element.rotationSpeed;
-      
-      // Bounce off edges
-      if (element.x < 0 || element.x > width - element.size) {
-        element.speedX *= -1;
+      // Update rotation - only update every other frame
+      if (Math.random() > 0.5) {
+        element.rotation += element.rotationSpeed;
       }
       
-      if (element.y < 0 || element.y > height - element.size) {
-        element.speedY *= -1;
-      }
+      // Simplified boundary check
+      if (element.x < 0) element.x = width - element.size;
+      if (element.x > width - element.size) element.x = 0;
+      if (element.y < 0) element.y = height - element.size;
+      if (element.y > height - element.size) element.y = 0;
       
       return element;
     });
@@ -86,13 +98,48 @@
     floatingAnimationId = requestAnimationFrame(updateFloatingElements);
   }
 
+  // Use Intersection Observer to only render when visible
+  let observer;
+
   onMount(() => {
+    if (!browser) return;
+    
     initFloatingElements();
-    window.addEventListener('resize', initFloatingElements);
-    updateFloatingElements();
+    
+    // Use a debounced resize handler
+    let resizeTimeout;
+    const handleResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(initFloatingElements, 250);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    // Use Intersection Observer to pause animation when not visible
+    observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      
+      if (isVisible && !floatingAnimationId) {
+        floatingAnimationId = requestAnimationFrame(updateFloatingElements);
+      } else if (!isVisible && floatingAnimationId) {
+        cancelAnimationFrame(floatingAnimationId);
+        floatingAnimationId = null;
+      }
+    }, { threshold: 0.1 });
+    
+    if (floatingContainer) {
+      observer.observe(floatingContainer);
+    }
+    
+    // Only start animation when visible
+    if (isVisible) {
+      floatingAnimationId = requestAnimationFrame(updateFloatingElements);
+    }
     
     return () => {
-      window.removeEventListener('resize', initFloatingElements);
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimeout);
+      if (observer) observer.disconnect();
       cancelAnimationFrame(floatingAnimationId);
     };
   });
@@ -101,14 +148,17 @@
     if (floatingAnimationId) {
       cancelAnimationFrame(floatingAnimationId);
     }
+    if (observer) {
+      observer.disconnect();
+    }
   });
 </script>
 
 <div bind:this={floatingContainer} class="absolute inset-0 overflow-hidden pointer-events-none z-0">
   {#each floatingElements as element, i}
     <div 
-      class="absolute" 
-      style="left: {element.x}px; top: {element.y}px; transform: rotate({element.rotation}deg); transition: transform 0.1s linear;"
+      class="floating-element" 
+      style="left: {element.x}px; top: {element.y}px; transform: rotate({element.rotation}deg);"
     >
       <svg 
         width={element.size} 
@@ -119,6 +169,7 @@
         stroke-width="1.5" 
         stroke-linecap="round" 
         stroke-linejoin="round"
+        style="will-change: transform;"
       >
         <path d={element.icon.path}></path>
       </svg>
@@ -148,5 +199,12 @@
   
   .z-0 {
     z-index: 0;
+  }
+  
+  .floating-element {
+    position: absolute;
+    will-change: transform;
+    transform: translateZ(0);
+    transition: transform 0.2s linear;
   }
 </style> 

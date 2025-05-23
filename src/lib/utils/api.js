@@ -1,28 +1,33 @@
 // src/lib/utils/api.js
 const API_URL =
     import.meta.env.VITE_API_URL ||
-    `http://localhost:${import.meta.env.VITE_SERVER_PORT}/api`;
+    `http://localhost:${import.meta.env.VITE_SERVER_PORT || 5000}/api`;
 
 export const api = {
     async fetch(endpoint, options = {}) {
-        const defaultOptions = {
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        };
+        try {
+            const defaultOptions = {
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            };
 
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            ...defaultOptions,
-            ...options,
-        });
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                ...defaultOptions,
+                ...options,
+            });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Something went wrong');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Something went wrong');
+            }
+
+            return response.json();
+        } catch (error) {
+            console.error(`API Error (${endpoint}):`, error);
+            throw error;
         }
-
-        return response.json();
     },
 
     // Auth endpoints
@@ -34,10 +39,16 @@ export const api = {
     },
 
     async register(userData) {
-        return await api.fetch('/auth/register', {
-            method: 'POST',
-            body: JSON.stringify(userData),
-        });
+        try {
+            const result = await api.fetch('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify(userData),
+            });
+            return result;
+        } catch (error) {
+            console.error('Register error:', error);
+            throw error;
+        }
     },
 
     async logout() {
@@ -47,7 +58,12 @@ export const api = {
     },
 
     async getProfile() {
-        return await api.fetch('/auth/profile');
+        try {
+            return await api.fetch('/auth/profile');
+        } catch (error) {
+            console.error('Get profile error:', error);
+            throw error;
+        }
     },
 
     async updateProfile(userData) {

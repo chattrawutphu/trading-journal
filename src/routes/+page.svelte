@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  import { browser } from '$app/environment';
   import CosmicNebula from '$lib/components/effect/CosmicNebula.svelte';
   import AnimatedBackground from '$lib/components/effect/AnimatedBackground.svelte';
   import FloatingElements from '$lib/components/effect/FloatingElements.svelte';
@@ -13,6 +14,12 @@
   let sections = [];
   let animatedElements = [];
   let observer;
+  
+  // Performance optimizations
+  let showBackgroundEffects = true;
+  let userPrefersReducedMotion = false;
+  let hasScrolled = false;
+  let visibleSections = new Set();
   
   // Define trading icons
   const icons = [
@@ -209,19 +216,39 @@
     { value: "15+", label: "Supported Exchanges" }
   ];
   
-  // Initialize animations on mount
+  // Initialize animations on mount with performance improvements
   onMount(() => {
-    // Initialize scroll animations
+    if (!browser) return;
+    
+    // Check for reduced motion preference
+    userPrefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (userPrefersReducedMotion) {
+      showBackgroundEffects = false;
+    }
+    
+    // Initialize scroll animations with improved performance
     initScrollAnimations();
     
-    // Rotate active exchange and feature
+    // Rotate active exchange and feature with less frequency
     const interval = setInterval(() => {
-      activeExchange = (activeExchange + 1) % exchanges.length;
-      activeFeature = (activeFeature + 1) % features.length;
-    }, 3000);
+      // Only update if user has scrolled (indicates engagement)
+      if (hasScrolled) {
+        activeExchange = (activeExchange + 1) % exchanges.length;
+        activeFeature = (activeFeature + 1) % features.length;
+      }
+    }, 5000); // Increased from 3000 to 5000ms
+    
+    // Track scroll for performance optimization
+    const handleScroll = () => {
+      hasScrolled = true;
+      // Remove listener after first scroll
+      window.removeEventListener('scroll', handleScroll);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
     
     return () => {
       clearInterval(interval);
+      window.removeEventListener('scroll', handleScroll);
       
       // Clean up scroll observer
       if (observer) {
@@ -230,20 +257,34 @@
     };
   });
   
-  // Initialize scroll animations
+  // Initialize scroll animations with performance improvements
   function initScrollAnimations() {
+    if (!browser) return;
+    
     // Get all sections and animated elements
     sections = document.querySelectorAll('.animate-section');
     animatedElements = document.querySelectorAll('.animate-element');
     
-    // Create intersection observer for sections
+    // Create intersection observer for sections with options for better performance
     observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('animate-visible');
+          // Track visible sections to optimize rendering
+          if (entry.target.classList.contains('animate-section')) {
+            visibleSections.add(entry.target.id || Math.random().toString(36).substring(2, 9));
+          }
+        } else {
+          // Optional: remove animations when no longer visible to save resources
+          if (entry.target.classList.contains('animate-section')) {
+            visibleSections.delete(entry.target.id || Math.random().toString(36).substring(2, 9));
+          }
         }
       });
-    }, { threshold: 0.1 });
+    }, { 
+      threshold: 0.1,
+      rootMargin: '100px' // Preload a bit before elements come into view
+    });
     
     // Observe all sections and animated elements
     sections.forEach(section => observer.observe(section));
@@ -254,15 +295,40 @@
   function toggleDemo() {
     showDemo = !showDemo;
   }
+  
+  // Toggle background effects for performance
+  function toggleBackgroundEffects() {
+    showBackgroundEffects = !showBackgroundEffects;
+  }
 </script>
 
 <div class="min-h-screen bg-black text-white relative overflow-hidden">
-  <!-- Cosmic Nebula Background -->
-  <div class="absolute inset-0 z-10 w-full h-full overflow-hidden pointer-events-none">
-    <CosmicNebula />
-  </div>
+  <!-- Conditionally render heavy background effects -->
+  {#if showBackgroundEffects && browser}
+    <!-- Cosmic Nebula Background with lazy initialization -->
+    <div class="absolute inset-0 z-10 w-full h-full overflow-hidden pointer-events-none">
+      <CosmicNebula />
+    </div>
 
-  <!-- Header with Cosmic Nebula Background -->
+    <!-- Animated Background with lazy initialization -->
+    <AnimatedBackground 
+      particleCount={100} 
+      connectionDistance={150}
+    />
+    
+    <!-- Floating Elements with lazy initialization -->
+    <FloatingElements />
+  {/if}
+
+  <!-- Performance toggle for users with slower devices -->
+  <button 
+    class="fixed bottom-4 right-4 z-50 bg-black/50 text-white text-xs px-2 py-1 rounded backdrop-blur-sm border border-white/10"
+    on:click={toggleBackgroundEffects}
+  >
+    {showBackgroundEffects ? 'Disable effects' : 'Enable effects'}
+  </button>
+
+  <!-- Header with simplified background -->
   <header class="absolute top-0 left-0 right-0 z-50 h-16 bg-black/50 backdrop-blur-sm">
     <div class="relative flex items-center justify-between px-6 py-4 z-10">
       <div class="flex items-center gap-2">
@@ -287,12 +353,6 @@
     </div>
   </header>
   
-  <!-- Animated Background -->
-  <AnimatedBackground />
-  
-  <!-- Floating Elements -->
-  <FloatingElements />
-
   <!-- Hero Section -->
   <section class="relative z-10 py-20 px-6 animate-section  bg-black/50 pt-[8rem]">
     <div class="max-w-7xl mx-auto">
@@ -1277,6 +1337,56 @@
 </div>
 
 <style>
+  /* Add will-change hints for elements that will animate */
+  .animate-section {
+    opacity: 0;
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    will-change: opacity, transform;
+  }
+  
+  .animate-section.animate-visible {
+    opacity: 1;
+  }
+  
+  .animate-element {
+    opacity: 0;
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    will-change: opacity, transform;
+  }
+  
+  .animate-element.animate-visible {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+  }
+  
+  /* Use more efficient transform properties for animations */
+  .slide-right {
+    transform: translateX(-20px);
+  }
+  
+  .slide-left {
+    transform: translateX(20px);
+  }
+  
+  .fade-in {
+    transform: translateY(15px);
+  }
+  
+  /* Use efficient properties for animations */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-section,
+    .animate-element {
+      transition: opacity 0.1s ease-out !important;
+      transform: none !important;
+    }
+    
+    .slide-right,
+    .slide-left,
+    .fade-in {
+      transform: none !important;
+    }
+  }
+  
   /* Base styles */
   .inset-0 {
     position: absolute;

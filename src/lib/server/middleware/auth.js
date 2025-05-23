@@ -21,3 +21,12 @@ export const protect = async(req, res, next) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+export const ensureAuthenticated = async ({ locals }) => {
+    if (!locals.user) {
+        return new Response(JSON.stringify({ message: 'Unauthorized' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+};
