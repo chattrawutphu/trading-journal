@@ -284,7 +284,7 @@
   export let height = "100%";
 </script>
 
-<canvas bind:this={canvas} class="block"></canvas>
+<canvas bind:this={canvas} class="block CosmicNebula"></canvas>
 
 <style>
   canvas {
